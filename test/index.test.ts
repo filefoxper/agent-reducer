@@ -91,6 +91,23 @@ describe('classify query test without update', () => {
 
 });
 
+describe('record state', () => {
+
+    const reducer = createAgentReducer<ClassifyQueryState, ClassifyQueryAgent>(ClassifyQueryAgent);
+
+    const agent = reducer.agent;
+
+    test('handlePageChange', async () => {
+        const unRecord = reducer.record();
+        await agent.handlePageChange(2, 3);
+        const [loadingRecord, resultChangeRecord] = unRecord();
+        expect(loadingRecord.state.loading).toBe(true);
+        expect(resultChangeRecord.state.loading).toBe(false);
+
+    });
+
+});
+
 describe('classify query test with env.updateBy `manual`', () => {
 
     //We create a simple outside store, and make the reducer work with this store.
@@ -167,6 +184,19 @@ describe('classify query test with env.updateBy `manual`', () => {
         unsubscribe();
     });
 
+    test('only updateBy:`auto` can record state changes', async () => {
+        try{
+            const unRecord = reducer.record();
+            await agent.handlePageChange(2, 3);
+            const [loadingRecord, resultChangeRecord] = unRecord();
+            expect(loadingRecord.state.loading).toBe(true);
+            expect(resultChangeRecord.state.loading).toBe(false);
+        }catch (e) {
+            expect(e.message.toString().includes('auto')).toBe(true);
+        }
+
+    });
+
 });
 
 describe('classify query test env.expired', () => {
@@ -215,22 +245,6 @@ class Counter implements OriginAgent<number> {
     }
 
 }
-
-describe('env.strict test', () => {
-
-    test('strict true', () => {
-        const agent = createAgentReducer(new Counter(0)).agent;
-        agent.addTwice();
-        expect(agent.state).toBe(2);
-    });
-
-    test('strict false', () => {
-        const agent = createAgentReducer(new Counter(0), {strict: false}).agent;
-        agent.addTwice();
-        expect(agent.state).toBe(2);
-    });
-
-});
 
 describe('agent test', () => {
 

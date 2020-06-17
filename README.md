@@ -6,18 +6,24 @@
 [standard-image]: https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square
 [standard-url]: http://npm.im/standard
 
+[中文文档](https://github.com/filefoxper/agent-reducer/blob/master/README_ch.md)
+
+recommend usages:
+1. [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer) react hook for replace useReducer
+2. [use-redux-agent](https://www.npmjs.com/package/use-redux-agent) react hook for enhance react-redux
+
 # agent-reducer
 
 ### reducer
-We have used to reducer long long ago, and it brings us a lot of benefits when we organize states. 
-It provides a pure functional writing mode to make our state predictable, and simplify the logic what state flows by keyword <strong>return</strong>.
+reducer brings us a lot of benefits when we organize states. 
+It provides a pure functional writing mode to make our state predictable. 
+When we use keyword <strong>return</strong> to give out then next state, the rest logic can be negligible.
 
 But it has some problems too. When we dispatch an action, we have to use `dispatch({type:'...',payload:{...}})` to tell 
 reducer driver, we have put an action, please handle it, and give out the next state. 
-We can not find out which branch in reducer has invoked easily. 
+We can not use it easily as deploy a function. 
 
-So, we have done some thing to make the `dispatch({type:'...',payload:{...}})` more easy to be used like a function in an object. 
-When you invoke the function, an <strong>dispatch</strong> will be triggered to reducer instead.
+So, we have made some change to let `dispatch({type:'...',payload:{...}})` be `object.handleChange(...args)`. 
 
 ### make reducer a little better
 Now, let's write a reducer like this:
@@ -54,14 +60,16 @@ console.log(agent.state); // 1
 agent.addOneAfterOneSecond();
 setTimeout(() => console.log(agent.state)); // 2
 ```
-The code above gives us a new style to write a reducer, and it remains a store like redux store, 
-but more simple, to maintain the state. You can connect to your own reducer driver like redux store or react hook useReducer.
+more in [test](https://github.com/filefoxper/agent-reducer/blob/master/test/index.test.ts)
 
-But first, let's analyze this code. 
+The code above gives us a new style to write reducer. The function `createAgentReducer` remains a store like redux store inside, 
+but more simple. Of course, you can connect to your own reducer driver like redux store or react hook useReducer too.
 
-The function `addOne` returns a next state, like a true reducer, it will change the state in store.
-So, it like a dispatch too, which can set arguments more friendly, and do not need a type string as a notifier, 
-because it is a function. The current state can be retrieve from this.state. So, We don't have to write a reducer like this now:
+Before that, let's analyze the code at first. 
+
+The function `addOne` above returns a next state, like a true reducer, it will change the state in store. 
+And when you deploy it from agent like `agent.addOne()`, it dispatch an action.
+The current state can be retrieved from `agent.state` or `this.state`. So, We don't have to write a reducer like this now:
 ```typescript
 const countReducer=(state:number,action)=>{
     if(action.type === 'ADD_ONE'){
@@ -78,43 +86,39 @@ function addOneAfterOneSecond(){
     setTimeout(()=>dispatch({type:'ADD_ONE'}),1000);
 }
 ```
-If you are using typescript, the type system will give you more infos to keep your code reliable.
+If you are using typescript, the type system will give you more infos to keep your code more reliable.
 There are some rules about this tool, you should know, before use it, and trust me, they are simple enough.
 
 ### rules
-1 . The class or object which will replace reducer call <strong>agent</strong> here. To be an <strong>agent</strong>, 
-it must has a <strong>state</strong> property, and do not modify <strong>state</strong> manually. 
-this.state preserve the current state, so you can compute a <strong>next state</strong> by this.state and arguments from an <strong>agent</strong> function.
-```
-like agent.state
-```
-2 . The function in your <strong>agent</strong> which returns an object <strong>not</strong> undefined or promise, 
-will be an <strong>dispatch function</strong>, when you deploy, it like dispatch an action to reducer. 
-when this function invoke, it like a branch in a reducer function.  
+1 . The class or object to `createAgentReducer` function is called <strong> originAgent</strong>. To be an <strong>originAgent</strong>, 
+it must has a <strong>state</strong> property. Do not modify <strong>state</strong> manually. 
+this.state preserve the current state, so you can compute a <strong>next state</strong> by this.state and params in an <strong>originAgent</strong> function.
+
+2 . The object `createAgentReducer(originAgent).agent` is called <strong>agent</strong>. 
+And the function in your <strong>agent</strong> which returns an object <strong>not</strong> undefined or promise, 
+will be an <strong>dispatch function</strong>, when you deploy it, an action contains next state will be dispatched to a true reducer.  
 ```
 like agent.addOne, agent.sum
 ```
-3 . The function which returns <strong>undefined | promise | void</strong> is just a simple function,
+3 . The function which returns <strong>undefined | promise</strong> is just a simple function,
 which can deploy <strong>dispatch functions</strong> to change state.
 ```
 like agent.addOneAfterOneSecond
 ```
 4 . <strong>Do not use namespace property</strong> in your agent. 
-The property '<strong>namespace</strong>' will be used to connect with global state like combined reducers mapping state in redux.
-( We will try to remove this rule by next version. )
+The property '<strong>namespace</strong>' will be used by `createAgentReducer` inside.
+( We will try to remove this rule by next big version. )
 
 ### features
-1. Do not afraid about using <strong>this.xxx</strong>, when you use agent from <strong>createAgentReducer(agent:OriginAgent)</strong>.
-The agent is rebuild by proxy and Object.defineProperties, and the functions in it have bind <strong>this</strong> by using sourceFunction.apply(agentProxy,...args),
-so you can use those functions by reassign to any other object, and <strong>this</strong> in this function is locked to the agent object.
-2. <strong>useAgent</strong> knows when your component unmount by using <strong>useEffect</strong>, so, 
-it will stop dispatch when your component has unmounted.
+1. Do not worry about using <strong>this.xxx</strong>, when you use <strong>agent</strong> from <strong>createAgentReducer(originAgent).agent</strong>.
+The <strong>agent</strong> has been rebuild by proxy and Object.defineProperties, the functions inside have bind <strong>this</strong> by using sourceFunction.apply(agentProxy,...args),
+so you can use those functions by reassign to any other object, and <strong>this</strong> in this function is locked to the <strong>agent</strong> object.
 
-### update by other reducer drivers
+### connect to another reducer driver
 Use <strong>update</strong> method from an <strong>agentReducer</strong>, which is created by <strong>createAgentReducer</strong>,
 like:
 ```typescript
-//We create a simple outside store, and make the reducer work with this store.
+//We create a simple outside store, and make the agent work with this store.
     function createStore<S>(reducer: Reducer<S, Action>, initialState: S) {
         let listener = undefined;
         let state = initialState;
@@ -137,14 +141,14 @@ like:
         }
     }
 
-    //open manual mode by env.updateBy='manual'
+    //use manual mode by a configurable env {updateBy: 'manual'}
     const reducer = createAgentReducer<number, Counter>(Counter, {updateBy: 'manual'});
 
-    //update state to store after the agentReducer run.
     const store = createStore<number>(reducer, reducer.initialState);
-    
+    //update state and dispatch function after the store works, we can use subscribe a listener to do this again and again
     const listener = () => reducer.update(store.getState(), store.dispatch);
     const unsubscribe = store.subscribe(listener);
+    //before all, we try to fetch the newest state and dispatch from store.
     listener();
     
     const agent = reducer.agent;
@@ -153,61 +157,58 @@ like:
 ```
 more in [test](https://github.com/filefoxper/agent-reducer/blob/master/test/index.test.ts)
 ### api
+createAgentReducer(originAgent: T | { new(): T }, e?: Env)
+
+###### params
+1. originAgent：a class or object with state property and functions, for replacing the reducer
+2. e（Env）：agent running environment
+
+e（Env）：
+
+1 . updateBy：'auto'|'manual'    （how to update state and dispatch）
+
+defaults 'auto'. When 'auto', the state and dispatch will be remains by a inside store. 
+When 'manual', the state and dispatch should be updated by an outside reducer driver by using <strong>reducer.update(state,dispatch)</strong>.
+
+2 . expired：false|true      （mark agent is expired）
+
+defaults false. When false, every thing works well. When true, the dispatched action will never reach the reducer.
+So, state can not be updated any way.
+
+3 . strict：true|false       （force the agent update state by reducer driver）
+
+defaults true. When true, the agent state will be updated exactly by reducer driver state changes. 
+When false, the agent state will be updated quickly by the result invoked from the <strong>dispatch function</strong>.
+
+###### return
+reducer （like function reducer(state:State,action:Action):State}）
+
+reducer padding utils:
+1. initialState：initial state for agent and reducer
+2. env（Env）：agent running environment，ref to <strong>params 2</strong>
+3. agent：a proxy from originAgent, which can dispatch actions by deploy <strong>dispatch functions</strong>,
+and retrieve current state by using agent.state;
+4. update(state,dispatch)：update state and dispatch from an outside reducer driver (like store). 
+It only works when env.updateBy==='manual'.
+5. record()：deploy to tell agent, you need to record dispatch actions now. It returns an unRecord function, 
+when you deploy unRecord function, you can get an dispatched record array.
+
 ```typescript
-/**
-* 
-* @param originAgent agent class or object
-* @param e Env set how to run the dispatch and how to update state
-* 
-* @return agentReducer a normal reducer function which is transformed from originAgent
-*         and with an agentData, which can update state and dispatch from an out reducer driver.
-*         initialState, env, agent
-*/
-declare function createAgentReducer<S, T extends OriginAgent<S>>(originAgent: T | { new(): T }, e?: Env): AgentReducer<S, Action, T>
+describe('record state', () => {
 
-/**
-* the agent plays like a classify reducer, which must has a state. Be careful about namespace
-*/
-interface OriginAgent<S = any> {
-  state: S,
-  namespace?: string
-}
+    const reducer = createAgentReducer<ClassifyQueryState, ClassifyQueryAgent>(ClassifyQueryAgent);
 
-/**
-*  a normal reducer with properties from AgentData below
-*/
-type AgentReducer<S = any, A = any, T extends OriginAgent<S> = any> = Reducer<S, A> & AgentData<S, T>;
+    const agent = reducer.agent;
 
-/**
-* a data parasite in agentReducer above
-*/
-interface AgentData<S = any, T extends OriginAgent<S> = OriginAgent<S>> {
-  initialState: S,      //state from agent (when agent is rebuild first time) 
-  namespace?: string,   //when you using combineReducers, you may need it.
-  env: Env,             //a config about how to dispatch and how to update state when running
-  agent: T,             //an agent object rebuild from origin agent, which provide the interfaces you can deploy
-  update: (nextState: S, dispatch: Dispatch) => void
-                        //a method to use an outside reducer driver
-}
+    test('handlePageChange', async () => {
+        const unRecord = reducer.record();
+        await agent.handlePageChange(2, 3);
+        const [loadingRecord, resultChangeRecord] = unRecord();
+        expect(loadingRecord.state.loading).toBe(true);
+        expect(resultChangeRecord.state.loading).toBe(false);
 
-interface Env {
-  updateBy?:'manual'|'auto', //default 'auto', when 'manual', 
-                             // you can use agentReducer.update method to update your state and change the dispatch function to another one.
-  expired?: boolean,         //default false, set an agent expired true, will stop the dispatch function's work. 
-  callbacks?: any[],         // deprecated
-  strict?: boolean           //default true, set strict false will make this.state change immediately before an dispatch has done.
-                             //It is useful sometimes ( like consecutive dispatch in react ). But, we do not recommend doing this.
-}
+    });
 
-//you don't care
-type Reducer<S, A> = (state: S, action: A) => S;
-
-//you don't care
-type Action = {
-  type: string | number,
-  args?: any
-};
-
-//you don't care
-type Dispatch = (action: Action) => any;
+});
 ```
+more in [test](https://github.com/filefoxper/agent-reducer/blob/master/test/index.test.ts)
