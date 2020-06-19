@@ -190,8 +190,8 @@ reducer padding utils:
 and retrieve current state by using agent.state;
 4. update(state,dispatch)：update state and dispatch from an outside reducer driver (like store). 
 It only works when env.updateBy==='manual'.
-5. record()：deploy to tell agent, you need to record dispatch actions now. It returns an unRecord function, 
-when you deploy unRecord function, you can get an dispatched record array.
+5. recordSateChanges()：deploy to tell agent, you need to record state changes now. It returns an getStateChanges function, 
+when you deploy getStateChanges function, you can get an state change record array.
 
 ```typescript
 describe('record state', () => {
@@ -201,9 +201,9 @@ describe('record state', () => {
     const agent = reducer.agent;
 
     test('handlePageChange', async () => {
-        const unRecord = reducer.record();
+        const getStateChanges = reducer.recordStateChanges();
         await agent.handlePageChange(2, 3);
-        const [loadingRecord, resultChangeRecord] = unRecord();
+        const [loadingRecord, resultChangeRecord] = getStateChanges();
         expect(loadingRecord.state.loading).toBe(true);
         expect(resultChangeRecord.state.loading).toBe(false);
 

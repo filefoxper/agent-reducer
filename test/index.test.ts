@@ -98,7 +98,7 @@ describe('record state', () => {
     const agent = reducer.agent;
 
     test('handlePageChange', async () => {
-        const unRecord = reducer.record();
+        const unRecord = reducer.recordStateChanges();
         await agent.handlePageChange(2, 3);
         const [loadingRecord, resultChangeRecord] = unRecord();
         expect(loadingRecord.state.loading).toBe(true);
@@ -186,7 +186,7 @@ describe('classify query test with env.updateBy `manual`', () => {
 
     test('only updateBy:`auto` can record state changes', async () => {
         try{
-            const unRecord = reducer.record();
+            const unRecord = reducer.recordStateChanges();
             await agent.handlePageChange(2, 3);
             const [loadingRecord, resultChangeRecord] = unRecord();
             expect(loadingRecord.state.loading).toBe(true);

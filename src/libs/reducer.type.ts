@@ -19,7 +19,7 @@ interface AgentData<S = any, T extends OriginAgent<S> = OriginAgent<S>> {
     env: Env,
     agent: T,
     update: (nextState: S, dispatch: Dispatch) => void,
-    record: () => () => Array<Record<S>>
+    recordStateChanges: () => () => Array<Record<S>>
 }
 
 export type AgentReducer<S = any, A = any, T extends OriginAgent<S> = any> = Reducer<S, A> & AgentData<S, T>;

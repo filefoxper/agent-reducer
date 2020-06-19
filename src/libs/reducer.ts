@@ -168,12 +168,12 @@ export function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>
             entity.state = nextState;
             storeSlot.dispatch = dispatch;
         },
-        record() {
+        recordStateChanges() {
             if (env.updateBy !== 'auto') {
                 throw new Error('You should set env.updateBy to be `auto` before record.');
             }
             records = [];
-            return function endRecord(): Array<Record<S>> {
+            return function getStateChanges(): Array<Record<S>> {
                 const result = [...records];
                 records = undefined;
                 return result;

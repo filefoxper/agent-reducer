@@ -207,7 +207,7 @@ reducer附带参数：
 3. agent：代理对象，拥有和原生被代理对象originAgent近乎一摸一样的属性，通过agent.state获取最新state数据，通过agent.xxx(function)
 调用方法（dispatch function或非dispatch function）
 4. update(state,dispatch)：传入最新的state和dispatch更新agent的state对象以及dispatch入口
-5. record()：在env.updateBy为'auto'时，可以在调用agent方法前调用，返回一个unRecord方法，通过调用unRecord()，
+5. recordStateChanges()：在env.updateBy为'auto'时，可以在调用agent方法前调用，返回一个getStateChanges方法，通过调用getStateChanges()，
 可获取dispatch记录，并清理内存记录。
 ```typescript
 describe('record state', () => {
@@ -217,9 +217,9 @@ describe('record state', () => {
     const agent = reducer.agent;
 
     test('handlePageChange', async () => {
-        const unRecord = reducer.record();
+        const getStateChanges = reducer.recordStateChanges();
         await agent.handlePageChange(2, 3);
-        const [loadingRecord, resultChangeRecord] = unRecord();
+        const [loadingRecord, resultChangeRecord] = getStateChanges();
         expect(loadingRecord.state.loading).toBe(true);
         expect(resultChangeRecord.state.loading).toBe(false);
 
