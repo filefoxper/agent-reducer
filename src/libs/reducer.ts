@@ -1,70 +1,82 @@
-import {Action, AgentReducer, Dispatch, Env, OriginAgent, Reducer, StoreSlot, Record} from "./reducer.type";
+import {createProxy, isPromise, isUndefined, shallowCopy} from "./utils";
+import {agentDependenciesKey, DefaultActionType} from "./defines";
+import {
+    Action,
+    AgentReducer,
+    Dispatch,
+    Env,
+    AgentDependencies,
+    OriginAgent,
+    StateChange,
+    Reducer,
+    StoreSlot
+} from "./reducer.type";
+import {BranchApi} from "./branch.type";
 
-export enum DefaultActionType {
-    DX_INITIAL_STATE = '@DX_INITIAL_STATE'
-}
-
-function createProxy<S, T extends OriginAgent<S>>(entry: T, proxyHandler: ProxyHandler<T>): T {
-    const proxy = new Proxy(entry, proxyHandler);
-    return proxy as T;
-}
-
-function isVoid(data) {
-    return data === undefined || data === null;
-}
-
-function isPromise(data) {
-    if (!data) {
-        return false;
-    }
-    return typeof data.then === 'function';
+function generateDispatchCall<S, T extends OriginAgent<S>>(invokeDependencies: AgentDependencies<S, T>) {
+    const {entry, store, env} = invokeDependencies;
+    const namespace = entry.namespace;
+    return ({type, args}: Action) => {
+        const {branchApi} = invokeDependencies;
+        if (env.expired || (branchApi && branchApi.getStatus())) {
+            return args;
+        }
+        const newType = namespace === undefined ? type : (namespace + ':' + type);
+        const nextState = args;
+        if (nextState !== undefined && !env.strict) {
+            entry.state = nextState;
+        }
+        return store.dispatch({type: newType, args});
+    };
 }
 
 function createActionRunner<S, T extends OriginAgent<S>>(
     proxy: T,
-    entity: T,
-    type: string | number,
-    source: Function,
-    dispatch: Dispatch,
-    env: Env
+    invokeDependencies: AgentDependencies<S, T>,
+    type: string,
+    source: Function
 ) {
 
-    return function caller(...args) {
+    const dispatchCall = generateDispatchCall(invokeDependencies);
+
+    const stateDispatch = <NS = S>(nextState: NS) => {
+        dispatchCall({type, args: nextState});
+    };
+
+    return function caller(...args: any[]) {
 
         const nextState = source.apply(proxy, [...args]);
 
-        if (isPromise(nextState) || isVoid(nextState)) {
+        const {branchApi} = invokeDependencies;
+
+        if (branchApi) {
+            const plugin = branchApi.getPlugin();
+            return plugin(nextState, stateDispatch, branchApi);
+        }
+
+        if (isPromise(nextState) || isUndefined(nextState)) {
             return nextState;
         }
 
-        dispatch({type, args: nextState});
-
-        if (nextState !== undefined && !env.strict) {
-            entity.state = nextState;
-        }
+        stateDispatch(nextState);
 
         return nextState;
-    }
+    };
 }
 
-export function generateAgent<S, T extends OriginAgent<S>>(entry: T, store: StoreSlot<S>, env: Env): T {
+export function generateAgent<S, T extends OriginAgent<S>>(entry: T, store: StoreSlot<S>, env: Env, branchApi?: BranchApi): T {
 
-    const namespace = entry.namespace;
+    const invokeDependencies: AgentDependencies<S, T> = {entry, store, env, branchApi};
 
-    const dispatchCall = ({type, args}: Action) => {
-        const newType = namespace === undefined ? type : (namespace + ':' + type);
-        return store.dispatch({type: newType, args});
-    };
-
-    const proxy = createProxy(entry, {
-        get(target: T, p: string | number): any {
-            const value = target[p];
-            if (typeof value === 'function') {
-                return createActionRunner(proxy, entry, p, value, dispatchCall, env);
+    let proxy: T & { [agentDependenciesKey]?: AgentDependencies<S, T> } = createProxy(entry, {
+        get(target: T, p: string & keyof T): any {
+            const source = target[p];
+            if (typeof source === 'function') {
+                return createActionRunner(proxy, invokeDependencies, p, source);
             }
             return entry[p];
         },
-        set(target: T, p: string | number | symbol, value: any): boolean {
+        set(target: T, p: string & keyof T, value: any): boolean {
             const source = target[p];
             if (p !== 'state' && typeof source !== 'function') {
                 entry[p] = value;
@@ -75,7 +87,7 @@ export function generateAgent<S, T extends OriginAgent<S>>(entry: T, store: Stor
     });
     const all = Object.getOwnPropertyDescriptors(entry);
     const it = Object.entries(all);
-    const array = [...it].filter(([key, {value}]) => typeof value === 'function');
+    const array = [...it].filter(([key, {value}]) => key !== undefined && typeof value === 'function');
     const withProxy: Array<[string, PropertyDescriptor]> = array.map(([key, desc]) => [
         key,
         desc.writable ? {
@@ -87,7 +99,11 @@ export function generateAgent<S, T extends OriginAgent<S>>(entry: T, store: Stor
     ]);
     const descHandler = withProxy.reduce((res, [key, desc]) => ({...res, [key]: desc}), {});
     Object.defineProperties(entry, descHandler);
-    return proxy;
+    if (branchApi) {
+        return proxy as T;
+    }
+    proxy[agentDependenciesKey] = invokeDependencies;
+    return proxy as T;
 }
 
 /**
@@ -102,7 +118,7 @@ export function createReducer<S, T extends OriginAgent<S>>(entry: T): Reducer<S,
      *
      * @param actionType    可能有object的一个属性或namespace+':'+属性组成
      */
-    function parseActionType(actionType) {
+    function parseActionType(actionType: string): [string | undefined, string] {
         const [namespaceOrType, type] = actionType.split(':');
         const namespace = type === undefined ? undefined : namespaceOrType;
         const actualType = type === undefined ? namespaceOrType : type;
@@ -132,9 +148,9 @@ export function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>
 
     let env: Env = {expired: false, strict: true, updateBy: 'auto', ...e};
 
-    let records: undefined | Array<Record<S>> = undefined;
+    let stateChanges: undefined | Array<StateChange<S>> = undefined;
 
-    let entity = typeof originAgent === 'function' ? new originAgent() : originAgent;
+    let entity = typeof originAgent === 'function' ? new originAgent() : shallowCopy(originAgent);
 
     const initialState = entity.state;
 
@@ -150,8 +166,8 @@ export function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>
             }
             const nextState = reducer(this.getState(), action);
             entity.state = nextState;
-            if (records) {
-                records.push({type: action.type, state: nextState});
+            if (stateChanges) {
+                stateChanges.push({type: action.type, state: nextState});
             }
         }
     };
@@ -172,10 +188,10 @@ export function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>
             if (env.updateBy !== 'auto') {
                 throw new Error('You should set env.updateBy to be `auto` before record.');
             }
-            records = [];
-            return function getStateChanges(): Array<Record<S>> {
-                const result = [...records];
-                records = undefined;
+            stateChanges = [];
+            return function getStateChanges(): Array<StateChange<S>> {
+                const result = stateChanges !== undefined ? [...stateChanges] : [];
+                stateChanges = undefined;
                 return result;
             }
         }
