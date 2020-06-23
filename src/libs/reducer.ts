@@ -37,6 +37,10 @@ function createActionRunner<S, T extends OriginAgent<S>>(
             return nextState;
         }
 
+        if(env.expired){
+            return nextState;
+        }
+
         dispatch({type, args: nextState});
 
         if (nextState !== undefined && !env.strict) {
