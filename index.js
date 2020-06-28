@@ -1,5 +1,12 @@
-if (process.env.NODE_ENV === "production") {
-    module.exports = require("./dist/agent-reducer.min.js");
-} else {
-    module.exports = require("./dist/agent-reducer.js");
-}
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var reducer_1 = require("./libs/reducer");
+Object.defineProperty(exports, "createAgentReducer", { enumerable: true, get: function () { return reducer_1.createAgentReducer; } });
+var branch_1 = require("./libs/branch");
+Object.defineProperty(exports, "branch", { enumerable: true, get: function () { return branch_1.branch; } });
+var resolver_1 = require("./libs/resolver");
+Object.defineProperty(exports, "defaultResolver", { enumerable: true, get: function () { return resolver_1.defaultResolver; } });
+Object.defineProperty(exports, "applyResolvers", { enumerable: true, get: function () { return resolver_1.applyResolvers; } });
+Object.defineProperty(exports, "BranchResolvers", { enumerable: true, get: function () { return resolver_1.BranchResolvers; } });
+var defines_1 = require("./libs/defines");
+Object.defineProperty(exports, "DefaultActionType", { enumerable: true, get: function () { return defines_1.DefaultActionType; } });

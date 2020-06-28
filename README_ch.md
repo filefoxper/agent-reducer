@@ -6,7 +6,15 @@
 [standard-image]: https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square
 [standard-url]: http://npm.im/standard
 
+推荐应用:
+1. [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer) react hook 可用来升级 useReducer
+2. [use-redux-agent](https://www.npmjs.com/package/use-redux-agent) react hook 可用来升级 react-redux
+
 # agent-reducer
+
+### 新增变化
+1. 增加了Resolver接口，作为类似redux的middleWare的替代品
+2. 增加了branch分支系统，为一项特殊任务提供一个可销毁重建的分支，配合上branchApi，可以完成类似redux-saga中takeLatest这样的效果。
 
 ### reducer
 为什么要reducer?reducer与其说是一个简单的数据处理器，更像是一个数据迭代描述器。它指明了下一步的数据该是什么样子的，
@@ -173,15 +181,38 @@ setTimeout(() => console.log(state),1000); // 2
 
 ### api
 
-createAgentReducer(originAgent: T | { new(): T }, e?: Env)
+#### createAgentReducer(originAgent: T | { new(): T }, e?: Env)
+#### createAgentReducer(originAgent: T | { new(): T }, resolver?:Resolver, e?: Env)
 
 通过代理class或object创建一个类似原生的reducer方法。
 
 参数：
 1. originAgent：代理class或object
-2. e:代理运行环境
+2. resolver：解析运行结果方法，用来决定哪些数据可以成为下一个state数据。默认resolver会把非promise或undefined的数据作为下一个state。
+3. e:代理运行环境
 
-agent代理原型环境e:Env解析:
+<strong>resolver（Resolver）：</strong>
+
+```typescript
+export type ResultProcessor=(result:any)=>any;
+
+export type NextLink=(next:ResultProcessor)=>ResultProcessor;
+
+export type Resolver=(cache:any)=>NextLink|void;
+```
+
+Resolver的结构如上。你可以把它当成是redux的middleware。
+
+1. 当你调用agent的function时，该function不会马上运行，而是预先运行一个Resolver方法（通过createAgentReducer传入，或默认的defaultResolver）。
+Resolver方法的入参是系统提供的关于当前function的缓存对象cache，你可以用它来记录各种缓存数据，以便后续判断使用。
+一个Resolver方法应该返回一个NextLink方法或一个空对象，当返回值是空对象时，当前被调用的function将不会被执行。
+
+2. 当Resolver返回的是一个NextLink方法时，当前被调用function会如期执行，其返回值会传入当前的第一个ResultProcessor方法，
+在ResultProcessor进行数据加工后，由NextLink提供的next方法传递到下一个ResultProcessor中进行继续加工。
+
+3. NextLink最终指向的next方法为系统的dispatchState方法，这个内置方法将会把最后结果传入reducer。
+
+<strong>agent代理原型环境e:Env解析：</strong>
 
 1 . updateBy：'auto'|'manual'    （state和dispatch更新方案）
 
@@ -227,3 +258,94 @@ describe('record state', () => {
 
 });
 ```
+#### applyResolvers(...resolver:Resolver[])
+`applyResolvers`的使用方式和redux的`applyMiddleWare`类似。（如果你希望将默认resolver作为resolver链的一部分，
+你可以`import {defaultResolver} from 'agent-reducer'`，并通过`applyResolvers(...yourResolvers... , defaultResolver)`的形式来组合你自定义的resolver）
+#### branch(agent:Agent,resolver:BranchResolver)
+branch方法可以对当前agent代理建立一个分支（复制品），该分支上的所有对象不能修改，只能被调用。
+分支可以被抛弃，也可以被重建。通过分支组件BranchResolver，你可以调用分支api（BranchApi），
+这个Api简单提供了一个reject方法，和一个rebuild方法。我们可以通过调用reject方法废弃当前分支，
+被废弃分支的dispatch方法将处于失效状态，也就是说被废弃分支无法继续影响reducer的state数据。
+而rebuild方法在废弃当前分支的同时，会新建一个替代分支，继续新的任务。BranchApi的使用方式如下：
+```typescript
+//建立一个接收分支Api的方法（当前例子代码为BranchResolvers.takeLatest()的源码，takeLatest只允许最后一次触发产生的state数据进入reducer）
+function takeLatestResolver(branchApi: BranchApi): Resolver {
+
+            //建立一个Resolver，并获取分支运行当前方法的缓存
+            return function (cache: any): NextLink {
+                //返回一个获取下一个NextLink回调的方法
+                return function (next: ResultProcessor):ResultProcessor {
+                    //返回一个ResultProcessor回调，该回调可接收上一个ResultProcessor传入（或原始方法返回）的数据，进行再加工
+                    return function (result: any) {
+                        if (!isPromise(result)) {
+                            return next(result);
+                        }
+                        let version = cache.version || 0;
+                        cache.version = version + 1;
+                        //在promise resolve之前记录当前promise方法调用版本号
+                        result.finally(() => {
+                            //在promise resolve后判断当前版本是否是最新版本
+                            if (version + 1 === cache.version) {
+                                //如果当前版本是最新版本，则重建分支，老分支将成为一个游离的无效对象分支，
+                                //分支运行的缓存也将被重置。
+                                branchApi.rebuild();
+                            }
+                        });
+                        //传递给下一个ResultProcessor
+                        return next(result);
+                    }
+
+                }
+
+            }
+
+        }
+```  
+通过上面的代码我们可以发现一个BranchResolver和一个普通Resolver的不同点在于多了一个BranchApi获取层。
+```typescript
+class Branch implements OriginAgent {
+
+    state = {count: -1};
+
+    setCount(count: number) {
+        return {count};
+    }
+
+    async disorderCount(count: number) {
+        // 当count为0时延时一秒执行.
+        if (count === 0) {
+            await new Promise((r) => setTimeout(r,1000));
+        } else {
+            await Promise.resolve();
+        }
+        this.setCount(count);
+    }
+}
+
+const agent = createAgentReducer(Branch).agent;
+const {disorderCount} = branch(agent, BranchResolvers.takeLatest());
+const p0 = disorderCount(0); 
+//本该在1秒之后通过执行setCount覆盖reducer state数据的方法，在受BranchResolvers.takeLatest()影响后，被抛弃。
+const p1 = disorderCount(1); 
+//因为count为1时，promise直接resolve，导致之前延时1秒的disorderCount(0)所在分支被抛弃。
+await Promise.all([p0, p1]);
+expect(agent.state.count).toBe(1);
+await disorderCount(2); 
+//因为产生的新分支代替了原分支，所以当前分支的后续任务能继续按照takeLatest模式进行。
+expect(agent.state.count).toBe(2);
+```
+#### BranchResolvers
+
+###### BranchResolvers.takeLatest()
+使用该插件的分支只允许最后一次触发的异步任务数据进入reducer state。
+
+###### BranchResolvers.takeBlock(blockMs?: number)
+使用该插件的分支在异步任务结束前将阻止其他同名方法运行。通过设置blockMs毫秒数，可以指定阻塞时间，在超过阻塞时间后将不再阻止其他同名方法。
+
+### 关于branch的使用建议
+branch分支系统的设计初衷：使用一个分支来完成一项特殊任务，分支因任务而存在，
+为了这项特殊任务，分支随时可能被resolver抛弃或重建。所以使用一个分支去做多个任务，不但会引起代码维护的混乱，
+同时也可能产生许多跟分支重建有关的bug。因此我们希望使用者在明确一个分支唯一目标的基础上使用它。
+
+
+[更多例子](https://github.com/filefoxper/agent-reducer/blob/master/test/index.test.ts)

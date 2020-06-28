@@ -1,24 +1,29 @@
-import {createProxy, isPromise, isUndefined, shallowCopy} from "./utils";
+import {createProxy, shallowCopy} from "./utils";
 import {agentDependenciesKey, DefaultActionType} from "./defines";
 import {
     Action,
+    AgentDependencies,
+    AgentEnv,
     AgentReducer,
     Dispatch,
     Env,
-    AgentDependencies,
     OriginAgent,
-    StateChange,
     Reducer,
+    StateChange,
     StoreSlot
 } from "./reducer.type";
-import {BranchApi} from "./branch.type";
+import {Resolver} from "./resolver.type";
+import {defaultResolver} from "./resolver";
 
+/**
+ *
+ * @param invokeDependencies
+ */
 function generateDispatchCall<S, T extends OriginAgent<S>>(invokeDependencies: AgentDependencies<S, T>) {
     const {entry, store, env} = invokeDependencies;
     const namespace = entry.namespace;
     return ({type, args}: Action) => {
-        const {branchApi} = invokeDependencies;
-        if (env.expired || (branchApi && branchApi.getStatus())) {
+        if (env.expired) {
             return args;
         }
         const newType = namespace === undefined ? type : (namespace + ':' + type);
@@ -39,34 +44,44 @@ function createActionRunner<S, T extends OriginAgent<S>>(
 
     const dispatchCall = generateDispatchCall(invokeDependencies);
 
-    const stateDispatch = <NS = S>(nextState: NS) => {
+    const defaultStateResolver = <NS = S>(nextState: NS): NS => {
         dispatchCall({type, args: nextState});
+        return nextState;
     };
+
+    let {cache, resolver} = invokeDependencies;
+
+    cache[type] = cache[type] || {};
 
     return function caller(...args: any[]) {
 
+        const nextResolver = resolver(cache[type]);
+
+        if (!nextResolver) {
+            return;
+        }
+
         const nextState = source.apply(proxy, [...args]);
 
-        const {branchApi} = invokeDependencies;
+        const stateResolver = nextResolver(defaultStateResolver);
 
-        if (branchApi) {
-            const plugin = branchApi.getPlugin();
-            return plugin(nextState, stateDispatch, branchApi);
-        }
-
-        if (isPromise(nextState) || isUndefined(nextState)) {
-            return nextState;
-        }
-
-        stateDispatch(nextState);
-
-        return nextState;
+        return stateResolver(nextState);
     };
 }
 
-export function generateAgent<S, T extends OriginAgent<S>>(entry: T, store: StoreSlot<S>, env: Env, branchApi?: BranchApi): T {
+/**
+ * use proxy to reset the features of entry properties, use entry.state as state,
+ * set function which returns object (not undefined or promise) a dispatch function. (dispatch the next state before returned),
+ * set function which returns promise or undefined a normal function.
+ *
+ * @param entry OriginAgent instance
+ * @param store an object with dispatch function and getState function
+ * @param env   run env
+ * @param resolver  this param is set by a branch function, which copy an agent, and you can use this param to resolve function returns manually
+ */
+export function generateAgent<S, T extends OriginAgent<S>>(entry: T, store: StoreSlot<S>, env: AgentEnv, resolver: Resolver): T {
 
-    const invokeDependencies: AgentDependencies<S, T> = {entry, store, env, branchApi};
+    const invokeDependencies: AgentDependencies<S, T> = {entry, store, env, cache: {}, resolver};
 
     let proxy: T & { [agentDependenciesKey]?: AgentDependencies<S, T> } = createProxy(entry, {
         get(target: T, p: string & keyof T): any {
@@ -99,7 +114,7 @@ export function generateAgent<S, T extends OriginAgent<S>>(entry: T, store: Stor
     ]);
     const descHandler = withProxy.reduce((res, [key, desc]) => ({...res, [key]: desc}), {});
     Object.defineProperties(entry, descHandler);
-    if (branchApi) {
+    if (env.isBranch) {
         return proxy as T;
     }
     proxy[agentDependenciesKey] = invokeDependencies;
@@ -107,16 +122,21 @@ export function generateAgent<S, T extends OriginAgent<S>>(entry: T, store: Stor
 }
 
 /**
- * 创建一个真正的reducer，用于介入各种reducer系统
+ * Create a true reducer function which can use in a standard reducer system.
+ * For the actual state has been produced by agent, this reducer only returns state which is passed by a dispatched action.
  *
- * @param entry Agent实例
+ * @param entry an instance of OriginAgent
+ *
+ * @return a reducer function
  */
 export function createReducer<S, T extends OriginAgent<S>>(entry: T): Reducer<S, Action> {
 
     /**
-     * 解析一个actionType
+     * parse an action type
      *
-     * @param actionType    可能有object的一个属性或namespace+':'+属性组成
+     * @param actionType  can be a property name of entry, or made by entry.namespace+':'+(a property name of entry)
+     *
+     * @return [namespace,type]
      */
     function parseActionType(actionType: string): [string | undefined, string] {
         const [namespaceOrType, type] = actionType.split(':');
@@ -126,17 +146,20 @@ export function createReducer<S, T extends OriginAgent<S>>(entry: T): Reducer<S,
     }
 
     /**
-     * 创建的reducer
+     * create a simple, but useful reducer
      */
     return function (state: S = entry.state, action: Action = {type: DefaultActionType.DX_INITIAL_STATE}) {
         const [namespace, type] = parseActionType(action.type);
+        //if reducer receive an action with namespace in action.type, then check if entry.namespace matches namespace
         if (entry.namespace && namespace !== entry.namespace) {
             return state;
         }
+        //if reducer receive an action with a initial state type, then return the action.args as next state
         if (type === DefaultActionType.DX_INITIAL_STATE && action.args !== undefined) {
             return action.args;
         }
         const reduce = entry[type];
+        //if the type can be found in entry as a property, and the value is a function, then return the action.args as next state
         if (typeof reduce === 'function') {
             return action.args;
         }
@@ -144,9 +167,14 @@ export function createReducer<S, T extends OriginAgent<S>>(entry: T): Reducer<S,
     }
 }
 
-export function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>(originAgent: T | { new(): T }, e?: Env): AgentReducer<S, Action, T> {
+export function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>(originAgent: T | { new(): T }, resolver?: Resolver | Env): AgentReducer<S, Action, T>
+export function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>(originAgent: T | { new(): T }, resolver?: Resolver | Env, e?: Env): AgentReducer<S, Action, T> {
 
-    let env: Env = {expired: false, strict: true, updateBy: 'auto', ...e};
+    const defaultEnv = typeof resolver !== 'function' ? {...resolver, ...e} : undefined;
+
+    const resultResolver = typeof resolver === 'function' ? resolver : defaultResolver;
+
+    let env: Env = {expired: false, strict: true, updateBy: 'auto', ...defaultEnv};
 
     let stateChanges: undefined | Array<StateChange<S>> = undefined;
 
@@ -176,7 +204,7 @@ export function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>
         initialState,
         namespace: entity.namespace,
         env,
-        agent: generateAgent(entity, storeSlot, env),
+        agent: generateAgent(entity, storeSlot, env, resultResolver),
         update(nextState: S, dispatch: Dispatch) {
             if (env.updateBy === 'auto') {
                 throw new Error('You should set env.updateBy to be `manual` before updating state and dispatch from outside.');

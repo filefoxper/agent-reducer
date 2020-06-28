@@ -1,4 +1,4 @@
-import {BranchApi} from "./branch.type";
+import {Resolver} from "./resolver.type";
 
 export interface OriginAgent<S = any> {
     state: S,
@@ -41,6 +41,10 @@ export interface Env {
     strict?: boolean
 }
 
+export interface AgentEnv extends Env{
+    isBranch?:boolean
+}
+
 export type StateChange<S = any> = {
     type: string | number | symbol,
     state: S
@@ -50,5 +54,6 @@ export type AgentDependencies<S, T extends OriginAgent<S>> = {
     entry: T,
     store: StoreSlot<S>,
     env: Env,
-    branchApi?: BranchApi
+    cache:any,
+    resolver: Resolver
 };

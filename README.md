@@ -14,6 +14,10 @@ recommend usages:
 
 # agent-reducer
 
+### new changes
+1. provide `Resolver` as the middleWare system in redux.
+2. provide `branch` system to do a special work with special mode like `takeLatest` in `redux-saga`. 
+
 ### reducer
 reducer brings us a lot of benefits when we organize states. 
 It provides a pure functional writing mode to make our state predictable. 
@@ -157,13 +161,41 @@ like:
 ```
 more in [test](https://github.com/filefoxper/agent-reducer/blob/master/test/index.test.ts)
 ### api
-createAgentReducer(originAgent: T | { new(): T }, e?: Env)
+#### createAgentReducer(originAgent: T | { new(): T }, e?: Env)
+#### createAgentReducer(originAgent: T | { new(): T }, resolver?:Resolver, e?: Env)
 
 ###### params
 1. originAgent：a class or object with state property and functions, for replacing the reducer
-2. e（Env）：agent running environment
+2. resolver（Resolver）：a callback function provided for resolving returns of your functions, and you can decide what should to be dispatched as a next state. 
+The default resolver will just pass an valuable object (not promise or undefined) to the dispatcher.
+3. e（Env）：agent running environment
 
-e（Env）：
+<strong>resolver（Resolver）：</strong>
+
+```typescript
+export type ResultProcessor=(result:any)=>any;
+
+export type NextLink=(next:ResultProcessor)=>ResultProcessor;
+
+export type Resolver=(cache:any)=>NextLink|void;
+```
+The structure of a Resolver is like above. <strong>You can consider the resolver as a middleware</strong> in redux.
+1. When the function of your agent deployed, the <strong>Resolver</strong> will invoking first.
+ and a <strong>cache</strong> (a clear plain object) belongs to this function will setting as a param to your resolver function.
+ you can use this cache to record any thing you want about this function you deployed. 
+ 
+2. After the resolver finished, it is expected to get a <strong>NextLink</strong> function as a callback to provide a <strong>next</strong> function.
+But, if it returns void (undefined), the origin function will not invoke. 
+The <strong>NextLink</strong> will provide a <strong>next</strong> function to pass a result to next <strong>ResultProcessor</strong>.
+
+3. The <strong>ResultProcessor</strong> will receive a result from a previous <strong>ResultProcessor</strong> or the origin function returns.
+And you can use the <strong>next</strong> function from <strong>NextLink</strong> to pass the result which processed in this <strong>ResultProcessor</strong> to the next <strong>ResultProcessor</strong>.
+And finally, result will be passed as a next state to the reducer.
+
+4. You can use <strong>applyResolvers</strong> api function to combine your resolvers as an executing list. 
+And if you want to use the default resolver as the last state processor, you can import {<strong>defaultResolver</strong>} from 'agent-reducer'.
+   
+<strong>e（Env）：</strong>
 
 1 . updateBy：'auto'|'manual'    （how to update state and dispatch）
 
@@ -211,4 +243,91 @@ describe('record state', () => {
 
 });
 ```
+#### applyResolvers(...resolver:Resolver[])
+Use `applyResolvers` just like using `applyMiddleWares` in redux. 
+(if you still want to use the default resolver as one part of your resolver links, 
+you can `import {defaultResolver} from 'agent-reducer'`, then `applyResolvers(...your resolvers... , defaultResolver)` to make your own resolver)
+#### branch(agent:Agent,resolver:BranchResolver)
+The function branch creates a copy object of your agent. You can not modify props in this copy object.
+It is designed for doing something like 'simple effects in redux-saga'. When you created a branch with a <strong>BranchResolver</strong>, 
+you can use <strong>branchApi</strong> to reject or rebuild this branch as you wish. If you reject it, Your branch can not dispatch any state to reducer.
+If you rebuild it, The old branch will be rejected first, and then build a new branch instead. Take a look at the usage.
+
+```typescript
+function takeLatestResolver(branchApi: BranchApi): Resolver {
+
+            return function (cache: any): NextLink {
+
+                return function (next: ResultProcessor):ResultProcessor {
+
+                    return function (result: any) {
+                        if (!isPromise(result)) {
+                            return next(result);
+                        }
+                        let version = cache.version || 0;
+                        cache.version = version + 1;
+                        //record the version when before promise is resolved
+                        result.finally(() => {
+                            //check the version is the newest
+                            if (version + 1 === cache.version) {
+                                //if whe newest is resolved, rebuild the branch, and the old branch is rejected.
+                                branchApi.rebuild();
+                            }
+                        });
+                        return next(result);
+                    }
+
+                }
+
+            }
+
+        }
+```  
+By using branchApi.rebuild, we disabled the dispatch functions in the old branch, and create a new one instead.
+The code above is the implements about <strong>BranchResolvers.takeLatest()</strong>. You can use it like this:
+```typescript
+class Branch implements OriginAgent {
+
+    state = {count: -1};
+
+    setCount(count: number) {
+        return {count};
+    }
+
+    async disorderCount(count: number) {
+        // when count is 0, the dispatch function setCount will be called after 1 sec.
+        if (count === 0) {
+            await new Promise((r) => setTimeout(r,1000));
+        } else {
+            await Promise.resolve();
+        }
+        this.setCount(count);
+    }
+}
+
+const agent = createAgentReducer(Branch).agent;
+const {disorderCount} = branch(agent, BranchResolvers.takeLatest());
+const p0 = disorderCount(0); 
+//for the disorderCount should delay 1 sec, when param count is 0, but the dispatch function will be rejected as an old branch
+const p1 = disorderCount(1); 
+//for this function resolve first, the branch will take it's dispatch function `setCount`, and reject this branch as an old branch, then build a new copy instead.
+await Promise.all([p0, p1]);
+expect(agent.state.count).toBe(1);
+await disorderCount(2); 
+//for the branch is rebuilt, the new branch will work takeLatest well again.
+expect(agent.state.count).toBe(2);
+```
+#### BranchResolvers
+
+###### BranchResolvers.takeLatest()
+This resolver will take the latest deploy of your function.
+
+###### BranchResolvers.takeBlock(blockMs?: number)
+This resolver will block a function between the time when it is called and when it is resolved.
+And you can set block milliseconds to reduce the block time.
+
+#### suggest to using branch
+A branch is considered to do just one special work with a resolver. It can be rejected or be rebuilt any time.
+So, please do not use it to deploy different functions.
+
 more in [test](https://github.com/filefoxper/agent-reducer/blob/master/test/index.test.ts)

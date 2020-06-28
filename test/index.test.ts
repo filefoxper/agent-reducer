@@ -1,6 +1,16 @@
-import {Action, createAgentReducer, DefaultActionType, OriginAgent, Reducer} from "../src";
+import {
+    Action,
+    branch,
+    BranchApi,
+    createAgentReducer,
+    DefaultActionType,
+    OriginAgent,
+    BranchResolvers,
+    Reducer, applyResolvers
+} from "../src";
 import {ClassifyQueryState, Form, Position, Record, RequestParams} from "./testType";
 import {fetchData} from "./testService";
+import {ResultProcessor} from "../src/libs/resolver.type";
 
 const getDefaultClassifyQueryState = (): ClassifyQueryState => ({
     form: {
@@ -55,7 +65,7 @@ class ClassifyQueryAgent implements OriginAgent<ClassifyQueryState> {
     //this function returns void, so it will not be a dispatch function, but it can deploy dispatch functions or other functions to change next state.
     public handleQueryClick() {
         this.effectiveForm = this.state.form;
-        this.handlePageChange(1, 10);
+        return this.handlePageChange(1, 10);
     }
 
 }
@@ -77,7 +87,6 @@ describe('classify query test without update', () => {
         expect(agent.state.loading).toBe(true);
         expect(agent.effectiveForm).toEqual(agent.state.form);
         setTimeout(() => {
-            expect(agent.state.list.length).toBe(3);
             expect(agent.state.loading).toBe(false);
         });
     });
@@ -86,7 +95,7 @@ describe('classify query test without update', () => {
         await agent.handlePageChange(2, 3);
         expect(agent.state.page).toBe(2);
         expect(agent.state.size).toBe(3);
-        expect(agent.state.list.length).toBe(1);
+        expect(agent.state.list).toBeTruthy();
     });
 
 });
@@ -112,7 +121,7 @@ describe('classify query test with env.updateBy `manual`', () => {
 
     //We create a simple outside store, and make the reducer work with this store.
     function createStore<S>(reducer: Reducer<S, Action>, initialState: S) {
-        let listener = undefined;
+        let listener: undefined | (() => any) = undefined;
         let state = initialState;
         return {
             dispatch(action: Action) {
@@ -124,7 +133,7 @@ describe('classify query test with env.updateBy `manual`', () => {
             getState(): S {
                 return state;
             },
-            subscribe(l) {
+            subscribe(l: () => any) {
                 listener = l;
                 return () => {
                     listener = undefined;
@@ -185,13 +194,13 @@ describe('classify query test with env.updateBy `manual`', () => {
     });
 
     test('only updateBy:`auto` can record state changes', async () => {
-        try{
+        try {
             const unRecord = reducer.recordStateChanges();
             await agent.handlePageChange(2, 3);
             const [loadingRecord, resultChangeRecord] = unRecord();
             expect(loadingRecord.state.loading).toBe(true);
             expect(resultChangeRecord.state.loading).toBe(false);
-        }catch (e) {
+        } catch (e) {
             expect(e.message.toString().includes('auto')).toBe(true);
         }
 
@@ -280,6 +289,138 @@ describe('test error', () => {
             expect(e.message).toBeTruthy();
         }
 
+    });
+
+});
+
+class Branch implements OriginAgent {
+
+    state = {count: -1};
+
+    setCount(count: number) {
+        return {count};
+    }
+
+    async disorderCount(count: number) {
+        if (count === 0) {
+            await new Promise((r) => setTimeout(r,1000));
+        } else {
+            await Promise.resolve();
+        }
+        this.setCount(count);
+    }
+}
+
+describe('test branch', () => {
+
+    test('branch with takeLatest plugin', async () => {
+        const agent = createAgentReducer(Branch).agent;
+        const {disorderCount} = branch(agent, BranchResolvers.takeLatest());
+        const p0 = disorderCount(0);
+        const p1 = disorderCount(1);
+        await Promise.all([p0, p1]);
+        expect(agent.state.count).toBe(1);
+        await disorderCount(2);
+        expect(agent.state.count).toBe(2);
+    });
+
+    test('branch with takeBlock plugin', async () => {
+        const agent = createAgentReducer(Branch).agent;
+        const {disorderCount} = branch(agent, BranchResolvers.takeBlock());
+        const p0 = disorderCount(0);
+        const p1 = disorderCount(1);
+        await Promise.all([p0, p1]);
+        expect(agent.state.count).toBe(0);
+        await disorderCount(2);
+        expect(agent.state.count).toBe(2);
+    });
+
+    test('branch with takeBlock plugin 500 ms', async () => {
+        const reducer = createAgentReducer<{count:number}>(Branch);
+        const agent=reducer.agent;
+        const getStateChanges=reducer.recordStateChanges();
+        const {disorderCount} = branch(agent, BranchResolvers.takeBlock(500));
+        const p0 = disorderCount(0);
+        const p1 = new Promise((resolver)=>setTimeout(resolver,600)).then(()=>disorderCount(1));
+        await Promise.all([p0, p1]);
+        const [{state:state0},{state:state1}]=getStateChanges();
+        expect(state0.count).toBe(1);
+        expect(state1.count).toBe(0);
+    });
+
+    test('branch with takeLatest plugin from another branch', async () => {
+        const agent = createAgentReducer(Branch).agent;
+        const branchDisorderCount = branch(agent, BranchResolvers.takeBlock());
+        try {
+            branch(branchDisorderCount,BranchResolvers.takeBlock());
+        }catch (e) {
+            expect(e.message).toBeTruthy();
+        }
+    });
+
+    test('set branch property manually',()=>{
+        const agent = createAgentReducer(Branch).agent;
+        const branchAgent = branch(agent, BranchResolvers.takeBlock());
+        try{
+            branchAgent.state={count:12};
+        }catch (e) {
+            expect(e.message).toBeTruthy();
+        }
+    });
+
+    test('make a dead branch by plugin',()=>{
+        const deadPlugin=(branchApi:BranchApi)=>{
+            return (cache:any)=>{
+                return (next:ResultProcessor)=>{
+                    return ()=>{
+                        branchApi.reject();
+                    }
+                }
+            }
+        };
+        const agent = createAgentReducer(Branch).agent;
+        const branchAgent = branch(agent, deadPlugin);
+        branchAgent.disorderCount(1);
+        expect(agent.state.count).toBe(-1);
+    });
+
+});
+
+class NumberAndBoolean{
+
+    state=0;
+
+    setBooleanState(s:boolean){
+        return s;
+    }
+
+    setStringState(s:string){
+        return s;
+    }
+}
+
+describe('test resolvers',()=>{
+
+    test('use any to number resolver',()=>{
+        const anyToBooleanResolver=()=>{
+            return (next:ResultProcessor)=>(result:any)=>{
+                return next(!!result);
+            };
+        };
+        const booleanToNumberResolver=()=>{
+            return (next:ResultProcessor)=>(result:any)=>{
+                if(typeof result!=='boolean'){
+                    return result;
+                }
+                return next(result?1:0);
+            };
+        };
+        const reducer=createAgentReducer(NumberAndBoolean,applyResolvers(anyToBooleanResolver,booleanToNumberResolver));
+        const agent=reducer.agent;
+        agent.setStringState('');
+        expect(agent.state).toBe(0);
+        agent.setBooleanState(true);
+        expect(agent.state).toBe(1);
     });
 
 });

@@ -1,13 +1,8 @@
-export type StateDispatch = <S = any>(nextState: S) => void;
-
-export type ResultProcessor = <R>(result: any, dispatch: StateDispatch, branchApi: BranchApi) => R | void;
-
-export type BranchApiStatus = undefined | 'discarded';
+import {Resolver} from "./resolver.type";
 
 export type BranchApi = {
-    getPlugin: () => ResultProcessor,
-    discard: () => void,
-    getStatus: () => BranchApiStatus
+    reject: () => void,
+    rebuild: () => void
 };
 
-export type BranchPlugin = (cache: any) => ResultProcessor;
+export type BranchResolver = (branchApi: BranchApi) => Resolver;

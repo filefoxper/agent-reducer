@@ -2,10 +2,12 @@ export {createAgentReducer} from './libs/reducer';
 
 export {branch} from './libs/branch';
 
-export {Plugins} from './libs/plugins';
+export {defaultResolver, applyResolvers, BranchResolvers} from './libs/resolver';
+
+export {Resolver, NextLink, ResultProcessor} from './libs/resolver.type';
 
 export {DefaultActionType} from './libs/defines';
 
 export {OriginAgent, Env, Reducer, Action, AgentReducer} from './libs/reducer.type';
 
-export {StateDispatch, BranchApi, BranchPlugin, BranchApiStatus} from './libs/branch.type';
+export {BranchApi, BranchResolver} from './libs/branch.type';
