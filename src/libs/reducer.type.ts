@@ -1,6 +1,9 @@
+import {Resolver} from "./resolver.type";
+
 export interface OriginAgent<S = any> {
     state: S,
-    namespace?: string
+    namespace?: string,
+    [key:string]:any
 }
 
 //out lib interface
@@ -19,24 +22,18 @@ interface AgentData<S = any, T extends OriginAgent<S> = OriginAgent<S>> {
     env: Env,
     agent: T,
     update: (nextState: S, dispatch: Dispatch) => void,
-    recordStateChanges: () => () => Array<Record<S>>
+    recordStateChanges: () => () => Array<StateChange<S>>
 }
 
 export type AgentReducer<S = any, A = any, T extends OriginAgent<S> = any> = Reducer<S, A> & AgentData<S, T>;
 
 //inner interface
 export declare type Action = {
-    type: string | number,
+    type: string,
     args?: any
 };
 
 export type Dispatch = (action: Action) => any;
-
-export type Unsubscribe = () => void;
-
-export type Listener = () => void;
-
-export type Subscribe = (listener: Listener) => Unsubscribe;
 
 export interface Env {
     updateBy?: 'manual' | 'auto',
@@ -44,7 +41,19 @@ export interface Env {
     strict?: boolean
 }
 
-export type Record<S = any> = {
+export interface AgentEnv extends Env{
+    isBranch?:boolean
+}
+
+export type StateChange<S = any> = {
     type: string | number | symbol,
     state: S
+};
+
+export type AgentDependencies<S, T extends OriginAgent<S>> = {
+    entry: T,
+    store: StoreSlot<S>,
+    env: Env,
+    cache:any,
+    resolver: Resolver
 };

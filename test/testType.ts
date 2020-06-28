@@ -18,7 +18,7 @@ export interface Form {
 export interface ClassifyQueryState {
     form: Form,
     loading: boolean,
-    list?: Array<Record>,
+    list: null|Array<Record>,
     page: number,
     size: number
 }
