@@ -167,10 +167,9 @@ export function createReducer<S, T extends OriginAgent<S>>(entry: T): Reducer<S,
     }
 }
 
-export function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>(originAgent: T | { new(): T }, resolver?: Resolver | Env): AgentReducer<S, Action, T>
 export function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>(originAgent: T | { new(): T }, resolver?: Resolver | Env, e?: Env): AgentReducer<S, Action, T> {
 
-    const defaultEnv = typeof resolver !== 'function' ? {...resolver, ...e} : undefined;
+    const defaultEnv = typeof resolver !== 'function' ? {...resolver, ...e} : {...e};
 
     const resultResolver = typeof resolver === 'function' ? resolver : defaultResolver;
 

@@ -14,7 +14,8 @@
 
 ### 新增变化
 1. 增加了Resolver接口，作为类似redux的middleWare的替代品
-2. 增加了branch分支系统，为一项特殊任务提供一个可销毁重建的分支，配合上branchApi，可以完成类似redux-saga中takeLatest这样的效果。
+2. 增加了branch分支系统，为一项特殊任务提供一个可销毁重建的分支，配合上branchApi，
+可以完成类似redux-saga中takeLatest等效果，而不需要非得使用generator函数。
 
 ### reducer
 为什么要reducer?reducer与其说是一个简单的数据处理器，更像是一个数据迭代描述器。它指明了下一步的数据该是什么样子的，
@@ -346,6 +347,7 @@ expect(agent.state.count).toBe(2);
 branch分支系统的设计初衷：使用一个分支来完成一项特殊任务，分支因任务而存在，
 为了这项特殊任务，分支随时可能被resolver抛弃或重建。所以使用一个分支去做多个任务，不但会引起代码维护的混乱，
 同时也可能产生许多跟分支重建有关的bug。因此我们希望使用者在明确一个分支唯一目标的基础上使用它。
+当然一个任务不一定非得是一个方法，比如：`翻页查询`和`点击查询按钮查询`就是一个任务，它们的目标是统一的。
 
 
 [更多例子](https://github.com/filefoxper/agent-reducer/blob/master/test/index.test.ts)

@@ -248,8 +248,9 @@ Use `applyResolvers` just like using `applyMiddleWares` in redux.
 (if you still want to use the default resolver as one part of your resolver links, 
 you can `import {defaultResolver} from 'agent-reducer'`, then `applyResolvers(...your resolvers... , defaultResolver)` to make your own resolver)
 #### branch(agent:Agent,resolver:BranchResolver)
-The function branch creates a copy object of your agent. You can not modify props in this copy object.
-It is designed for doing something like 'simple effects in redux-saga'. When you created a branch with a <strong>BranchResolver</strong>, 
+The function branch creates a copy object of your agent, every dispatch from branch will change the state of your agent too.
+ You can not modify props in this copy object. It is designed for doing something like 'simple effects in redux-saga'. 
+ When you created a branch with a <strong>BranchResolver</strong>, 
 you can use <strong>branchApi</strong> to reject or rebuild this branch as you wish. If you reject it, Your branch can not dispatch any state to reducer.
 If you rebuild it, The old branch will be rejected first, and then build a new branch instead. Take a look at the usage.
 
@@ -328,6 +329,7 @@ And you can set block milliseconds to reduce the block time.
 
 #### suggest to using branch
 A branch is considered to do just one special work with a resolver. It can be rejected or be rebuilt any time.
-So, please do not use it to deploy different functions.
+So, you'd better make sure the functions you deployed from a branch are doing the same thing.
+For example: `change page and fetch data` and `click search button fetch data` are the same work.
 
 more in [test](https://github.com/filefoxper/agent-reducer/blob/master/test/index.test.ts)
