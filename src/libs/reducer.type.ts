@@ -55,5 +55,6 @@ export type AgentDependencies<S, T extends OriginAgent<S>> = {
     store: StoreSlot<S>,
     env: Env,
     cache:any,
+    functionCache:any,
     resolver: Resolver
 };
