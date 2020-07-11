@@ -244,13 +244,13 @@ class Counter implements OriginAgent<number> {
         return this.state + 1;
     }
 
-    private addOneFrom(state: number) {
+    addOneFrom=(state: number)=> {
         return state + 1;
-    }
+    };
 
-    public addTwice() {
+    addTwice=()=> {
         this.addOne();
-        this.addOne();
+        this.addOneFrom(3);
     }
 
 }
@@ -265,6 +265,14 @@ describe('agent test', () => {
             expect(e.message.toString().includes('proxy')).toBe(true);
         }
 
+    });
+
+    test('agent use =>',()=>{
+        const agent = createAgentReducer(new Counter(0)).agent;
+        agent.addOneFrom(2);
+        expect(agent.state).toBe(3);
+        agent.addTwice();
+        expect(agent.state).toBe(4);
     });
 
 });

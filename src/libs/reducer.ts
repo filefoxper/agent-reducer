@@ -185,7 +185,7 @@ export function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>
 
     let stateChanges: undefined | Array<StateChange<S>> = undefined;
 
-    let entity = typeof originAgent === 'function' ? new originAgent() : shallowCopy(originAgent);
+    let entity = typeof originAgent === 'function' ? new originAgent() : originAgent;
 
     const initialState = entity.state;
 

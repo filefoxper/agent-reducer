@@ -18,6 +18,9 @@ recommend usages:
 1. provide `Resolver` as the middleWare system in redux.
 2. provide `branch` system to do a special work with special mode like `takeLatest` in `redux-saga`. 
 
+### bug fixes
+1. The arrow function can not work well, and now we have fixed it.
+
 ### reducer
 reducer brings us a lot of benefits when we organize states. 
 It provides a pure functional writing mode to make our state predictable. 
