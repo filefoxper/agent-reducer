@@ -1,6 +1,5 @@
 import {generateAgent} from "./reducer";
 import {agentDependenciesKey} from "./defines";
-import {createProxy} from "./utils";
 import {BranchApi, BranchResolver} from "./branch.type";
 import {AgentDependencies, Env, OriginAgent} from "./reducer.type";
 import {Resolver} from "./resolver.type";
@@ -63,7 +62,7 @@ export function branch<S, T extends OriginAgent<S>>(agent: T & { [agentDependenc
 
     branchAgent = buildBranchAgent();
 
-    return createProxy(agent, {
+    return new Proxy(agent, {
         set() {
             return false;
         },

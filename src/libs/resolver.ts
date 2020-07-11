@@ -1,6 +1,24 @@
-import {composeCallArray, isPromise, isUndefined} from "./utils";
 import {BranchApi, BranchResolver} from "./branch.type";
 import {NextLink, Resolver, ResultProcessor} from "./resolver.type";
+
+export function isUndefined(data: any): data is undefined {
+    return data === undefined;
+}
+
+export function isPromise(data: any): data is Promise<any> {
+    if (!data) {
+        return false;
+    }
+    const dataType = typeof data;
+    return (dataType === 'object' || dataType === 'function') && typeof data.then === 'function';
+}
+
+export function composeCallArray(calls: ((p: any) => any)[]) {
+    const callList = [...calls].reverse();
+    return function (p: any): any | void {
+        return callList.reduce((result: any, call: (p: any) => any) => call(result), p);
+    }
+}
 
 export function defaultResolver() {
     return function nextResolver(next: (result: any) => any) {

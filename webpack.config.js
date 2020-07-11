@@ -19,7 +19,7 @@ function entry() {
         output: {
             path: targetPath,
             filename: '[name].js',
-            library: 'agentReducer',
+            library: 'agent-reducer',
             libraryTarget: 'umd'
         },
         optimization: {
@@ -60,10 +60,10 @@ function entry() {
                                             modules: false
                                         }
                                     ],
+                                    '@babel/preset-typescript'
                                 ]
                             }
-                        },
-                        "ts-loader"
+                        }
                     ]
                 }
             ]

@@ -1,5 +1,3 @@
-import {createProxy, shallowCopy} from "./utils";
-import {agentDependenciesKey, DefaultActionType} from "./defines";
 import {
     Action,
     AgentDependencies,
@@ -13,6 +11,7 @@ import {
     StoreSlot
 } from "./reducer.type";
 import {Resolver} from "./resolver.type";
+import {agentDependenciesKey, DefaultActionType} from "./defines";
 import {defaultResolver} from "./resolver";
 
 /**
@@ -91,7 +90,7 @@ export function generateAgent<S, T extends OriginAgent<S>>(entry: T, store: Stor
 
     let invokeDependencies: AgentDependencies<S, T> = {entry, store, env, cache: {},functionCache:{}, resolver};
 
-    let proxy: T & { [agentDependenciesKey]?: AgentDependencies<S, T> } = createProxy(entry, {
+    let proxy: T & { [agentDependenciesKey]?: AgentDependencies<S, T> } = new Proxy(entry, {
         get(target: T, p: string & keyof T): any {
             const source = target[p];
             if (typeof source === 'function') {
