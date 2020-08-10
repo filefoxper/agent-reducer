@@ -1,5 +1,6 @@
 import {BranchApi, BranchResolver} from "./branch.type";
 import {NextLink, Resolver, ResultProcessor} from "./resolver.type";
+import {CallerCache} from "./reducer.type";
 
 export function isUndefined(data: any): data is undefined {
     return data === undefined;
@@ -52,7 +53,7 @@ export class BranchResolvers {
 
         return function branchResolver(branchApi: BranchApi): Resolver {
 
-            return function (cache: any): NextLink {
+            return function (cache: CallerCache): NextLink {
 
                 return function (next: ResultProcessor) {
 
@@ -82,7 +83,7 @@ export class BranchResolvers {
 
         return function branchResolver(): Resolver {
 
-            return function (cache: any): NextLink | void {
+            return function (cache: CallerCache): NextLink | void {
 
                 const now = new Date().getTime();
 
@@ -103,6 +104,47 @@ export class BranchResolvers {
                         }
                         cache.running = undefined;
                         return next(result);
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+
+    static takeLazy(waitMs: number): BranchResolver {
+
+        return function branchResolver(): Resolver {
+
+            function timeout(cache: CallerCache) {
+                const now = new Date().getTime();
+                const {source, args, target} = cache.caller;
+                if (now - cache.last||now < waitMs) {
+                    return;
+                }
+                source.apply(target, args || []);
+            }
+
+            return function (cache: CallerCache): NextLink | void {
+
+                const now = new Date().getTime();
+
+                const last = cache.last || now;
+
+                if (now - last < waitMs) {
+                    setTimeout(() => timeout(cache), waitMs);
+                    cache.last = now;
+                    return;
+                }
+
+                cache.last = undefined;
+
+                return function (next: ResultProcessor) {
+
+                    return function (result: any) {
+                        next(result);
                     }
 
                 }

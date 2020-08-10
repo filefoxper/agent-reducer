@@ -1,3 +1,5 @@
+import 'proxy-polyfill';
+
 export {createAgentReducer} from './libs/reducer';
 
 export {branch} from './libs/branch';

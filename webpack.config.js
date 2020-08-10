@@ -1,5 +1,7 @@
 const webpack = require('webpack');
 
+const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
+
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 const pathBuilder = require('path');
@@ -8,8 +10,18 @@ const entryPath = pathBuilder.resolve('src', 'index.ts');
 
 const targetPath = pathBuilder.resolve('dist');
 
+const proxyPolyfillExternal = {
+    root: 'ProxyPolyfill',
+    commonjs2: 'proxy-polyfill',
+    commonjs: 'proxy-polyfill',
+    amd: 'proxy-polyfill',
+};
+
 function entry() {
     return {
+        externals:{
+            'proxy-polyfill':proxyPolyfillExternal
+        },
         mode: 'production',
         devtool: false,
         entry: {
@@ -33,6 +45,9 @@ function entry() {
             namedChunks: true
         },
         resolve: {
+            plugins: [
+                new TsconfigPathsPlugin({configFile: "./tsconfig.json"})
+            ],
             extensions: ['.js', '.ts', '.tsx', '.json', 'txt']
         },
         module: {
@@ -57,13 +72,16 @@ function entry() {
                                     [
                                         '@babel/preset-env',
                                         {
-                                            modules: false
+                                            modules: false,
+                                            targets: {
+                                                browsers: ['ie >= 11']
+                                            }
                                         }
-                                    ],
-                                    '@babel/preset-typescript'
+                                    ]
                                 ]
                             }
-                        }
+                        },
+                        "ts-loader"
                     ]
                 }
             ]

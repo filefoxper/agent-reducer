@@ -48,15 +48,20 @@ function createActionRunner<S, T extends OriginAgent<S>>(
         return nextState;
     };
 
-    let {cache,functionCache, resolver} = invokeDependencies;
+    let {cache, functionCache, resolver} = invokeDependencies;
 
     cache[type] = cache[type] || {};
 
-    if(functionCache[type]){
+    if (functionCache[type]) {
         return functionCache[type];
     }
 
     function caller(...args: any[]) {
+
+        let callerCache = cache[type].caller;
+        if (callerCache) {
+            callerCache.args = [...args];
+        }
 
         const nextResolver = resolver(cache[type]);
 
@@ -71,7 +76,12 @@ function createActionRunner<S, T extends OriginAgent<S>>(
         return stateResolver(nextState);
     }
 
-    functionCache[type]=caller;
+    cache[type].caller = {
+        source: caller,
+        target: proxy
+    }
+
+    functionCache[type] = caller;
 
     return caller;
 }
@@ -88,7 +98,7 @@ function createActionRunner<S, T extends OriginAgent<S>>(
  */
 export function generateAgent<S, T extends OriginAgent<S>>(entry: T, store: StoreSlot<S>, env: AgentEnv, resolver: Resolver): T {
 
-    let invokeDependencies: AgentDependencies<S, T> = {entry, store, env, cache: {},functionCache:{}, resolver};
+    let invokeDependencies: AgentDependencies<S, T> = {entry, store, env, cache: {}, functionCache: {}, resolver};
 
     let proxy: T & { [agentDependenciesKey]?: AgentDependencies<S, T> } = new Proxy(entry, {
         get(target: T, p: string & keyof T): any {

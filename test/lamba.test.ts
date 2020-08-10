@@ -1,4 +1,4 @@
-import {createAgentReducer, OriginAgent} from "../src";
+import {branch, BranchResolvers, createAgentReducer, OriginAgent} from "../src";
 
 class Counter implements OriginAgent<number> {
 
@@ -8,7 +8,7 @@ class Counter implements OriginAgent<number> {
         this.state = state;
     }
 
-    private addOne() {
+    addOne() {
         return this.state + 1;
     }
 
@@ -29,6 +29,15 @@ describe('agent test', () => {
         const agent = createAgentReducer(new Counter(0)).agent;
         agent.addTwice();
         expect(agent.state).toBe(4);
+    });
+
+    test('agent use branch take lazy',()=>{
+        const agent = createAgentReducer(new Counter(0)).agent;
+        const {addOne}=branch(agent,BranchResolvers.takeLazy(200));
+        addOne();
+        setTimeout(()=>addOne(),100);
+        setTimeout(()=>addOne(),150);
+        setTimeout(()=>expect(agent.state).toBe(1),370);
     });
 
 });

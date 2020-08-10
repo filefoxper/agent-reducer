@@ -50,11 +50,22 @@ export type StateChange<S = any> = {
     state: S
 };
 
+export type Caller={
+    source:(...args:any[])=>any,
+    args?:any[],
+    target:any
+};
+
+export type CallerCache={
+    [key:string]:any,
+    caller:Caller
+};
+
 export type AgentDependencies<S, T extends OriginAgent<S>> = {
     entry: T,
     store: StoreSlot<S>,
     env: Env,
-    cache:any,
+    cache: { [key:string]: CallerCache},
     functionCache:any,
     resolver: Resolver
 };
