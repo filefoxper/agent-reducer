@@ -1,5 +1,4 @@
 import 'babel-polyfill';
-import 'proxy-polyfill/proxy.min';
 
 export {createAgentReducer} from './libs/reducer';
 

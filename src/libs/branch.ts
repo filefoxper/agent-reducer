@@ -4,7 +4,7 @@ import {BranchApi, BranchResolver} from "./branch.type";
 import {AgentDependencies, Env, OriginAgent} from "./reducer.type";
 import {Resolver} from "./resolver.type";
 import {applyResolvers} from "./resolver";
-import {createSimpleProxy} from "@/libs/createSimpleProxy";
+import {createProxy} from "./util";
 
 /**
  * The function branch is designed for resolving your function returns manually, it returns a result which is a copy of your agent.
@@ -36,7 +36,7 @@ export function branch<S, T extends OriginAgent<S>>(agent: T & { [agentDependenc
 
     const buildBranchAgent = () => {
         let expired: boolean = false;
-        const branchEnv = createSimpleProxy(env, {
+        const branchEnv = createProxy(env, {
             set() {
                 return false;
             },
@@ -63,7 +63,7 @@ export function branch<S, T extends OriginAgent<S>>(agent: T & { [agentDependenc
 
     branchAgent = buildBranchAgent();
 
-    return createSimpleProxy(agent, {
+    return createProxy(agent, {
         set() {
             return false;
         },

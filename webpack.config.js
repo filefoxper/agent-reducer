@@ -17,18 +17,10 @@ const babelPolyfillExternal = {
     amd: 'babel-polyfill',
 };
 
-const proxyPolyfillExternal = {
-    root: 'BabelPolyfill',
-    commonjs2: 'proxy-polyfill',
-    commonjs: 'proxy-polyfill',
-    amd: 'proxy-polyfill',
-};
-
 function entry() {
     return {
         externals:{
-            'babel-polyfill':babelPolyfillExternal,
-            'proxy-polyfill':proxyPolyfillExternal
+            'babel-polyfill':babelPolyfillExternal
         },
         mode: 'production',
         devtool: false,

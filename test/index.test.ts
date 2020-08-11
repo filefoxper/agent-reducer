@@ -244,11 +244,11 @@ class Counter implements OriginAgent<number> {
         return this.state + 1;
     }
 
-    addOneFrom=(state: number)=> {
+    addOneFrom(state: number) {
         return state + 1;
     };
 
-    addTwice=()=> {
+    addTwice() {
         this.addOne();
         this.addOneFrom(3);
     }

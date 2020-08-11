@@ -50,8 +50,10 @@ export type StateChange<S = any> = {
     state: S
 };
 
+export type SourceCall=(...args:any[])=>any;
+
 export type Caller={
-    source:(...args:any[])=>any,
+    source:SourceCall,
     args?:any[],
     target:any
 };
