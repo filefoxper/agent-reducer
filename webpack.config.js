@@ -10,8 +10,15 @@ const entryPath = pathBuilder.resolve('src', 'index.ts');
 
 const targetPath = pathBuilder.resolve('dist');
 
+const babelPolyfillExternal = {
+    root: 'BabelPolyfill',
+    commonjs2: 'babel-polyfill',
+    commonjs: 'babel-polyfill',
+    amd: 'babel-polyfill',
+};
+
 const proxyPolyfillExternal = {
-    root: 'ProxyPolyfill',
+    root: 'BabelPolyfill',
     commonjs2: 'proxy-polyfill',
     commonjs: 'proxy-polyfill',
     amd: 'proxy-polyfill',
@@ -20,6 +27,7 @@ const proxyPolyfillExternal = {
 function entry() {
     return {
         externals:{
+            'babel-polyfill':babelPolyfillExternal,
             'proxy-polyfill':proxyPolyfillExternal
         },
         mode: 'production',
@@ -74,7 +82,7 @@ function entry() {
                                         {
                                             modules: false,
                                             targets: {
-                                                browsers: ['ie >= 11']
+                                                ie:"9"
                                             }
                                         }
                                     ]

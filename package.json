@@ -1,6 +1,6 @@
 {
   "name": "agent-reducer",
-  "version": "1.0.10",
+  "version": "1.0.21",
   "main": "./index.js",
   "author": "Jimmy.Harding",
   "description": "the purpose of this project is using an agent object or class to play as a reducer",
@@ -30,10 +30,12 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "proxy-polyfill": "^0.3.2"
+    "proxy-polyfill": "^0.3.2",
+    "babel-polyfill": "^6.26.0"
   },
   "peerDependencies": {
-    "proxy-polyfill": ">=0.3.2"
+    "proxy-polyfill": ">=0.3.2",
+    "babel-polyfill": "^6.26.0"
   },
   "devDependencies": {
     "@babel/core": "7.2.2",

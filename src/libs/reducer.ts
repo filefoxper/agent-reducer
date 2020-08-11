@@ -13,6 +13,7 @@ import {
 import {Resolver} from "./resolver.type";
 import {agentDependenciesKey, DefaultActionType} from "./defines";
 import {defaultResolver} from "./resolver";
+import {createSimpleProxy} from "@/libs/createSimpleProxy";
 
 /**
  *
@@ -79,7 +80,7 @@ function createActionRunner<S, T extends OriginAgent<S>>(
     cache[type].caller = {
         source: caller,
         target: proxy
-    }
+    };
 
     functionCache[type] = caller;
 
@@ -96,15 +97,19 @@ function createActionRunner<S, T extends OriginAgent<S>>(
  * @param env   run env
  * @param resolver  this param is set by a branch function, which copy an agent, and you can use this param to resolve function returns manually
  */
-export function generateAgent<S, T extends OriginAgent<S>>(entry: T, store: StoreSlot<S>, env: AgentEnv, resolver: Resolver): T {
+export function generateAgent<S, T extends OriginAgent<S>>(entry: T & { [agentDependenciesKey]?: AgentDependencies<S, T> }, store: StoreSlot<S>, env: AgentEnv, resolver: Resolver): T {
 
     let invokeDependencies: AgentDependencies<S, T> = {entry, store, env, cache: {}, functionCache: {}, resolver};
 
-    let proxy: T & { [agentDependenciesKey]?: AgentDependencies<S, T> } = new Proxy(entry, {
-        get(target: T, p: string & keyof T): any {
+    if (!(agentDependenciesKey in entry)) {
+        entry[agentDependenciesKey] = undefined;
+    }
+
+    let proxy: T & { [agentDependenciesKey]?: AgentDependencies<S, T> } = createSimpleProxy(entry, {
+        get(target: T, p: string & keyof T,receiver:T): any {
             const source = target[p];
             if (typeof source === 'function') {
-                return createActionRunner(proxy, invokeDependencies, p, source);
+                return createActionRunner(receiver, invokeDependencies, p, source);
             }
             return entry[p];
         },
@@ -132,6 +137,7 @@ export function generateAgent<S, T extends OriginAgent<S>>(entry: T, store: Stor
     const descHandler = withProxy.reduce((res, [key, desc]) => ({...res, [key]: desc}), {});
     Object.defineProperties(entry, descHandler);
     if (env.isBranch) {
+        proxy[agentDependenciesKey] = undefined;
         return proxy as T;
     }
     proxy[agentDependenciesKey] = invokeDependencies;
