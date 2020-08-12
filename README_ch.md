@@ -13,26 +13,15 @@
 # agent-reducer
 
 ### 新增变化
-1. 增加了Resolver接口，作为类似redux的middleWare的替代品
-2. 增加了branch分支系统，为一项特殊任务提供一个可销毁重建的分支，配合上branchApi，
-可以完成类似redux-saga中takeLatest等效果，而不需要非得使用generator函数。
+1. 不再支持在agent内使用箭头函数。（因为这需要去修改出入的originAgent，并改变箭头函数的原意）
+2. 支持IE9以上浏览器。（Proxy问题已经被修复）
 
 ### bug 修复
 1. 箭头函数不能正常工作，该问题已经修复。
 
-### reducer
-为什么要reducer?reducer与其说是一个简单的数据处理器，更像是一个数据迭代描述器。它指明了下一步的数据该是什么样子的，
-下一个数据和当前数据的区别是什么。而数据是怎么加工的，这是核心，并非重点。换句话说，reducer可以被看作是一个黑盒处理器，
-处理逻辑可以写在reducer方法里也可以通过引用其他方法获取。reducer以return的方式指明下一个数据该是什么样的，这是个非常优秀的设计。
-在一段复杂逻辑中，return可以大大减小我们的思维逻辑压力。（我们只要注意return出现在哪里，走到当前return需要经过哪些逻辑分支就行了，而不必关注return之后的逻辑代码）
-另外reducer通常被写成幂等函数，入参不变结果不变，这大大提高了结果的可预测性。
-
-纵然reducer有上述大量优点，但依然不能唤起更多人的喜爱，就因为dispatch模式。当我们需要通过reducer的下一个数据的时候，
-我们通常要通过dispatch，事件分发的行为让它动起来。因为reducer需要于被维护的state联系起来，故选择了dispatch作为事件分发器。
-但dispatch却限制了使用者的行为。比如：dispatch必须以action object作为参数，而大部分reducer只能通过接收state和action的方式来工作。
-因为dispatch和reducer之间缺乏必然的联系，这让很多typescript类型系统使用者很心累。
-
-为了解决上述问题，让reducer更贴近使用者，这里推出了 <strong>agent-reducer</strong>，reducer代理器。它让我们可以以近似class或object的写法来书写reducer。
+### reducer & prototype
+reducer的return特性不但可以方便单元测试，更能够有效简化逻辑。而prototype中的方法调用比reducer系列的dispatch更自然。
+agent-reducer可以把以上两个特点结合起来。
 
 ### 换种写法
 让我们写一个这样的reducer试试
@@ -134,14 +123,16 @@ setTimeout(() => console.log(state),1000); // 2
 4 . <strong>不要使用namespace属性</strong>，这个属性暂时会作为一个特殊关键字被createAgentReducer捕获，做全局数据管理器区分数据块的标准。
 比如redux。
 
+5 . <strong>不要使用箭头函数作为agent对象的属性值。</strong>
+
 ### 特性
 1. 不要担心this问题，当你使用createAgentReducer(originAgent).agent获取代理时，你的agent代理方法已经通过fn.apply(proxy,...)以及闭包的形式强行锁定了this。
 所以无论你是把agent的方法赋值给其他对象属性，还是通过call,apply重新绑定，该方法运行时的this始终都是agent。
 为什么这么设计？因为我们不认为直接拿一个object的方法绑定到其他object上是一个好的设计，其中的隐晦太多了。
 
 ### 使用其他reducer维护器
-在通过调用createAgentReducer之后，你可以得到一个类似原生的reducer，该reducer拥有agent（直接使用的代理），
-以及<strong>update</strong> function，通过调用<strong>update(state,dispatch)</strong>就可以接入你自己的reducer维护器（如：redux,useReducer）了。
+在通过调用createAgentReducer之后，你可以得到一个类似原生的reducer，该reducer有一个agent属性对象，
+以及一个<strong>update</strong> function，通过调用<strong>update(state,dispatch)</strong>就可以接入你自己的reducer维护器（如：redux,useReducer）了。
 
 ```typescript
 //我们可以创建一个简单的 store, 并把agent reducer接入这个 store.

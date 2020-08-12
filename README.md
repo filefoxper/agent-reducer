@@ -15,22 +15,14 @@ recommend usages:
 # agent-reducer
 
 ### new changes
-1. provide `Resolver` as the middleWare system in redux.
-2. provide `branch` system to do a special work with special mode like `takeLatest` in `redux-saga`. 
+1. The arrow function in origin agent will not be supported as an dispatch function from this version. (For this feature has to built by changing property define about the origin agent)
+2. We have made it support IE browsers from version 9. 
 
-### bug fixes
-1. The arrow function can not work well, and now we have fixed it.
-
-### reducer
-reducer brings us a lot of benefits when we organize states. 
-It provides a pure functional writing mode to make our state predictable. 
-When we use keyword <strong>return</strong> to give out then next state, the rest logic can be negligible.
-
-But it has some problems too. When we dispatch an action, we have to use `dispatch({type:'...',payload:{...}})` to tell 
-reducer driver, we have put an action, please handle it, and give out the next state. 
-We can not use it easily as deploy a function. 
-
-So, we have made some change to let `dispatch({type:'...',payload:{...}})` be `object.handleChange(...args)`. 
+### reducer & prototype
+A reducer always returns a new state object as the next state, this feature can make a function
+keep simple and predictable. And functions from prototype can be used more naturally 
+than dispatch function for reducer. So, <strong>agent-reducer</strong> combines the two advantages
+together. Now you can use a reducer as an simple object or class.     
 
 ### make reducer a little better
 Now, let's write a reducer like this:
@@ -97,17 +89,17 @@ If you are using typescript, the type system will give you more infos to keep yo
 There are some rules about this tool, you should know, before use it, and trust me, they are simple enough.
 
 ### rules
-1 . The class or object to `createAgentReducer` function is called <strong> originAgent</strong>. To be an <strong>originAgent</strong>, 
+1 . The class or object to `createAgentReducer` function is <strong> originAgent</strong>. To be an <strong>originAgent</strong>, 
 it must has a <strong>state</strong> property. Do not modify <strong>state</strong> manually. 
-this.state preserve the current state, so you can compute a <strong>next state</strong> by this.state and params in an <strong>originAgent</strong> function.
+this.state preserve the current state.
 
-2 . The object `createAgentReducer(originAgent).agent` is called <strong>agent</strong>. 
-And the function in your <strong>agent</strong> which returns an object <strong>not</strong> undefined or promise, 
-will be an <strong>dispatch function</strong>, when you deploy it, an action contains next state will be dispatched to a true reducer.  
+2 . The object `createAgentReducer(originAgent).agent` is <strong>agent</strong>. 
+And the functions from <strong>agent</strong> properties can return an object (<strong>not undefined or promise</strong>)
+to point out the next state. Consider them as <strong>dispatch functions</strong>.  
 ```
 like agent.addOne, agent.sum
 ```
-3 . The function which returns <strong>undefined | promise</strong> is just a simple function,
+3 . The function which returns <strong>undefined or promise</strong> is consider as a normal function,
 which can deploy <strong>dispatch functions</strong> to change state.
 ```
 like agent.addOneAfterOneSecond
@@ -116,10 +108,12 @@ like agent.addOneAfterOneSecond
 The property '<strong>namespace</strong>' will be used by `createAgentReducer` inside.
 ( We will try to remove this rule by next big version. )
 
+5 . <strong>Do not use arrow function in originAgent</strong>.
+
 ### features
-1. Do not worry about using <strong>this.xxx</strong>, when you use <strong>agent</strong> from <strong>createAgentReducer(originAgent).agent</strong>.
-The <strong>agent</strong> has been rebuild by proxy and Object.defineProperties, the functions inside have bind <strong>this</strong> by using sourceFunction.apply(agentProxy,...args),
-so you can use those functions by reassign to any other object, and <strong>this</strong> in this function is locked to the <strong>agent</strong> object.
+1. When use <strong>agent</strong> by <strong>createAgentReducer(originAgent).agent</strong>,
+you can assign agent functions into other object, but keep the keyword <strong>"this"</strong> 
+in functions still point to the <strong>agent</strong>.
 
 ### connect to another reducer driver
 Use <strong>update</strong> method from an <strong>agentReducer</strong>, which is created by <strong>createAgentReducer</strong>,

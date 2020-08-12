@@ -74,7 +74,7 @@ function entry() {
                                         {
                                             modules: false,
                                             targets: {
-                                                ie:"9"
+                                                "browsers": ["last 2 versions", "ie >=9"]
                                             }
                                         }
                                     ]
