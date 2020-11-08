@@ -7,7 +7,6 @@ import {
   Env,
   OriginAgent,
   Reducer,
-  SourceCall,
   StateChange,
   StoreSlot
 } from "./reducer.type";
@@ -93,14 +92,14 @@ function generateAgentForIE<S, T extends OriginAgent<S>>(invokeDependencies: Age
   const {entry} = invokeDependencies;
 
   let proxy: T & { [agentDependenciesKey]?: AgentDependencies<S, T> } = useSimpleProxy(entry, {
-    get(target: T, key: string, receiver: any): any {
+    get(target: T, key: string): any {
       const source = target[key];
       if (typeof source === 'function' && key !== 'constructor') {
         return createActionRunner(proxy, invokeDependencies, key, source);
       }
       return target[key];
     },
-    set(target: T, key: string, value: any, receiver: any): boolean {
+    set(target: T, key: string): boolean {
       const source = entry[key];
       return key !== 'state' && typeof source !== 'function';
     }
@@ -135,8 +134,8 @@ export function generateAgent<S, T extends OriginAgent<S>>(entry: T & { [agentDe
   if (noProxy()) {
     return generateAgentForIE(invokeDependencies, env);
   }
-  let proxy: T & { [agentDependenciesKey]?: AgentDependencies<S, T> } = new window.Proxy(entry, {
-    get(target: T, p: string & keyof T, receiver: T): any {
+  let proxy: T & { [agentDependenciesKey]?: AgentDependencies<S, T> } = new Proxy(entry, {
+    get(target: T, p: string & keyof T): any {
       const source = target[p];
       if (typeof source === 'function') {
         return createActionRunner(proxy, invokeDependencies, p, source);

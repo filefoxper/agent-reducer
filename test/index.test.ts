@@ -321,6 +321,24 @@ class Branch implements OriginAgent {
 
 describe('test branch', () => {
 
+    const Proxy=self.Proxy;
+
+    beforeAll(()=>{
+        Object.defineProperty(self,'Proxy',{
+            get(){
+                return undefined;
+            }
+        });
+    });
+
+    afterAll(()=>{
+        Object.defineProperty(self,'Proxy',{
+            get(){
+                return Proxy;
+            }
+        });
+    });
+
     test('branch with takeLatest plugin', async () => {
         const agent = createAgentReducer(Branch).agent;
         const {disorderCount} = branch(agent, BranchResolvers.takeLatest());
@@ -364,6 +382,21 @@ describe('test branch', () => {
         }catch (e) {
             expect(e.message).toBeTruthy();
         }
+    });
+
+    test('branch with takeLazy',async ()=>{
+        const agent = createAgentReducer(Branch).agent;
+        const {setCount} = branch(agent, BranchResolvers.takeLazy(500));
+        setCount(0);
+        expect(agent.state.count).toBe(-1);
+        await new Promise((r) => setTimeout(r,200));
+        setCount(1);
+        expect(agent.state.count).toBe(-1);
+        await new Promise((r) => setTimeout(r,200));
+        setCount(2);
+        expect(agent.state.count).toBe(-1);
+        await new Promise((r) => setTimeout(r,600));
+        expect(agent.state.count).toBe(2);
     });
 
     test('set branch property manually',()=>{

@@ -12,9 +12,9 @@
 
 # agent-reducer
 
-### 新增变化
-1. 不再支持在agent内使用箭头函数。（因为这需要去修改出入的originAgent，并改变箭头函数的原意）
-2. 支持IE9以上浏览器。（Proxy问题已经被修复）
+###### 新增变化
+1. 支持nodejs
+2. 添加`BranchResolvers.takeLazy(waitMs: number)`分支插件
 
 ### bug 修复
 1. 箭头函数不能正常工作，该问题已经修复。
@@ -336,6 +336,10 @@ expect(agent.state.count).toBe(2);
 
 ###### BranchResolvers.takeBlock(blockMs?: number)
 使用该插件的分支在异步任务结束前将阻止其他同名方法运行。通过设置blockMs毫秒数，可以指定阻塞时间，在超过阻塞时间后将不再阻止其他同名方法。
+
+###### BranchResolvers.takeLazy(waitMs: number)
+使用该插件的分支方法会在触发后`waitMs`毫秒后执行，但如果在`waitMs`毫秒内再次触发，这时候运行的方法将会代替还未运行的上次方法，
+并继续延时`waitMs`毫秒后执行。
 
 ### 关于branch的使用建议
 branch分支系统的设计初衷：使用一个分支来完成一项特殊任务，分支因任务而存在，

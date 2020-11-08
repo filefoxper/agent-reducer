@@ -14,9 +14,9 @@ recommend usages:
 
 # agent-reducer
 
-### new changes
-1. The arrow function in origin agent will not be supported as an dispatch function from this version. (For this feature has to built by changing property define about the origin agent)
-2. We have made it support IE browsers from version 9. 
+###### new changes
+1. support usage in nodejs. 
+2. add plugin `BranchResolvers.takeLazy(waitMs: number)`.
 
 ### reducer & prototype
 A reducer always returns a new state object as the next state, this feature can make a function
@@ -323,6 +323,11 @@ This resolver will take the latest deploy of your function.
 ###### BranchResolvers.takeBlock(blockMs?: number)
 This resolver will block a function between the time when it is called and when it is resolved.
 And you can set block milliseconds to reduce the block time.
+
+###### BranchResolvers.takeLazy(waitMs: number)
+This resolver will delay invoking function after `waitMs` milliseconds, 
+if the function is invoked at the moment after prev invoking time less than `waitMs` milliseconds, 
+it will replace prev invoking and invoke after `waitMs` milliseconds from now.
 
 #### suggest to using branch
 A branch is considered to do just one special work with a resolver. It can be rejected or be rebuilt any time.

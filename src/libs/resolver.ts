@@ -121,7 +121,7 @@ export class BranchResolvers {
             function timeout(cache: CallerCache) {
                 const now = new Date().getTime();
                 const {source, args, target} = cache.caller;
-                if (now - cache.last||now < waitMs) {
+                if ((now - cache.last||now) < waitMs) {
                     return;
                 }
                 source.apply(target, args || []);

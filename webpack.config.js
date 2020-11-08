@@ -10,18 +10,8 @@ const entryPath = pathBuilder.resolve('src', 'index.ts');
 
 const targetPath = pathBuilder.resolve('dist');
 
-const babelPolyfillExternal = {
-    root: 'BabelPolyfill',
-    commonjs2: 'babel-polyfill',
-    commonjs: 'babel-polyfill',
-    amd: 'babel-polyfill',
-};
-
 function entry() {
     return {
-        externals:{
-            'babel-polyfill':babelPolyfillExternal
-        },
         mode: 'production',
         devtool: false,
         entry: {
