@@ -65,7 +65,9 @@ function entry() {
                                             modules: false,
                                             targets: {
                                                 "browsers": ["last 2 versions", "ie >=9"]
-                                            }
+                                            },
+                                            useBuiltIns: "usage",
+                                            corejs: {version: 3, proposals: true}
                                         }
                                     ]
                                 ]

@@ -30,6 +30,8 @@ function getDescriptors(target: any, receiver: any, ownOrPrototype: any, handler
                 const valid = handler.set(target, key, v, receiver);
                 if (valid) {
                     target[key] = v;
+                }else{
+                    throw new Error(key+' in proxy target is not mutable');
                 }
             }
         };

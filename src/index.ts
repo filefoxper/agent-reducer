@@ -1,13 +1,35 @@
+/** main **/
+
 export {createAgentReducer} from './libs/reducer';
 
-export {branch} from './libs/branch';
+export {branch, useMiddleWare, middleWare} from './libs/useMiddleWare';
 
-export {defaultResolver, applyResolvers, BranchResolvers} from './libs/resolver';
+export {useMiddleActions, MiddleActions} from './libs/middleActions';
 
-export {Resolver, NextLink, ResultProcessor} from './libs/resolver.type';
+/** middleWares **/
 
-export {DefaultActionType} from './libs/defines';
+export {defaultResolver, defaultMiddleWare, applyResolvers, applyMiddleWares} from './libs/applies';
 
-export {OriginAgent, Env, Reducer, Action, AgentReducer} from './libs/reducer.type';
+export {BranchResolvers, LifecycleMiddleWares,toLifecycleMiddleWare} from './libs/lifecycleMiddleWares';
 
-export {BranchApi, BranchResolver} from './libs/branch.type';
+/** global set and defines **/
+
+export {globalConfig, clearGlobalConfig, DefaultActionType, getAgentNamespaceKey} from './libs/defines';
+
+/** types **/
+
+export {
+    OriginAgent,
+    Env,
+    Runtime,
+    Resolver,
+    MiddleWare,
+    NextLink,
+    NextProcess,
+    ResultProcessor,
+    StateProcess,
+    LifecycleRuntime,
+    LifecycleEnv
+} from './libs/global.type';
+
+export {Reducer, Action, AgentReducer} from './libs/reducer.type';

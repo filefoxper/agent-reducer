@@ -1,10 +1,4 @@
-import {Resolver} from "./resolver.type";
-
-export interface OriginAgent<S = any> {
-    state: S,
-    namespace?: string,
-    [key:string]:any
-}
+import {Env, OriginAgent} from "./global.type";
 
 //out lib interface
 export interface StoreSlot<S = any> {
@@ -16,16 +10,17 @@ export interface StoreSlot<S = any> {
 
 export type Reducer<S, A> = (state: S, action: A) => S;
 
-interface AgentData<S = any, T extends OriginAgent<S> = OriginAgent<S>> {
+export interface ReducerPadding<S = any, T extends OriginAgent<S> = OriginAgent<S>> {
     initialState: S,
     namespace?: string,
     env: Env,
     agent: T,
-    update: (nextState: S, dispatch: Dispatch) => void,
-    recordStateChanges: () => () => Array<StateChange<S>>
+    update: (state?:S,dispatch?:Dispatch) => void,
+    useStoreSlot:(slot:StoreSlot)=>void
+    recordChanges: () => () => Array<Change<S>>
 }
 
-export type AgentReducer<S = any, A = any, T extends OriginAgent<S> = any> = Reducer<S, A> & AgentData<S, T>;
+export type AgentReducer<S = any, A = any, T extends OriginAgent<S> = any> = Reducer<S, A> & ReducerPadding<S, T>;
 
 //inner interface
 export declare type Action = {
@@ -35,39 +30,7 @@ export declare type Action = {
 
 export type Dispatch = (action: Action) => any;
 
-export interface Env {
-    updateBy?: 'manual' | 'auto',
-    expired?: boolean,
-    strict?: boolean
-}
-
-export interface AgentEnv extends Env{
-    isBranch?:boolean
-}
-
-export type StateChange<S = any> = {
+export type Change<S = any> = {
     type: string | number | symbol,
     state: S
-};
-
-export type SourceCall=(...args:any[])=>any;
-
-export type Caller={
-    source:SourceCall,
-    args?:any[],
-    target:any
-};
-
-export type CallerCache={
-    [key:string]:any,
-    caller:Caller
-};
-
-export type AgentDependencies<S, T extends OriginAgent<S>> = {
-    entry: T,
-    store: StoreSlot<S>,
-    env: Env,
-    cache: { [key:string]: CallerCache},
-    functionCache:any,
-    resolver: Resolver
 };
