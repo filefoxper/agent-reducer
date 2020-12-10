@@ -87,7 +87,7 @@ function rebuildMiddleActionDependencies<S, T extends OriginAgent<S>, P extends 
 export function useMiddleActions<T extends OriginAgent<S>, P extends MiddleActions<T, S>, S = any>(
     agent: T,
     middleWareActions: { new(agent: T): P },
-    middleWare?: MiddleWare
+    middleWare?: MiddleWare | LifecycleMiddleWare
 ): P {
     if (agent[agentDependenciesKey] === undefined) {
         throw new Error('`middleWareActions` should create on an agent.');
