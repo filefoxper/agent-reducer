@@ -1,8 +1,8 @@
 import {Action, StoreSlot} from "./reducer.type";
-import {Env,MiddleWare} from './global.type';
+import {Env, MiddleWare} from './global.type';
 import {agentDependenciesKey, agentNamespaceKey} from "./defines";
 import {createProxy} from "./util";
-import {useMiddleWare} from "./useMiddleWare";
+import {decorateWithMiddleWare, useMiddleWare} from "./useMiddleWare";
 import {AgentDependencies} from './agent.type';
 import {OriginAgent} from "./global.type";
 
@@ -88,18 +88,31 @@ export function generateAgent<S, T extends OriginAgent<S>>(
     store: StoreSlot<S>,
     env: Env,
     middleWare: MiddleWare,
-    isBranch?: boolean
+    copyInfo?: {
+        sourceAgent: T & { [agentDependenciesKey]?: AgentDependencies<S, T> },
+        type: 'copy' | 'decorator'
+    }
 ): T {
 
     let invokeDependencies: AgentDependencies<S, T> = {entry, store, env, cache: {}, functionCache: {}, middleWare};
 
     let methodWithMiddleWares: { [key in keyof T]?: any } = {};
 
+    let cache = {
+        methodWithMiddleWares,
+        invokeDependencies: undefined
+    }
+
+    let {type: copyType, sourceAgent} = copyInfo || {};
+
     let proxy: T & { [agentDependenciesKey]?: AgentDependencies<S, T> } = createProxy(entry, {
         get(target: T, p: string & keyof T): any {
             const source = target[p];
-            if (typeof source === 'function' && source.middleWare && !isBranch) {
-                const methodWithMiddleWare = methodWithMiddleWares[p] || useMiddleWare(proxy, source.middleWare)[p];
+            if (typeof source === 'function' && methodWithMiddleWares[p]) {
+                return methodWithMiddleWares[p];
+            }
+            if (typeof source === 'function' && source.middleWare && copyType !== 'decorator') {
+                const methodWithMiddleWare = decorateWithMiddleWare(sourceAgent || proxy, source.middleWare)[p];
                 methodWithMiddleWares[p] = methodWithMiddleWare;
                 return methodWithMiddleWare;
             }
@@ -107,7 +120,9 @@ export function generateAgent<S, T extends OriginAgent<S>>(
             if (typeof source === 'function') {
                 return createActionRunner(proxy, invokeDependencies, p, source);
             }
-
+            if (p === agentDependenciesKey) {
+                return cache.invokeDependencies;
+            }
             return entry[p];
         },
         set(target: T, p: string & keyof T, value: any): boolean {
@@ -115,11 +130,15 @@ export function generateAgent<S, T extends OriginAgent<S>>(
             if (typeof source === 'function') {
                 return false;
             }
-            entry[p] = value;
+            if (p === agentDependenciesKey) {
+                cache.invokeDependencies = value;
+            } else {
+                entry[p] = value;
+            }
             return true;
         }
     });
-    if (isBranch) {
+    if (copyInfo) {
         proxy[agentDependenciesKey] = undefined;
         return proxy as T;
     }
