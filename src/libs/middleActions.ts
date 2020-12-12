@@ -9,7 +9,7 @@ import {
     LifecycleEnv, LifecycleRuntime
 } from "./global.type";
 import {AgentDependencies} from './agent.type';
-import {AsyncAgent, MiddleActionDependencies, AsyncInvokeDependencies} from "./middleActions.type";
+import {MiddleActionsInterface, MiddleActionDependencies, AsyncInvokeDependencies} from "./middleActions.type";
 import {createProxy} from "./util";
 import {middleWareAbleFunction} from "./useMiddleWare.type";
 import {generateAgent} from "./agent";
@@ -31,7 +31,7 @@ function through(): MiddleWare {
 }
 
 
-function rebuildMiddleActionDependencies<S, T extends OriginAgent<S>, P extends AsyncAgent<S, T>>(
+function rebuildMiddleActionDependencies<T extends OriginAgent<S>, P extends MiddleActionsInterface<T,S>,S>(
     agent: T, source: middleWareAbleFunction, globalMiddleWare?: MiddleWare | LifecycleMiddleWare
 ): MiddleActionDependencies<T> {
     const invokeDependencies: AgentDependencies<S, T> = agent[agentDependenciesKey];
@@ -69,7 +69,7 @@ function rebuildMiddleActionDependencies<S, T extends OriginAgent<S>, P extends 
             }
         });
         return {
-            agent: generateAgent(entry, store, cloneEnvProxy, middleWare, true),
+            agent: generateAgent(entry, store, cloneEnvProxy, middleWare, {sourceAgent:agent,type:'copy'}),
             middleWare: cloneMiddleWare ? cloneMiddleWare : globalMiddleWare ? globalMiddleWare : through(),
             agentEnv: cloneEnvProxy
         };
@@ -84,9 +84,9 @@ function rebuildMiddleActionDependencies<S, T extends OriginAgent<S>, P extends 
     });
 }
 
-export function useMiddleActions<T extends OriginAgent<S>, P extends MiddleActions<T, S>, S = any>(
+export function useMiddleActions<T extends OriginAgent<S>, P extends MiddleActions<T, S>=MiddleActions<T>, S = any>(
     agent: T,
-    middleWareActions: { new(agent: T): P },
+    middleActions: { new(agent: T): P }|P,
     middleWare?: MiddleWare | LifecycleMiddleWare
 ): P {
     if (agent[agentDependenciesKey] === undefined) {
@@ -96,7 +96,7 @@ export function useMiddleActions<T extends OriginAgent<S>, P extends MiddleActio
         cache: {},
         functionCache: {}
     };
-    const sideByCallerInstance = new middleWareActions(agent);
+    const sideByCallerInstance = typeof middleActions==='function'?new middleActions(agent):middleActions;
     const defaultMiddleWare = <T>(data: T) => data;
     const proxy = createProxy(sideByCallerInstance, {
         get(target: any, type: string): any {

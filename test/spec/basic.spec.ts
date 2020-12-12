@@ -291,6 +291,13 @@ describe('使用 useMiddleActions 方法可以把 reduce-actions 和 middle-acti
         expect(agent.state).toBe(2);
     });
 
+    test('useMiddleActions 不但可以设置 class 作为 MiddleActions，也可以使用 object 的形式', async () => {
+        const {agent} = createAgentReducer(new CountAgent(1)); // 你可以使用对象的形式来定义一个 origin-agent，以方便传参
+        const middleActions = useMiddleActions(agent, new CountBeside(agent)); //使用 useMiddleActions 获取自定义MiddleActions的实例
+        await middleActions.callingStepUpAfterRequest();
+        expect(agent.state).toBe(2);
+    });
+
 });
 
 describe('useMiddleWare 可以在已存在的 agent 基础上新建一个 agent ，并获取指定MiddleWare的能力', () => {
@@ -307,7 +314,13 @@ describe('useMiddleWare 可以在已存在的 agent 基础上新建一个 agent 
             return this.state + counts.reduce((r, c): number => r + c, 0);
         };
 
-        async callingStepUpAfterRequest(tms: number) {
+        async callingSumAfter(tms: number) {
+            await new Promise((r) => setTimeout(r, tms * 100));
+            return this.sum(tms);
+        }
+
+        @middleWare(LifecycleMiddleWares.takeLatest())
+        async callingSumAfterWithDec(tms: number) {
             await new Promise((r) => setTimeout(r, tms * 100));
             return this.sum(tms);
         }
@@ -316,9 +329,9 @@ describe('useMiddleWare 可以在已存在的 agent 基础上新建一个 agent 
 
     test('使用 AsyncMiddleWares.takeLatest, 可以保持agent数据为最新版本数据（最后一次触发并修改的数据，有点像saga的takeLatest）', async () => {
         const {agent} = createAgentReducer(CountAgent);
-        const {callingStepUpAfterRequest} = useMiddleWare(agent, LifecycleMiddleWares.takeLatest());
-        const first = callingStepUpAfterRequest(5); // resolve 500ms 后
-        const second = callingStepUpAfterRequest(2); // resolve 200ms 后
+        const {callingSumAfter} = useMiddleWare(agent, LifecycleMiddleWares.takeLatest());
+        const first = callingSumAfter(5); // resolve 500ms 后
+        const second = callingSumAfter(2); // resolve 200ms 后
         // 200ms 后 second promise 先 resolve 并修改了 agent.state, 但 first promise 依然在等待,
         // 这时候 AsyncMiddleWares.takeLatest 这个 MiddleWare 把useMiddleWare新建的agent拷贝版标记成过期，并再次新建一个非过期的agent拷贝来代替这个版本，
         // 500ms 后 first promise resolve，但它所在的老版本拷贝已经过期，所以不能继续修改 agent.state 了.
@@ -331,14 +344,27 @@ describe('useMiddleWare 可以在已存在的 agent 基础上新建一个 agent 
 
     test('使用 AsyncMiddleWares.takeBlock, 可以使被调用方法在resolve之前，不能再被调用',()=>{
         const {agent,recordChanges} = createAgentReducer(CountAgent);
-        const {callingStepUpAfterRequest} = useMiddleWare(agent, LifecycleMiddleWares.takeBlock(200));
+        const {callingSumAfter} = useMiddleWare(agent, LifecycleMiddleWares.takeBlock(200));
         // 如果设置了阻塞时间，在阻塞时间过期后不论此时是否resolve完成，被调用方法都恢复原来可被调用状态
         const unRecord=recordChanges();
-        const first = callingStepUpAfterRequest(5); // resolve after 500ms
-        const second = callingStepUpAfterRequest(5); // resolve after 500ms
+        const first = callingSumAfter(5); // resolve after 500ms
+        const second = callingSumAfter(5); // resolve after 500ms
         setTimeout(()=>{
             const records=unRecord();
             expect(agent.state).toBe(5);
+            expect(records.length).toBe(1);
+        },600);
+    });
+
+    test('使用useMiddleWare时，若被调用的方法已经有指定的middleWare时， 以内部middleWare为准',()=>{
+        const {agent,recordChanges} = createAgentReducer(CountAgent);
+        const {callingSumAfterWithDec} = useMiddleWare(agent, LifecycleMiddleWares.takeBlock(200));
+        const unRecord=recordChanges();
+        const first = callingSumAfterWithDec(5); // resolve after 500ms
+        const second = callingSumAfterWithDec(2); // resolve after 200ms
+        setTimeout(()=>{
+            const records=unRecord();
+            expect(agent.state).toBe(2);
             expect(records.length).toBe(1);
         },600);
     });
@@ -432,6 +458,7 @@ describe('使用 middleWare 方法可以对当前被调用方法单独添加指�
         ]);
         expect(agent.state).toBe(2);
     });
+
 
 });
 

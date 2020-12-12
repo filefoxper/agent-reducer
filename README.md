@@ -70,6 +70,12 @@ import {OriginAgent} from "agent-reducer";
 以上代码是一段简单的计数器，`CountAgent`通过调用对象属性方法的形式来完成一个`reducer action`分支，
 `return`值作为计算完后的`this.state`数据（这里并未涉及state维护器，所以先当作有这么一个黑盒工具）。
 有点像reducer，但省去了action的复杂结构（action为了兼容多个分支的不同需求所以很难以普通传参方式来工作）。
+
+#### 重要说明：
+
+当前版本为了兼容 1.0.0+ 版本，defaultMiddleWare 依然默认开启 middle-action, reduce-action, 
+this层层代理模式，从 3.0.0 版开始，将彻底废弃 defaultMiddleWare 对返回 Promise 对象以及 undefined 对象的控制，
+即：agent 完全扮演 reducer 的角色。middle-action 的事情完全交由 useMiddleActions 独立完成。
  
 使用createAgentReducer来管理agent
 ```typescript
@@ -95,6 +101,7 @@ describe('使用 agent-reducer 来使用 class 与 reducer 模式的结合体', 
     
         // 返回 promise 或 undefined 使得当前的 method 成为来一个 middle-action，middle-action自身没有改变this.state的能力,
         // 但可以通过调用 reduce-action 来修改 this.state
+        // 3.0.0 版 agent 的 defaultMiddleWare 将彻底废弃 promise\undefined 特殊处理方案，this 在方法中的层层代理方案也将废弃
         async callingStepUpAfterRequest() {
             await Promise.resolve();
             return this.stepUp();
@@ -130,6 +137,11 @@ describe('使用 agent-reducer 来使用 class 与 reducer 模式的结合体', 
 ```
 [速成文档+例子](https://github.com/filefoxper/agent-reducer/blob/master/test/spec/basic.spec.ts)
 
+#### 重要说明：
+
+当前版本为了兼容 1.0.0+ 版本，defaultMiddleWare 依然默认开启 middle-action, reduce-action, 
+this层层代理模式，从 3.0.0 版开始，将彻底废弃 defaultMiddleWare 对返回 Promise 对象以及 undefined 对象的控制，
+即：agent 完全扮演 reducer 的角色。middle-action 的事情完全交由 useMiddleActions 独立完成。
 
 ### 基本定义
 1 . origin-agent  : 用于代替reducer的class或object，包含一个state属性（this.state是agent需要维护的数据）。
@@ -140,7 +152,7 @@ class CountAgent implements OriginAgent<number> {
 
 }
 ```
-2 . method : origin-agent属性对应的非箭头函数 "stepUp(){...}"。
+2 . (defaultMiddleWare定义) method : origin-agent属性对应的非箭头函数 "stepUp(){...}"。
 ```
 class CountAgent implements OriginAgent<number> {
 
@@ -152,7 +164,7 @@ class CountAgent implements OriginAgent<number> {
 
 }
 ```
-3 . arrow-function: origin-agent属性对应的箭头函数 "stepUp = () =>..."。
+3 . (defaultMiddleWare定义) arrow-function: origin-agent属性对应的箭头函数 "stepUp = () =>..."。
 ```
 class CountAgent implements OriginAgent<number> {
 
@@ -164,10 +176,10 @@ class CountAgent implements OriginAgent<number> {
 ```
 4 . state-object : origin-agent方法调用返回一个非 "undefined" 或 "promise"的完整数据，这个state将会成为this.state。
 
-5 . reduce-action : origin-agent中返回 state-object 的method 或 arrow function，
+5 . (defaultMiddleWare定义) reduce-action : origin-agent中返回 state-object 的method 或 arrow function，
 这些方法会根据方法名发送（dispatch）一个类似 {type:'step',state:agent.step()} 的 reducer action。
 
-6 . middle-action : origin-agent中返回 "undefined" or "promise" 的 method 或 arrow function，
+6 . (defaultMiddleWare定义) middle-action : origin-agent中返回 "undefined" or "promise" 的 method 或 arrow function，
 调用这些方法不会直接影响 this.state，但你可以在这些 middle-actions 中通过调用 reduce-actions 来影响 this.state。
 
 7 . agent : 当使用 createAgentReducer(origin-agent) 时，可以得到一个 reducer 方法，在reducer方法属性中，
@@ -261,9 +273,13 @@ import {OriginAgent,middleWare,LifecycleMiddleWares} from "agent-reducer";
 
 支持将`reduce-actions`和`middle-actions`分开使用。
 ```
-useMiddleActions( agent, MiddleActions )
+class Ma extends MiddleActions<T>{
+    agent:T
+}
 
-useMiddleActions( agent, MiddleActions, MiddleWare | LifecycleMiddleWare )
+useMiddleActions( agent, Ma | new Ma(agent) )
+
+useMiddleActions( agent, Ma | new Ma(agent) , MiddleWare | LifecycleMiddleWare )
 ```
 
 5 . MiddleActions ( >=2.0.0 )
@@ -443,7 +459,7 @@ export interface Env {
  strict : 默认 true，是否采取严格模式，如果为 true，agent.state必然随着 store 中的state变化而变化。
  否则，agent.state在每次运行完reduce-action后，立即根据reduce-action的返回值变化。
  
- reduceOnly ( >=2.0.0 ) : 默认 false，是否把agent做一个普通reducer，如果为 true，
+ reduceOnly ( >=2.0.0 & <3.0.0 ) : 默认 false，是否把agent做一个普通reducer，如果为 true，
  agent将会舍弃 method 中this的层层代理功能，defaultMiddleWare也不再使用 middle-action 特性，
  所有返回值都将成为this.state；如果为 false，agent的特性可参考 reduce-action 和 middle-action 的基本定义。
 

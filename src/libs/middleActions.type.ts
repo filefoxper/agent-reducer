@@ -2,7 +2,7 @@ import {agentDependenciesKey} from "./defines";
 import {AgentDependencies} from "./agent.type";
 import {Env, OriginAgent, MiddleWare, LifecycleMiddleWare} from "./global.type";
 
-export interface AsyncAgent<S, T extends OriginAgent<S>> {
+export interface MiddleActionsInterface<T extends OriginAgent<S>,S> {
     agent: T & { [agentDependenciesKey]?: AgentDependencies<S, T> },
 
     [key: string]: any
