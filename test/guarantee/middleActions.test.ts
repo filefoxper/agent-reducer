@@ -65,8 +65,7 @@ describe('补全MiddleActions上的MiddleWare测试',()=>{
             });
         }
 
-        @middleWare(MiddleWarePresets.takeLatestAssignable())
-        rename = (name: string) => {
+        rename(name: string) {
             return {name};
         }
 
