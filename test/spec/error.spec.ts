@@ -2,10 +2,9 @@ import {
     OriginAgent,
     createAgentReducer,
     useMiddleWare,
-    BranchResolvers,
     useMiddleActions,
     MiddleActions,
-    LifecycleMiddleWares, applyMiddleWares
+    LifecycleMiddleWares, applyMiddleWares, MiddleWarePresets
 } from "../../src";
 
 describe('agent的方法不能被修改', () => {
@@ -88,7 +87,7 @@ describe('不要对一个 origin-agent 使用 useMiddleWare', () => {
 
     test('对一个 origin-agent 使用 useMiddleWare，将会得到一个错误信息', () => {
         expect(() => {
-            useMiddleWare(new ObjectAgent(), LifecycleMiddleWares.takeBlock());
+            useMiddleWare(new ObjectAgent(), LifecycleMiddleWares.takeLatest());
         }).toThrowError();
     });
 
@@ -130,7 +129,7 @@ describe('不要修改一个useMiddleWare生成的agent拷贝对象的属性值'
 
     test('修改一个useMiddleWare生成的agent拷贝对象的属性值，将会得到一个错误信息', () => {
         const {agent} = createAgentReducer(ObjectAgent);
-        const b = useMiddleWare(agent, BranchResolvers.takeBlock());
+        const b = useMiddleWare(agent, MiddleWarePresets.takeBlock());
         expect(() => {
             b.props = 2;
         }).toThrowError();
@@ -161,7 +160,7 @@ describe('不要对一个 origin-agent 使用 useMiddleActions', () => {
 
     test('对一个 origin-agent 使用 useMiddleActions，将得到一个错误信息', () => {
         expect(() => {
-            useMiddleActions(new ObjectAgent(), ObjectBesides);
+            useMiddleActions(ObjectBesides,new ObjectAgent());
         }).toThrowError();
     });
 

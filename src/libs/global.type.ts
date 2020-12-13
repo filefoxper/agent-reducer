@@ -6,8 +6,7 @@ export interface OriginAgent<S = any> {
 export interface Env {
     updateBy?: 'manual' | 'auto',
     expired?: boolean,
-    strict?: boolean,
-    reduceOnly?:boolean
+    strict?: boolean
 }
 
 
@@ -32,24 +31,9 @@ export type Runtime<T=any> = {
 
 export type StateProcess = <T = any>(result: any) => any;
 
-/**
- * @deprecated
- */
-export type ResultProcessor = StateProcess;
-
 export type NextProcess = (next: StateProcess) => StateProcess;
 
-/**
- * @deprecated
- */
-export type NextLink = NextProcess;
-
 export type MiddleWare = <T>(runtime: Runtime<T>) => NextProcess | void;
-
-/**
- * @deprecated
- */
-export type Resolver = MiddleWare;
 
 export interface LifecycleEnv extends Env{
     expire: () => void,

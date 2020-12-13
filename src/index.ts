@@ -2,15 +2,19 @@
 
 export {createAgentReducer} from './libs/reducer';
 
-export {branch, useMiddleWare, middleWare} from './libs/useMiddleWare';
+export {useMiddleWare, middleWare} from './libs/useMiddleWare';
 
 export {useMiddleActions, MiddleActions} from './libs/middleActions';
 
 /** middleWares **/
 
-export {defaultResolver, defaultMiddleWare, applyResolvers, applyMiddleWares} from './libs/applies';
+export {defaultMiddleWare, applyMiddleWares} from './libs/applies';
 
-export {BranchResolvers, LifecycleMiddleWares,toLifecycleMiddleWare} from './libs/lifecycleMiddleWares';
+export {LifecycleMiddleWares, toLifecycleMiddleWare} from './libs/lifecycleMiddleWares';
+
+export {MiddleWares} from './libs/middleWares';
+
+export {MiddleWarePresets} from './libs/middleWarePresets';
 
 /** global set and defines **/
 
@@ -22,11 +26,8 @@ export {
     OriginAgent,
     Env,
     Runtime,
-    Resolver,
     MiddleWare,
-    NextLink,
     NextProcess,
-    ResultProcessor,
     StateProcess,
     LifecycleRuntime,
     LifecycleEnv

@@ -43,7 +43,7 @@ describe('修补middleActions测试',()=>{
 
     test('middle-action一旦获取过，以后将从获取缓存中读取',()=>{
         const {agent} = createAgentReducer(CountAgent);
-        const actions = useMiddleActions(agent, CountBesides);
+        const actions = useMiddleActions(CountBesides,agent);
         expect(actions.callingStepUpAfterRequest).toBe(actions.callingStepUpAfterRequest);
         expect(actions.agent).toBe(agent);
     });

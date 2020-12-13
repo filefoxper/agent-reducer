@@ -9,7 +9,7 @@ import {
     StateProcess,
     Runtime,
     Action,
-    Reducer, toLifecycleMiddleWare, useMiddleWare, LifecycleMiddleWares
+    Reducer, toLifecycleMiddleWare, useMiddleWare
 } from "../../src";
 import produce from "immer";
 import {LifecycleRuntime} from "@/libs/global.type";
@@ -164,12 +164,6 @@ describe('自定义一个MiddleWare', () => {
             const {source, sourceCaller, env} = runtime;
             const sourceAgent = source as OriginAgent;
             const state = sourceAgent.state;//暂存原始agent.state对象
-            if (env.reduceOnly !== true) {
-                //因为immer支持方法无返回，所以不能与defaultMiddleWare定义的middle-action判断方式兼容，
-                //这需要你将agent运行环境设置成reduceOnly模式，这样agent就仅仅只有reduce-action了（相当于普通reducer,这中场景建议与useMiddleActions连用）
-                //另外设置reduceOnly，可以断开agent默认的方法层层代理功效。
-                throw new Error('immerResolver has to run depend env.reduceOnly===true')
-            }
             //从写原对象方法，兼容immer模式
             runtime.sourceCaller = function (...args: any[]) {
                 return produce(sourceAgent.state, (draft: any) => {
@@ -187,7 +181,7 @@ describe('自定义一个MiddleWare', () => {
                 }
             }
         }
-        const {agent} = createAgentReducer(ObjectAgent, applyMiddleWares(immerResolver, defaultMiddleWare), {reduceOnly: true});
+        const {agent} = createAgentReducer(ObjectAgent, applyMiddleWares(immerResolver, defaultMiddleWare));
         agent.immerRename('just');
         expect(agent.state.name).toBe('just');
         agent.immerVoidRename();
