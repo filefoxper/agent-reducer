@@ -2,7 +2,7 @@ import {
     createAgentReducer,
     LifecycleMiddleWares,
     MiddleActions,
-    middleWare,
+    middleWare, MiddleWarePresets,
     OriginAgent,
     useMiddleActions
 } from "../../src";
@@ -21,7 +21,7 @@ describe('修补middleActions测试',()=>{
             return this.state + counts.reduce((r, c): number => r + c, 0);
         };
 
-        @middleWare(LifecycleMiddleWares.takeLatest())
+        @middleWare(MiddleWarePresets.takeLatest())
         async callingStepUpAfterRequest(tms: number) {
             await new Promise((r) => setTimeout(r, tms * 100));
             return this.sum(tms);
@@ -33,7 +33,7 @@ describe('修补middleActions测试',()=>{
 
         id=1;
 
-        @middleWare(LifecycleMiddleWares.takeLatest())
+        @middleWare(MiddleWarePresets.takeLatestAssignable())
         async callingStepUpAfterRequest(tms: number) {
             await new Promise((r) => setTimeout(r, tms * 100));
             return this.agent.sum(tms);
@@ -46,6 +46,64 @@ describe('修补middleActions测试',()=>{
         const actions = useMiddleActions(CountBesides,agent);
         expect(actions.callingStepUpAfterRequest).toBe(actions.callingStepUpAfterRequest);
         expect(actions.agent).toBe(agent);
+    });
+
+});
+
+describe('补全MiddleActions上的MiddleWare测试',()=>{
+
+    class ObjectAgent implements OriginAgent<{ id: number, name: string }> {
+
+        state = {id: 0, name: ''};
+
+        @middleWare(MiddleWarePresets.takeLatestAssignable())
+        resetId(id:number){
+            return new Promise((resolve)=> {
+                setTimeout(function () {
+                    resolve({id});
+                },id*100);
+            });
+        }
+
+        @middleWare(MiddleWarePresets.takeLatestAssignable())
+        rename = (name: string) => {
+            return {name};
+        }
+
+    }
+
+    class ObjectMiddleActions extends MiddleActions<ObjectAgent>{
+
+        @middleWare(MiddleWarePresets.takeLatestAssignable())
+        async remoteRename(ms:number){
+            const name:string=await new Promise((r)=>setTimeout(()=>r('name'+ms),ms*100));
+            return this.agent.rename(name);
+        }
+
+        remoteId(id:number){
+            return this.agent.resetId(id);
+        }
+
+    }
+
+    it('MiddleActions的MiddleWare只对MiddleActions有效，对agent无效',async ()=>{
+        const {agent}=createAgentReducer(ObjectAgent);
+        const actions=useMiddleActions(ObjectMiddleActions,agent);
+        const f= actions.remoteRename(5);
+        const s= actions.remoteRename(2);
+        await Promise.all([f,s]);
+        expect(agent.state.id).toBe(undefined);
+        expect(agent.state.name).toBe('name2');
+    });
+
+    it('通常MiddleWare加在agent上更好些',async ()=>{
+        const {agent}=createAgentReducer(ObjectAgent);
+        const actions=useMiddleActions(ObjectMiddleActions,agent);
+        const f= actions.remoteId(5);
+        const s= actions.remoteId(2);
+        await Promise.all([f,s]);
+        expect(agent.state.id).toBe(2);
+        expect(agent.state.name).toBe('');
     });
 
 });

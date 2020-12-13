@@ -3,6 +3,8 @@ import {getScope} from "./util";
 
 export const agentDependenciesKey = '@@agent-reducer-dependencies';
 
+export const agentIdentifyKey = '@@agent-reducer-identify';
+
 export const agentNamespaceKey = '@@agent-reducer-namespace';
 
 export const agentGlobalScopeKey = '@@agent-reducer-global-scope';
@@ -13,6 +15,11 @@ export const getAgentNamespaceKey=()=>{
 
 export enum DefaultActionType {
     DX_INITIAL_STATE = '@@AGENT_REDUCER_INITIAL_STATE'
+}
+
+export function isAgent(data:any) {
+    const dataType = typeof data;
+    return dataType === 'object'&&data[agentIdentifyKey]===true;
 }
 
 export const globalConfig = (config?: GlobalConfig) => {

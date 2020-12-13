@@ -1,4 +1,4 @@
-import {agentDependenciesKey} from "./defines";
+import {agentDependenciesKey, isAgent} from "./defines";
 import {
     OriginAgent,
     Env,
@@ -13,24 +13,7 @@ import {MiddleActionsInterface, MiddleActionDependencies, AsyncInvokeDependencie
 import {createProxy} from "./util";
 import {middleWareAbleFunction} from "./useMiddleWare.type";
 import {generateAgent} from "./agent";
-import {applyMiddleWares} from "./applies";
-
-function through(): MiddleWare {
-
-    return function (): NextProcess {
-
-        return function (next: StateProcess) {
-
-            return function (result: any) {
-                next(result);
-            }
-
-        }
-
-    }
-
-}
-
+import {applyMiddleWares, defaultMiddleWare} from "./applies";
 
 function rebuildMiddleActionDependencies<T extends OriginAgent<S>, P extends MiddleActionsInterface<T, S>, S>(
     agent: T, source: middleWareAbleFunction, globalMiddleWare?: MiddleWare | LifecycleMiddleWare
@@ -71,7 +54,7 @@ function rebuildMiddleActionDependencies<T extends OriginAgent<S>, P extends Mid
         });
         return {
             agent: generateAgent(entry, store, cloneEnvProxy, middleWare, {sourceAgent: agent, type: 'copy'}),
-            middleWare: cloneMiddleWare ? cloneMiddleWare : globalMiddleWare ? globalMiddleWare : through(),
+            middleWare: cloneMiddleWare ? cloneMiddleWare : (globalMiddleWare ? globalMiddleWare : defaultMiddleWare),
             agentEnv: cloneEnvProxy
         };
     };
@@ -94,7 +77,7 @@ export function useMiddleActions<T extends OriginAgent<S>, P extends MiddleActio
         throw new Error('if `middleActions` is a class, agent should not be undefined.');
     }
 
-    const middleWare = middleWares.length ? applyMiddleWares(...middleWares) : undefined;
+    const mdw = middleWares.length ? applyMiddleWares(...middleWares) : undefined;
     let invokeDependencies: AsyncInvokeDependencies = {
         cache: {},
         functionCache: {}
@@ -119,7 +102,7 @@ export function useMiddleActions<T extends OriginAgent<S>, P extends MiddleActio
             if (functionCache[type]) {
                 return functionCache[type];
             }
-            const middleWareActionDependencies = rebuildMiddleActionDependencies(sideByCallerInstance.agent, source, middleWare);
+            const middleWareActionDependencies = rebuildMiddleActionDependencies(sideByCallerInstance.agent, source, mdw);
             const caller = function caller(...args: any[]) {
                 let runtime = cache[type];
                 if (runtime) {

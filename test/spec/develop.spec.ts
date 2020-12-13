@@ -9,10 +9,10 @@ import {
     StateProcess,
     Runtime,
     Action,
-    Reducer, toLifecycleMiddleWare, useMiddleWare
+    Reducer, toLifecycleMiddleWare, useMiddleWare,
+    LifecycleRuntime, isAgent
 } from "../../src";
 import produce from "immer";
-import {LifecycleRuntime} from "@/libs/global.type";
 
 describe('通过createAgentReducer产生的reducer API可以整合其他 reducer 工具', () => {
 
@@ -161,7 +161,16 @@ describe('自定义一个MiddleWare', () => {
         }
 
         const immerResolver: MiddleWare = (runtime: Runtime) => {
-            const {source, sourceCaller, env} = runtime;
+            const {target,source, sourceCaller, env} = runtime;
+            // 判断是否是agent对象
+            if(!isAgent(target)){
+                return (next: StateProcess) => {
+                    //数据运行完毕，还原场景
+                    return (result: any) => {
+                        return next(result);
+                    }
+                }
+            }
             const sourceAgent = source as OriginAgent;
             const state = sourceAgent.state;//暂存原始agent.state对象
             //从写原对象方法，兼容immer模式
