@@ -2,13 +2,11 @@ import {
     MiddleActions,
     useMiddleWare,
     middleWare,
-    BranchResolvers,
     createAgentReducer,
     OriginAgent,
     useMiddleActions,
-    LifecycleMiddleWares
+    LifecycleMiddleWares, MiddleWares, applyMiddleWares, MiddleWarePresets
 } from "../../src";
-import {MiddleWare} from "@/libs/global.type";
 
 /**
  * 一个 reducer 函数往往没有一个 class 实例对象更容易描述action type分支操作。
@@ -81,29 +79,12 @@ describe('Reducer VS Class', () => {
 });
 
 /**
- * 概念:
- *
- * 1. origin-agent  : 用于代替reducer的class或object，包含一个state属性（this.state是agent需要维护的数据）。
- * 2. method        : origin-agent属性对应的非箭头函数 "step(isUp:boolean){...}"。
- * 3. arrow-function: origin-agent属性对应的箭头函数 "step = (isUp: boolean) =>..."。
- * 4. state-object  : origin-agent方法调用返回一个非 "undefined" 或 "promise"的完整数据，这个state将会成为this.state。
- * 5. reduce-action : origin-agent中返回 state-object 的method 或 arrow function，
- *                    这些方法会根据方法名发送（dispatch）一个类似 {type:'step',state:agent.step()} 的 reducer action。
- * 6. middle-action : origin-agent中返回 "undefined" or "promise" 的 method 或 arrow function，
- *                    调用这些方法不会直接影响 this.state，但你可以在这些 middle-actions 中通过调用 reduce-actions 来影响 this.state。
- * 7. agent         : 当使用 createAgentReducer(origin-agent) 时，可以得到一个 reducer 方法，在reducer方法属性中，
- *                    可以获取到 agent 对象，agent 作为 origin-agent 实例化的代理可以直接通过调用属性方法影响 this.state，
- *                    就像调用 reducer 的 dispatch 一样。
- *
- * 注意:
- *
- * 1. agent 是通过代理 (proxy) 的方式来实现 method 或 arrow-function 与 dispatch action之间的转换，
- *    但 arrow-function 中的 this 并非 agent，而是原始的 origin-agent，所以 arrow-function 不能做到层层代理的效果，
- *    也就是说以 arrow-function 作为 middle-action 来调用 reduce-action 是行不通的，
- *    但反之如果以 arrow-function 作为 reduce-action 不但可以很好的被 method middle-action调用，
- *    而且自身还可以调用其他 reduce-action 作为数据处理工具，而不必担心层层代理引起的多次dispatch。
- *
- * 2. 原理同上，method有层层代理的功效，所以更适合作为一个 middle-action 而非 reduce-action。
+ * origin-agent: 用户的数据模型部分，必须拥有一个state属性存放数据，可提供 return nextState 的方法作为修改state的方法。
+ *               可以把它当作是 reducer 的 class 模型，如：CountAgent
+ * reducer:      由 createAgentReducer 方法根据 origin-agent 模型生成的 reducer 方法，用于接入 reducer 工具系统。
+ * agent:        reducer附属的 origin-agent 代理对象，使用者可以通过调用 agent 的方法（ 可配合各种 MiddleWare ），
+ *               修改state数据 （ 正确的说是指定下一个 state 数据，由整合的 reducer 工具系统来修改 ）。
+ * action:       agent对象上的所有方法都拥有配合MiddleWare改变或废弃下一个 this.state 的作用，这些方法称为 action
  */
 describe('使用 agent-reducer 来使用 class 与 reducer 模式的结合体', () => {
 
@@ -112,16 +93,21 @@ describe('使用 agent-reducer 来使用 class 与 reducer 模式的结合体', 
      */
     class CountAgent implements OriginAgent<number> {
 
-        // 必须有一个非 undefined 或 promise 的 state
+        // 必须有一个state
         state = 0;
 
-        // 返回一个 state-object (非promise,非undefined) 可以修改this.state
+        // 返回一个 state 数据可以修改 this.state
         stepUp = (): number => this.state + 1;
 
-        stepDown = (): number => this.state - 1;
+        // 箭头函数还是普通类方法随你挑
+        stepDown(): number {
+            return this.state - 1;
+        }
 
-        // arrow-function 型的 reduce-action 使用其他 reduce-action 不必担心，会dispatch多次
-        step = (isUp: boolean) => isUp ? this.stepUp() : this.stepDown();
+        // 调用其他方法不必担心多次dispatch
+        step(isUp: boolean):number {
+            return isUp ? this.stepUp() : this.stepDown();
+        }
 
         sum = (...counts: number[]): number => {
             return this.state + counts.reduce((r, c): number => r + c, 0);
@@ -129,7 +115,7 @@ describe('使用 agent-reducer 来使用 class 与 reducer 模式的结合体', 
 
     }
 
-    test('调用一个返回 state-object (非 promise 非 undefined) 的方法将会改变 this.state', () => {
+    test('调用一个方法，方法的返回值将会改变 this.state', () => {
         const {agent} = createAgentReducer(CountAgent);
         agent.stepUp();
         expect(agent.state).toBe(1);
@@ -137,7 +123,7 @@ describe('使用 agent-reducer 来使用 class 与 reducer 模式的结合体', 
 
 });
 
-describe('class instance with agent-reducer', () => {
+describe('agent-reducer的基本使用', () => {
 
     class CountAgent implements OriginAgent<number> {
 
@@ -150,40 +136,36 @@ describe('class instance with agent-reducer', () => {
         sum = (...counts: number[]): number => {
             return this.state + counts.reduce((r, c): number => r + c, 0);
         };
-
-        // method 型的 reduce-action 调用其他 reduce-action 会引起多次不必要的dispatch，
-        // 例子中的调用引发：dispatch('stepUp'或'stepDown',state-object)，dispatch('step',state-object)两次 dispatch，
-        // 其中 dispatch('stepUp'或'stepDown',state-object) 是不必要的
+        //agent只承认第一层调用dispatch，所以，内部方法调用只是一个数据加工而已。
         step(isUp: boolean) {
             return isUp ? this.stepUp() : this.stepDown();
         }
 
-        // return promise 使得当前的 arrow-function 成为来一个 middle-action，middle-action自身没有改变this.state的能力
+        //因为没有添加middleWare作再加工处理，该方法返回的promise即为下一个state，也就是说预期state是一个number，这里却变成了一个Promise<number>
         callingRequest = () => Promise.resolve(2);
 
-        // return undefined 使得当前的 method 成为来一个 middle-action，middle-action自身没有改变this.state的能力
         callingUndefined() {
 
         }
 
-        // return promise 或 undefined 使得当前的 method 成为来一个 middle-action，middle-action自身没有改变this.state的能力,
-        // 但可以通过调用 reduce-action 来修改 this.state
+        // 通过添加middleWare可以改变下一个state值，这里的takePromiseResolve将promise resolve后的值作为下一个state
+        @middleWare(MiddleWares.takePromiseResolve())
         async callingStepUpAfterRequest() {
-            await Promise.resolve();
-            return this.stepUp();
+            return Promise.resolve(1);
         }
 
     }
 
-    test('一个 middle-action 不能自行改变 this.state', async () => {
+    test('默认情况下agent方法返回数据即为下一个state值', async () => {
         const {agent} = createAgentReducer(CountAgent);
         agent.callingUndefined();
-        expect(agent.state).toBe(0);
+        expect(agent.state).toBeUndefined();
         await agent.callingRequest();
-        expect(agent.state).toBe(0);
+        // 根据默认 defaultMiddleWare 的特性，defaultMiddleWare 只管透传数据，那么下一个 state 将会是个 promise
+        expect(typeof agent.state).not.toBe('number');
     });
 
-    test('middle-action 可以通过调用 reduce-action 来改变 this.state', async () => {
+    test('通过使用middleWare可以改变默认特性，比如通过加takePromiseResolve middleWare可以把promise的结果转成下一个state', async () => {
         const {agent} = createAgentReducer(CountAgent);
         await agent.callingStepUpAfterRequest();
         expect(agent.state).toBe(1);
@@ -199,17 +181,17 @@ describe('class instance with agent-reducer', () => {
         expect(changes).toEqual([{type: 'stepUp', state: 1}, {type: 'stepUp', state: 2}, {type: 'stepDown', state: 1}]);
     });
 
-    test('调用一个 method reduce-action，如果这个 action 又调用来其他的 reduce-action 会导致数据被修改多次（有不期望的数据修改发生）', () => {
+    test('即便内部调用其他方法作为action，也不会增加不期望的dispatch负担', () => {
         const {agent, recordChanges} = createAgentReducer(CountAgent);
         const unRecord = recordChanges();
         agent.step(true);
         const changes = unRecord();
-        expect(changes.map(({state}) => state)).toEqual([1, 1]);
+        expect(changes.map(({state}) => state)).toEqual([1]);
     });
 
 });
 
-describe('一个 agent 的 method 中，this永远指向 agent，不会随着 method 调用者的改变而改变，即使bind也不会修改 this 指向', () => {
+describe('一个 agent 方法中的this，永远指向 origin-agent 实例对象，将方法赋值给其他对象，或重新绑定均无效', () => {
 
     class CountAgent implements OriginAgent<number> {
 
@@ -223,13 +205,14 @@ describe('一个 agent 的 method 中，this永远指向 agent，不会随着 me
 
         step = (isUp: boolean) => isUp ? this.stepUp() : this.stepDown();
 
+        @middleWare(MiddleWares.takePromiseResolve())
         async callingStepUpAfterRequest() {
             await Promise.resolve();
             return this.stepUp();
         }
     }
 
-    test('将 method 赋值给其他 object 属性，直接调用 object 的属性方法，不会改变 this 的指向，this 应该为 agent', async () => {
+    test('将 method 赋值给其他 object 属性，直接调用 object 的属性方法，不会改变 this 的指向，this 应该为 origin-agent', async () => {
         let object: any = {};
         const {agent} = createAgentReducer(CountAgent);
         const {callingStepUpAfterRequest} = agent;
@@ -238,7 +221,7 @@ describe('一个 agent 的 method 中，this永远指向 agent，不会随着 me
         expect(agent.state).toBe(1);
     });
 
-    test('将 method 绑定成其他 object 属性方法，直接调用绑定后方法，不会改变 this 的指向，this 应该为 agent', async () => {
+    test('将 method 绑定成其他 object 属性方法，直接调用绑定后方法，不会改变 this 的指向，this 应该为 origin-agent', async () => {
         let object: any = {};
         const {agent} = createAgentReducer(CountAgent);
         const {callingStepUpAfterRequest} = agent;
@@ -250,10 +233,10 @@ describe('一个 agent 的 method 中，this永远指向 agent，不会随着 me
 });
 
 /**
- * 使用 useMiddleActions 方法可以把 reduce-actions 和 middle-actions 区分开
+ * 使用 useMiddleActions 方法可用于管理和调用 agent 对象上的 state 和 actions
  * 如：useMiddleActions(agent,class extends MiddleActions)
  */
-describe('使用 useMiddleActions 方法可以把 reduce-actions 和 middle-actions 区分开', () => {
+describe('使用 useMiddleActions 方法可用于管理和调用agent对象上的state和actions', () => {
 
     class CountAgent implements OriginAgent<number> {
 
@@ -276,7 +259,7 @@ describe('使用 useMiddleActions 方法可以把 reduce-actions 和 middle-acti
     // 一个继承 MiddleActions 的 自定义类型可以调用指定 agent
     class CountBeside extends MiddleActions<CountAgent> {
 
-        // 使用agent的 reduce-action 可修改 agent.state
+        // 使用agent的 action 可修改 agent.state
         async callingStepUpAfterRequest() {
             await Promise.resolve();
             return this.agent.stepUp();
@@ -284,23 +267,23 @@ describe('使用 useMiddleActions 方法可以把 reduce-actions 和 middle-acti
 
     }
 
-    test('使用 useMiddleActions 方法可以把 reduce-actions 和 middle-actions 区分开，通过调用 this.agent.xxx修改 agent.state', async () => {
+    test('使用 useMiddleActions 方法可以管理调用agent上的方法，通过调用 this.agent的方法修改 agent.state', async () => {
         const {agent} = createAgentReducer(new CountAgent(1)); // 你可以使用对象的形式来定义一个 origin-agent，以方便传参
-        const middleActions = useMiddleActions(agent, CountBeside); //使用 useMiddleActions 获取自定义MiddleActions的实例
+        const middleActions = useMiddleActions(CountBeside,agent); //使用 useMiddleActions 获取自定义MiddleActions的实例
         await middleActions.callingStepUpAfterRequest();
         expect(agent.state).toBe(2);
     });
 
     test('useMiddleActions 不但可以设置 class 作为 MiddleActions，也可以使用 object 的形式', async () => {
         const {agent} = createAgentReducer(new CountAgent(1)); // 你可以使用对象的形式来定义一个 origin-agent，以方便传参
-        const middleActions = useMiddleActions(agent, new CountBeside(agent)); //使用 useMiddleActions 获取自定义MiddleActions的实例
+        const middleActions = useMiddleActions(new CountBeside(agent)); //使用 useMiddleActions 获取自定义MiddleActions的实例
         await middleActions.callingStepUpAfterRequest();
         expect(agent.state).toBe(2);
     });
 
 });
 
-describe('useMiddleWare 可以在已存在的 agent 基础上新建一个 agent ，并获取指定MiddleWare的能力', () => {
+describe('useMiddleWare 会对已存在的 agent 复制一个生命周期不同的版本 ，并让复制版获取指定MiddleWare的能力', () => {
 
     class CountAgent implements OriginAgent<number> {
 
@@ -319,7 +302,7 @@ describe('useMiddleWare 可以在已存在的 agent 基础上新建一个 agent 
             return this.sum(tms);
         }
 
-        @middleWare(LifecycleMiddleWares.takeLatest())
+        @middleWare(applyMiddleWares(LifecycleMiddleWares.takeLatest(),MiddleWares.takePromiseResolve()))
         async callingSumAfterWithDec(tms: number) {
             await new Promise((r) => setTimeout(r, tms * 100));
             return this.sum(tms);
@@ -327,9 +310,9 @@ describe('useMiddleWare 可以在已存在的 agent 基础上新建一个 agent 
 
     }
 
-    test('使用 AsyncMiddleWares.takeLatest, 可以保持agent数据为最新版本数据（最后一次触发并修改的数据，有点像saga的takeLatest）', async () => {
+    test('使用 LifecycleMiddleWares.takeLatest, 可以保持agent数据为最新版本数据（最后一次触发并修改的数据，有点像saga的takeLatest）', async () => {
         const {agent} = createAgentReducer(CountAgent);
-        const {callingSumAfter} = useMiddleWare(agent, LifecycleMiddleWares.takeLatest());
+        const {callingSumAfter} = useMiddleWare(agent, LifecycleMiddleWares.takeLatest(),MiddleWares.takePromiseResolve());
         const first = callingSumAfter(5); // resolve 500ms 后
         const second = callingSumAfter(2); // resolve 200ms 后
         // 200ms 后 second promise 先 resolve 并修改了 agent.state, 但 first promise 依然在等待,
@@ -342,36 +325,38 @@ describe('useMiddleWare 可以在已存在的 agent 基础上新建一个 agent 
         expect(agent.state).toBe(2);
     });
 
-    test('使用 AsyncMiddleWares.takeBlock, 可以使被调用方法在resolve之前，不能再被调用',()=>{
-        const {agent,recordChanges} = createAgentReducer(CountAgent);
-        const {callingSumAfter} = useMiddleWare(agent, LifecycleMiddleWares.takeBlock(200));
+    test('使用 LifecycleMiddleWares.takeBlock, 可以使被调用方法在resolve之前，不能再被调用', () => {
+        const {agent, recordChanges} = createAgentReducer(CountAgent);
+        const {callingSumAfter} = useMiddleWare(agent, MiddleWares.takeBlock(200),MiddleWares.takePromiseResolve());
         // 如果设置了阻塞时间，在阻塞时间过期后不论此时是否resolve完成，被调用方法都恢复原来可被调用状态
-        const unRecord=recordChanges();
+        const unRecord = recordChanges();
         const first = callingSumAfter(5); // resolve after 500ms
         const second = callingSumAfter(5); // resolve after 500ms
-        setTimeout(()=>{
-            const records=unRecord();
+        setTimeout(() => {
+            const records = unRecord();
             expect(agent.state).toBe(5);
             expect(records.length).toBe(1);
-        },600);
+        }, 600);
     });
 
-    test('使用useMiddleWare时，若被调用的方法已经有指定的middleWare时， 以内部middleWare为准',()=>{
-        const {agent,recordChanges} = createAgentReducer(CountAgent);
-        const {callingSumAfterWithDec} = useMiddleWare(agent, LifecycleMiddleWares.takeBlock(200));
-        const unRecord=recordChanges();
+    test('使用useMiddleWare时，若被调用的方法已经有指定的middleWare时， 以内部middleWare为准', () => {
+        const {agent, recordChanges} = createAgentReducer(CountAgent);
+        // MiddleWarePresets是一个常用MiddleWares的串行集合，比如：
+        // MiddleWarePresets.takeBlock = applyMiddleWares(LifecycleMiddleWares.takeBlock(ms),MiddleWares.takePromiseResolve(),MiddleWares.takeAssignable());
+        const {callingSumAfterWithDec} = useMiddleWare(agent, MiddleWarePresets.takeBlock(200));
+        const unRecord = recordChanges();
         const first = callingSumAfterWithDec(5); // resolve after 500ms
         const second = callingSumAfterWithDec(2); // resolve after 200ms
-        setTimeout(()=>{
-            const records=unRecord();
+        setTimeout(() => {
+            const records = unRecord();
             expect(agent.state).toBe(2);
             expect(records.length).toBe(1);
-        },600);
+        }, 600);
     });
 
-    test('使用 AsyncMiddleWares.takeLazy, 可以实现节流效果', async () => {
+    test('使用 LifecycleMiddleWares.takeLazy, 可以实现节流效果', async () => {
         const {agent} = createAgentReducer(CountAgent);
-        const {stepUp} = useMiddleWare(agent, LifecycleMiddleWares.takeLazy(200));
+        const {stepUp} = useMiddleWare(agent, MiddleWares.takeLazy(200));
         // 延时200ms执行，若200ms内再被触发，以触发时间开始继续延迟200ms
         stepUp();
         stepUp();
@@ -389,7 +374,10 @@ describe('使用 middleWare 方法可以对当前被调用方法单独添加指�
         state = 0;
 
         constructor() {
-            middleWare(this.callingStepUpAfterRequestAddMiddleWareInConstructor,LifecycleMiddleWares.takeLatest());
+            middleWare(
+                this.callingStepUpAfterRequestAddMiddleWareInConstructor,
+                applyMiddleWares(LifecycleMiddleWares.takeLatest(),MiddleWares.takePromiseResolve())
+            );
         }
 
         stepUp = (): number => this.state + 1;
@@ -400,7 +388,9 @@ describe('使用 middleWare 方法可以对当前被调用方法单独添加指�
             return this.state + counts.reduce((r, c): number => r + c, 0);
         };
 
-        @middleWare(LifecycleMiddleWares.takeLatest())
+        // MiddleWarePresets是一个常用MiddleWares的串行集合，比如：
+        // MiddleWarePresets.takeBlock = applyMiddleWares(LifecycleMiddleWares.takeBlock(ms),MiddleWares.takePromiseResolve(),MiddleWares.takeAssignable());
+        @middleWare(MiddleWarePresets.takeLatest())
         async callingStepUpAfterRequest(tms: number) {
             await new Promise((r) => setTimeout(r, tms * 100));
             return this.sum(tms);
@@ -415,7 +405,7 @@ describe('使用 middleWare 方法可以对当前被调用方法单独添加指�
 
     class CountBesides extends MiddleActions<CountAgent> {
 
-        @middleWare(LifecycleMiddleWares.takeLatest())
+        @middleWare(MiddleWarePresets.takeLatest())
         async callingStepUpAfterRequest(tms: number) {
             await new Promise((r) => setTimeout(r, tms * 100));
             return this.agent.sum(tms);
@@ -449,7 +439,7 @@ describe('使用 middleWare 方法可以对当前被调用方法单独添加指�
 
     test('在 MiddleActions 的所有方法上都可以通过添加middleWare的形式实现简易的useMiddleWare', async () => {
         const {agent} = createAgentReducer(CountAgent);
-        const {callingStepUpAfterRequest} = useMiddleActions(agent, CountBesides);
+        const {callingStepUpAfterRequest} = useMiddleActions(CountBesides,agent);
         const first = callingStepUpAfterRequest(5); // after 500ms
         const second = callingStepUpAfterRequest(2); // after 200ms
         await Promise.all([

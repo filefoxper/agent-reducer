@@ -13,6 +13,7 @@ import {MiddleActionsInterface, MiddleActionDependencies, AsyncInvokeDependencie
 import {createProxy} from "./util";
 import {middleWareAbleFunction} from "./useMiddleWare.type";
 import {generateAgent} from "./agent";
+import {applyMiddleWares} from "./applies";
 
 function through(): MiddleWare {
 
@@ -31,7 +32,7 @@ function through(): MiddleWare {
 }
 
 
-function rebuildMiddleActionDependencies<T extends OriginAgent<S>, P extends MiddleActionsInterface<T,S>,S>(
+function rebuildMiddleActionDependencies<T extends OriginAgent<S>, P extends MiddleActionsInterface<T, S>, S>(
     agent: T, source: middleWareAbleFunction, globalMiddleWare?: MiddleWare | LifecycleMiddleWare
 ): MiddleActionDependencies<T> {
     const invokeDependencies: AgentDependencies<S, T> = agent[agentDependenciesKey];
@@ -69,7 +70,7 @@ function rebuildMiddleActionDependencies<T extends OriginAgent<S>, P extends Mid
             }
         });
         return {
-            agent: generateAgent(entry, store, cloneEnvProxy, middleWare, {sourceAgent:agent,type:'copy'}),
+            agent: generateAgent(entry, store, cloneEnvProxy, middleWare, {sourceAgent: agent, type: 'copy'}),
             middleWare: cloneMiddleWare ? cloneMiddleWare : globalMiddleWare ? globalMiddleWare : through(),
             agentEnv: cloneEnvProxy
         };
@@ -84,19 +85,26 @@ function rebuildMiddleActionDependencies<T extends OriginAgent<S>, P extends Mid
     });
 }
 
-export function useMiddleActions<T extends OriginAgent<S>, P extends MiddleActions<T, S>=MiddleActions<T>, S = any>(
-    agent: T,
-    middleActions: { new(agent: T): P }|P,
-    middleWare?: MiddleWare | LifecycleMiddleWare
+export function useMiddleActions<T extends OriginAgent<S>, P extends MiddleActions<T, S> = MiddleActions<T>, S = any>(
+    middleActions: { new(agent: T): P } | P,
+    agent?: T,
+    ...middleWares: (MiddleWare | LifecycleMiddleWare)[]
 ): P {
-    if (agent[agentDependenciesKey] === undefined) {
-        throw new Error('`middleWareActions` should create on an agent.');
+    if (typeof middleActions === 'function' && !agent) {
+        throw new Error('if `middleActions` is a class, agent should not be undefined.');
     }
+
+    const middleWare = middleWares.length ? applyMiddleWares(...middleWares) : undefined;
     let invokeDependencies: AsyncInvokeDependencies = {
         cache: {},
         functionCache: {}
     };
-    const sideByCallerInstance = typeof middleActions==='function'?new middleActions(agent):middleActions;
+    const sideByCallerInstance = typeof middleActions === 'function' ? new middleActions(agent!) : middleActions;
+
+    const agentShouldBe = sideByCallerInstance.agent;
+    if (agentShouldBe[agentDependenciesKey] === undefined) {
+        throw new Error('`middleActions` should create on an agent.');
+    }
     const defaultMiddleWare = <T>(data: T) => data;
     const proxy = createProxy(sideByCallerInstance, {
         get(target: any, type: string): any {

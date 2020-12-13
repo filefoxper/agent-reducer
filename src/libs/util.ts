@@ -30,8 +30,8 @@ function getDescriptors(target: any, receiver: any, ownOrPrototype: any, handler
                 const valid = handler.set(target, key, v, receiver);
                 if (valid) {
                     target[key] = v;
-                }else{
-                    throw new Error(key+' in proxy target is not mutable');
+                } else {
+                    throw new Error(key + ' in proxy target is not mutable');
                 }
             }
         };
@@ -57,3 +57,15 @@ export const createProxy = <T extends object>(target: T, handler: ProxyHandler<T
     }
     return new Proxy(target, handler);
 };
+
+export function isPromise(data: any): data is Promise<any> {
+    if (!data) {
+        return false;
+    }
+    const dataType = typeof data;
+    return (dataType === 'object' || dataType === 'function') && typeof data.then === 'function';
+}
+
+export function isObject(data: any) {
+    return data && Object.prototype.toString.apply(data) === "[object Object]";
+}

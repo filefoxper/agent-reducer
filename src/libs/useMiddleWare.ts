@@ -6,33 +6,24 @@ import {AgentDependencies} from './agent.type';
 import {applyMiddleWares} from "./applies";
 import {createProxy} from "./util";
 
-/**
- * @deprecated
- * @param agent
- * @param mdw
- */
-export function branch<S, T extends OriginAgent<S>>(agent: T & { [agentDependenciesKey]?: AgentDependencies<S, T> }, mdw: MiddleWare | LifecycleMiddleWare): T {
-    return copyWithMiddleWare(agent, mdw,'copy');
-}
-
 export function useMiddleWare<S, T extends OriginAgent<S>>(
     agent: T & { [agentDependenciesKey]?: AgentDependencies<S, T> },
-    mdw: MiddleWare | LifecycleMiddleWare
+    ...mdws: (MiddleWare | LifecycleMiddleWare)[]
 ): T {
-    return copyWithMiddleWare(agent,mdw,'copy');
+    return copyWithMiddleWare(agent, applyMiddleWares(...mdws), 'copy');
 }
 
 export function decorateWithMiddleWare<S, T extends OriginAgent<S>>(
     agent: T & { [agentDependenciesKey]?: AgentDependencies<S, T> },
     mdw: MiddleWare | LifecycleMiddleWare
-): T  {
-    return copyWithMiddleWare(agent,mdw,'decorator');
+): T {
+    return copyWithMiddleWare(agent, mdw, 'decorator');
 }
 
 export function copyWithMiddleWare<S, T extends OriginAgent<S>>(
     agent: T & { [agentDependenciesKey]?: AgentDependencies<S, T> },
     mdw: MiddleWare | LifecycleMiddleWare,
-    copyType:'copy'|'decorator'
+    copyType: 'copy' | 'decorator'
 ): T {
 
     let agentCloned: T;
@@ -72,7 +63,10 @@ export function copyWithMiddleWare<S, T extends OriginAgent<S>>(
                 return source;
             }
         });
-        return generateAgent(entry, store, cloneEnvProxy, applyMiddleWares(mdw, middleWare), {sourceAgent:agent,type:copyType});
+        return generateAgent(entry, store, cloneEnvProxy, applyMiddleWares(mdw, middleWare), {
+            sourceAgent: agent,
+            type: copyType
+        });
     };
 
     agentCloned = cloneAgentWithNewExpired();

@@ -2,7 +2,7 @@ import {Action, StoreSlot} from "./reducer.type";
 import {Env, MiddleWare} from './global.type';
 import {agentDependenciesKey, agentNamespaceKey} from "./defines";
 import {createProxy} from "./util";
-import {decorateWithMiddleWare, useMiddleWare} from "./useMiddleWare";
+import {decorateWithMiddleWare} from "./useMiddleWare";
 import {AgentDependencies} from './agent.type';
 import {OriginAgent} from "./global.type";
 
@@ -63,7 +63,7 @@ function createActionRunner<S, T extends OriginAgent<S>>(
             return;
         }
 
-        const nextState = env.reduceOnly ? runtime.sourceCaller.apply(entry, [...args]) : runtime.sourceCaller.apply(proxy, [...args]);
+        const nextState = runtime.sourceCaller.apply(entry, [...args]);
         const stateProcess = nextProcess(defaultStateResolver);
         return stateProcess(nextState);
     }

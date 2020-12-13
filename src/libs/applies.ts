@@ -1,17 +1,5 @@
 import {Runtime, NextProcess, MiddleWare, LifecycleMiddleWare, LifecycleRuntime} from "./global.type";
 
-export function isUndefined(data: any): data is undefined {
-    return data === undefined;
-}
-
-export function isPromise(data: any): data is Promise<any> {
-    if (!data) {
-        return false;
-    }
-    const dataType = typeof data;
-    return (dataType === 'object' || dataType === 'function') && typeof data.then === 'function';
-}
-
 export function composeCallArray(calls: ((p: any) => any)[]) {
     const callList = [...calls].reverse();
     return function (p: any): any | void {
@@ -19,24 +7,13 @@ export function composeCallArray(calls: ((p: any) => any)[]) {
     }
 }
 
-export function defaultMiddleWare<T>(runtime: Runtime<T>) {
+export function defaultMiddleWare<T>() {
     return function nextResolver(next: (result: any) => any) {
         return function stateResolver(result: any) {
-            if (runtime.env.reduceOnly) {
-                return next(result);
-            }
-            if (isPromise(result) || isUndefined(result)) {
-                return result;
-            }
             return next(result);
         }
     }
 }
-
-/**
- * @deprecated
- */
-export const defaultResolver = defaultMiddleWare;
 
 export function applyMiddleWares(...resolvers: (MiddleWare | LifecycleMiddleWare)[]) {
 
@@ -65,8 +42,3 @@ export function applyMiddleWares(...resolvers: (MiddleWare | LifecycleMiddleWare
     mdw.lifecycle = shouldBeLifecycle;
     return mdw;
 }
-
-/**
- * @deprecated
- */
-export const applyResolvers = applyMiddleWares;
