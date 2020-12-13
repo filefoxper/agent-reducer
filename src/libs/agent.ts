@@ -1,6 +1,6 @@
 import {Action, StoreSlot} from "./reducer.type";
 import {Env, MiddleWare} from './global.type';
-import {agentDependenciesKey, agentNamespaceKey} from "./defines";
+import {agentDependenciesKey, agentIdentifyKey, agentNamespaceKey} from "./defines";
 import {createProxy} from "./util";
 import {decorateWithMiddleWare} from "./useMiddleWare";
 import {AgentDependencies} from './agent.type';
@@ -100,12 +100,13 @@ export function generateAgent<S, T extends OriginAgent<S>>(
 
     let cache = {
         methodWithMiddleWares,
-        invokeDependencies: undefined
+        invokeDependencies: undefined,
+        isAgent: true
     }
 
     let {type: copyType, sourceAgent} = copyInfo || {};
 
-    let proxy: T & { [agentDependenciesKey]?: AgentDependencies<S, T> } = createProxy(entry, {
+    let proxy: T & { [agentDependenciesKey]?: AgentDependencies<S, T>, [agentIdentifyKey]?: true } = createProxy(entry, {
         get(target: T, p: string & keyof T): any {
             const source = target[p];
             if (typeof source === 'function' && methodWithMiddleWares[p]) {
@@ -120,6 +121,9 @@ export function generateAgent<S, T extends OriginAgent<S>>(
             if (typeof source === 'function') {
                 return createActionRunner(proxy, invokeDependencies, p, source);
             }
+            if (p === agentIdentifyKey) {
+                return cache.isAgent;
+            }
             if (p === agentDependenciesKey) {
                 return cache.invokeDependencies;
             }
@@ -132,12 +136,15 @@ export function generateAgent<S, T extends OriginAgent<S>>(
             }
             if (p === agentDependenciesKey) {
                 cache.invokeDependencies = value;
+            } else if (p === agentIdentifyKey) {
+                cache.isAgent = true;
             } else {
                 entry[p] = value;
             }
             return true;
         }
     });
+    proxy[agentIdentifyKey] = true;
     if (copyInfo) {
         proxy[agentDependenciesKey] = undefined;
         return proxy as T;

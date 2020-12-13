@@ -6,6 +6,7 @@ import {
     StateProcess
 } from "./global.type";
 import {isObject, isPromise} from "./util";
+import {isAgent} from "./defines";
 
 export class MiddleWares {
 
@@ -36,7 +37,7 @@ export class MiddleWares {
             return function (next: StateProcess): StateProcess {
 
                 return function (result: any) {
-                    if (!isObject(result)) {
+                    if (!isAgent(target)||!isObject(result)||!isObject(state)) {
                         return next(result);
                     }
                     const copy = Object.create(Object.getPrototypeOf(state), Object.getOwnPropertyDescriptors(state));

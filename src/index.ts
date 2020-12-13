@@ -18,7 +18,7 @@ export {MiddleWarePresets} from './libs/middleWarePresets';
 
 /** global set and defines **/
 
-export {globalConfig, clearGlobalConfig, DefaultActionType, getAgentNamespaceKey} from './libs/defines';
+export {globalConfig, clearGlobalConfig, DefaultActionType, getAgentNamespaceKey,isAgent} from './libs/defines';
 
 /** types **/
 
