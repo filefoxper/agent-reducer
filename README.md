@@ -77,7 +77,7 @@ import {OriginAgent} from "agent-reducer";
 
 #### 重要说明：
 
-当前版本为了兼容 3.0.0 版本，不再兼容 2.0.0 及以下版本的一些特性和方法名。该版本不再区分 ~~reduce-action~~ 和 ~~middle-action~~ 了。
+当前版本为 3.0.0 版本，不再兼容 2.0.0 及以下版本的一些特性和方法名。该版本不再区分 ~~reduce-action~~ 和 ~~middle-action~~ 了。
 origin-agent 对象里的所有方法都有 dispatch action 的能力，数据再加工、禁止 dispatch 甚至解除 agent 生命周期，
 都必须通过 MiddleWare 或 LifecycleMiddleWare 来实现。
  
@@ -150,7 +150,7 @@ describe('使用 agent-reducer 来使用 class 与 reducer 模式的结合体', 
 
 #### 重要说明：
 
-当前版本为了兼容 3.0.0 版本，不再兼容 2.0.0 及以下版本的一些特性和方法名。该版本不再区分 ~~reduce-action~~ 和 ~~middle-action~~ 了。
+当前版本为 3.0.0 版本，不再兼容 2.0.0 及以下版本的一些特性和方法名。该版本不再区分 ~~reduce-action~~ 和 ~~middle-action~~ 了。
 origin-agent 对象里的所有方法都有 dispatch action 的能力，数据再加工、禁止 dispatch 甚至解除 agent 生命周期，
 都必须通过 middleWare 或 LifecycleMiddleWare 来实现。
 
@@ -519,10 +519,10 @@ function (runtime: Runtime): NextProcess {
 
             //上一个StateProcess数据处理器处理完数据后运行
             //result为上一个数据处理器产生的数据
-            //可以利用 next(produce(result))的形式将当前数据处理器处理完的数据传递给下一个MiddleWare的StateProcess数据处理器，
+            //可以利用 return next(producedResult)的形式将当前数据处理器处理完的数据传递给下一个MiddleWare的StateProcess数据处理器，
             //也可以不调用 next，中断数据传递。
             //最终的next为reducer管理器（比如：redux）的dispatch方法
-
+            // 注意：next(producedResult) 必须 return 
         }
 
     }
@@ -593,9 +593,22 @@ function (lifecycleRuntime: LifecycleRuntime): NextProcess {
 
 5 . toLifecycleMiddleWare ( >=3.0.0 )
 
-把一个符合`LifecycleMiddleWare`定义的方法变成一个标准的`LifecycleMiddleWare`
+入参：LifecycleMiddleWareLike
 
-6 . ReducerPadding ( >=2.0.0 )
+返回：LifecycleMiddleWare
+
+把一个符合`LifecycleMiddleWare`定义的方法变成一个标准的`LifecycleMiddleWare`。
+
+6 . isAgent ( >=3.0.0 )
+
+入参：object
+
+返回：boolean
+
+用于判断当前对象是否是一个合法的`agent`对象，因为`MiddleWare`同时支持`agent`和`MiddleActions`，
+所以在写`MiddleWare`时可能会需要使用
+
+7 . ReducerPadding ( >=2.0.0 )
 
 `createAgentReducer`返回`reducer`的附带数据和方法。我们可以利用`useStoreSlot`和`update`方法整合reducer管理工具（比如redux）,
 可以使用`recordChanges`记录数据变更。
