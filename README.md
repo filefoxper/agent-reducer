@@ -6,6 +6,8 @@
 [standard-image]: https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square
 [standard-url]: http://npm.im/standard
 
+### 注意：因2.+.+版本维护时间过于仓促，建议1.+.+版用户不要升级到2.+.+版本了，2.+.+版本的`MiddleActions`存在函数调用return undeined隐患，建议直升3.0.1或保持1.+.+版本不变。
+
 推荐应用:
 1. [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer) react hook
 2. [use-redux-agent](https://www.npmjs.com/package/use-redux-agent) react hook
