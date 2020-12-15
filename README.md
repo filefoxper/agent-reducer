@@ -6,7 +6,7 @@
 [standard-image]: https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square
 [standard-url]: http://npm.im/standard
 
-### 注意：因2.+.+版本维护时间过于仓促，建议1.+.+版用户不要升级到2.+.+版本了，2.+.+版本的`MiddleActions`存在函数调用return undeined隐患，建议直升3.+.+或保持1.+.+版本不变。
+### 注意：因2.+.+版本维护时间过于仓促，建议1.+.+版用户不要升级到2.+.+版本了，2.+.+版本的`MiddleActions`存在函数调用无法获取返回值隐患，建议直升3.+.+或等待3.1.0即将开出的1.+.+通道。
 
 推荐应用:
 1. [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer) react hook
@@ -372,7 +372,7 @@ describe('使用 middleWare 方法可以对当前被调用方法单独添加指�
     test('在 MiddleActions 的所有方法上都可以通过添加middleWare的形式实现简易的useMiddleWare', async () => {
         const {agent} = createAgentReducer(CountAgent);
         //使用 useMiddleActions 获取自定义MiddleActions的实例
-        const {callingStepUpAfterRequest} = useMiddleActions(agent, CountBesides); 
+        const {callingStepUpAfterRequest} = useMiddleActions(CountBesides,agent); 
         const first = callingStepUpAfterRequest(5); // after 500ms
         const second = callingStepUpAfterRequest(2); // after 200ms
         await Promise.all([
