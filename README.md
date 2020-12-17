@@ -6,7 +6,7 @@
 [standard-image]: https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square
 [standard-url]: http://npm.im/standard
 
-### 注意：因2.+.+版本维护时间过于仓促，建议1.+.+版用户不要升级到2.+.+版本了，2.+.+版本的`MiddleActions`存在函数调用无法获取返回值隐患，建议直升3.+.+或等待3.1.0即将开出的1.+.+通道。
+### 注意：当前版本已经兼容 1.* 版用法，可通过设置 env.legacy 为true，使用老版本特性，该特性将持续至 4.0.0 版
 
 推荐应用:
 1. [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer) react hook
@@ -176,7 +176,41 @@ class CountAgent implements OriginAgent<number> {
 总之，越靠后的 MiddleWare 越靠后执行，执行的结果也越是别人玩剩下的东西。
 最后一个 MiddleWare 使用的 next 函数即为 dispatch 函数。
 
-### 使用者API
+### 1.* 版兼容 API，3.* 版新用户直接跳过，从 [使用者API](#user_api) 继续
+
+注意：
+
+在 3.* 版上使用 1.* 版 API，需要将`env.legacy`设置为`true`。具体可以参考正在使用的`agent`维护器，
+如：[use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer) ，
+[use-redux-agent](https://www.npmjs.com/package/use-redux-agent)
+
+1 . ~~branch~~ ( >=1.0.0 & <2.0.0 ) => useMiddleWare ( >=2.0.0 )
+
+复制一个现有的agent，并对其使用指定的`MiddleWare`或 `LifecycleMiddleWare`。复制版agent和原agent共享属性，
+但`env`运行环境 ( 可终止或重建生命周期 )和 `MiddleWare`都不同。这种特性有点像`git`的分支功能。
+用法与`useMiddleWare`相同。
+
+2 . ~~BranchResolvers~~ ( >=1.0.0 & <2.0.0 )
+
+类似`MiddleWares`。提供的`Resolver`有：
+
+1）takeLatest() : 方法运行的最新版本才有dispatch的能力，一旦当前方法运行完 ( Promise resolve完成 ) ，
+  该方法早期的调用就不再拥有dispatch功能了。（类似redux-saga的takeLatest）。
+  
+  应用场景：比如翻页器，当前页面数据返回后，上次翻页数据才返回，如果没有任何保护措施，
+  那么当前页面数据就会被上次翻页返回数据覆盖掉，这时候可以使用`BranchResolvers.takeLatest()`
+
+2）takeBlock(ms) : 方法阻塞。如果方法返回Promise，Promise没有resolve，则该方法不能再次运行，
+如果设置阻塞时间，则在阻塞时间后，不管有没有resolve，方法都恢复可执行。
+
+应用场景：比如新建数据的防抖处理，`BranchResolvers.takeBlock(300)`
+
+3）takeLazy(ms) : 方法懒节流。在调用方法的ms毫秒后运行，若在调用后的ms毫秒内再次触发，
+则从此刻开始继续延时ms毫秒再运行。
+
+应用场景：比如边输边查询服务端数据，`BranchResolvers.takeLazy(300)`
+
+### <span id="user_api">使用者API</span>
 [API例子参考](https://github.com/filefoxper/agent-reducer/blob/master/test/spec/basic.spec.ts)
 
 1 . useMiddleWare ( >=2.0.0 )
@@ -262,6 +296,14 @@ MiddleWares 是常用4中 MiddleWare 的集合。
 应用场景：比如方法返回结果为 { name:'name' }，this.state 为 { name:'oldName',id:0 }，
 我们希望保持数据的完整性，这时就可以使用`MiddleWares.takeAssignable()`
 
+5）takeThrottle(waitMs) : 方法节流调用，当前方法的最后一次调用被推迟到距离上次运行的 waitMs 毫秒后执行，其他中间调用均不执行，
+如果距离上次调用时间已经超过 waitMs 毫秒，则立即执行。
+
+应用场景：频繁操作时可用，比如：监听滚动条事件时可以使用`MiddleWares.takeThrottle(300)`。
+
+6）takeDebounce(waitMs,opt?:{leading?:boolean}) : 方法防抖调用，是`takeLazy`的标准化用法。当`opt`为`undefined`或`opt.leading===false`时，
+特性与`takeLazy`完全相同；当`opt.leading===true`时，特性与`takeLazy`相反，当前方法在距离上次调用 waitMs 毫秒内被调用，
+则不运行，否则立即运行。
 
 5 . applyMiddleWares ( >=2.0.0 )
 
@@ -287,13 +329,21 @@ const { agent }=reducer;
 
 5) takeAssignable() : MiddleWares.takeAssignable()
 
-6) takePromiseResolveAssignable() : MiddleWares.takePromiseResolve(),MiddleWares.takeAssignable()
+6）takeThrottle(waitMs:number) : MiddleWares.takeThrottle(waitMs), MiddleWares.takePromiseResolve()
 
-7) takeLazyAssignable(ms: number) : MiddleWares.takeLazy(ms), MiddleWares.takePromiseResolve(),MiddleWares.takeAssignable()
+7）takeDebounce(waitMs:number,opt?:{leading?:boolean}) : MiddleWares.takeDebounce(waitMs,opt), MiddleWares.takePromiseResolve()
 
-8) takeLatestAssignable() : LifecycleMiddleWares.takeLatest(), MiddleWares.takePromiseResolve(),MiddleWares.takeAssignable()
+8) takePromiseResolveAssignable() : MiddleWares.takePromiseResolve(),MiddleWares.takeAssignable()
 
-9) takeBlockAssignable(ms?: number) : MiddleWares.takeBlock(ms), MiddleWares.takePromiseResolve(),MiddleWares.takeAssignable()
+9) takeLazyAssignable(ms: number) : MiddleWares.takeLazy(ms), MiddleWares.takePromiseResolve(),MiddleWares.takeAssignable()
+
+10) takeLatestAssignable() : LifecycleMiddleWares.takeLatest(), MiddleWares.takePromiseResolve(),MiddleWares.takeAssignable()
+
+11) takeBlockAssignable(ms?: number) : MiddleWares.takeBlock(ms), MiddleWares.takePromiseResolve(),MiddleWares.takeAssignable()
+
+12）takeThrottleAssignable(wait:number) : MiddleWares.takeThrottle(wait), MiddleWares.takePromiseResolve(),MiddleWares.takeAssignable()
+
+13）takeDebounceAssignable(wait:number,opt?:{leading?:boolean}) : MiddleWares.takeDebounce(wait,opt), MiddleWares.takePromiseResolve(),MiddleWares.takeAssignable()
 
 7 . useMiddleActions ( >=2.0.0 )
 
@@ -463,7 +513,8 @@ export interface Env {
     updateBy?: 'manual' | 'auto',   //state数据更新方式，默认自动更新 'auto'
     expired?: boolean,              //是否过期标记，默认为非过期 false
     strict?: boolean,               //是否采取严格模式，默认 true
-    reduceOnly?:boolean             //是否把agent做一个普通reducer，默认 false
+    reduceOnly?:boolean,            //是否把agent做一个普通reducer，默认 false
+    legacy?:boolean                 //是否需要继续兼容 1.* 版本，默认 false 不兼容
 }
 ```
 

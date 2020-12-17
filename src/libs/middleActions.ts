@@ -1,10 +1,8 @@
-import {agentDependenciesKey, isAgent} from "./defines";
+import {agentDependenciesKey} from "./defines";
 import {
     OriginAgent,
     Env,
-    NextProcess,
     MiddleWare,
-    StateProcess,
     LifecycleMiddleWare,
     LifecycleEnv, LifecycleRuntime
 } from "./global.type";

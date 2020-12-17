@@ -37,7 +37,7 @@ export class MiddleWares {
             return function (next: StateProcess): StateProcess {
 
                 return function (result: any) {
-                    if (!isAgent(target)||!isObject(result)||!isObject(state)) {
+                    if (!isAgent(target) || !isObject(result) || !isObject(state)) {
                         return next(result);
                     }
                     const copy = Object.create(Object.getPrototypeOf(state), Object.getOwnPropertyDescriptors(state));
@@ -76,35 +76,102 @@ export class MiddleWares {
     }
 
     static takeLazy(waitMs: number): MiddleWare {
+        return MiddleWares.takeDebounce(waitMs);
+    }
 
-        function timeout<T>(runtime: Runtime<T>) {
-            const now = new Date().getTime();
-            const {caller, args, target} = runtime;
-            if ((now - runtime.cache.last || now) < waitMs) {
-                return;
-            }
-            caller.apply(target, args || []);
-        }
+    static takeThrottle(waitMs: number): MiddleWare {
 
         return function <T>(runtime: Runtime<T>): NextProcess | void {
-            let {cache} = runtime;
-            const now = new Date().getTime();
-            const last = cache.last || now;
-            if (now - last < waitMs) {
-                setTimeout(() => timeout(runtime), waitMs);
-                cache.last = now;
+
+            function timeout(lastCallerInfo: { caller: Function, args: any[], target: T }) {
+                if (!lastCallerInfo) {
+                    return;
+                }
+                const {caller, args, target} = lastCallerInfo;
+                caller.apply(target, args || []);
+            }
+
+            let {cache, caller, args, target} = runtime;
+            const {lastTime} = cache;
+            if (lastTime !== undefined) {
+                cache.lastCallerInfo = {caller, args, target};
                 return;
             }
-            cache.last = undefined;
+            cache.lastTime = new Date().getTime();
+            setTimeout(() => {
+                cache.lastTime = undefined;
+                timeout(cache.lastCallerInfo);
+                cache.lastCallerInfo = undefined;
+            }, waitMs);
             return function (next: StateProcess): StateProcess {
 
                 return function (result: any) {
-                    next(result);
+                    return next(result);
                 }
 
             }
 
         }
+
+    }
+
+    static takeDebounce(waitMs: number, opt?: { leading?: boolean }): MiddleWare {
+
+        const {leading} = opt || {};
+
+        function timeout<T>(runtime: Runtime<T>) {
+            const now = new Date().getTime();
+            const {cache, caller, target, args} = runtime;
+            const last = cache.last;
+            if (now - (last === undefined ? now : last) < waitMs) {
+                return;
+            }
+            caller.apply(target, args || []);
+        }
+
+        return leading ?
+            function <T>(runtime: Runtime<T>): NextProcess | void {
+                let {cache, caller, args, target} = runtime;
+                const now = new Date().getTime();
+                const last = cache.last;
+                if (last === undefined) {
+                    cache.last = now;
+                    return function (next: StateProcess): StateProcess {
+
+                        return function (result: any) {
+                            return next(result);
+                        }
+
+                    }
+                }
+                if (now - last < waitMs) {
+                    cache.last = now;
+                } else {
+                    cache.last = undefined;
+                    caller.apply(target, args || []);
+                }
+            }
+            :
+            function <T>(runtime: Runtime<T>): NextProcess | void {
+                let {cache} = runtime;
+                const now = new Date().getTime();
+                const last = cache.last;
+                if (now - (last === undefined ? now : last) < waitMs) {
+                    setTimeout(() => timeout(runtime), waitMs);
+                    cache.last = now;
+                    return;
+                }
+                cache.last = undefined;
+                return function (next: StateProcess): StateProcess {
+
+                    return function (result: any) {
+                        return next(result);
+                    }
+
+                }
+
+            }
+
     }
 
 }

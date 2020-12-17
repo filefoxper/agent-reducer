@@ -22,7 +22,7 @@ export class LifecycleMiddleWares {
                     let version = cache.version || 0;
                     cache.version = version + 1;
                     const data = next(result);
-                    result.finally(() => {
+                    Promise.resolve(data).finally(() => {
                         if (version + 1 === cache.version) {
                             env.rebuild();
                         }
