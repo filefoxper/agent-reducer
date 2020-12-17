@@ -154,6 +154,17 @@ describe('agent-reducer的基本使用', () => {
             return Promise.resolve(1);
         }
 
+        // 通过添加middleWare可以控制方法的调用时机
+        @middleWare(MiddleWarePresets.takeThrottle(200))
+        takeThrottleSum(num:number){
+            return this.sum(num);
+        }
+
+        @middleWare(MiddleWarePresets.takeDebounce(200,{leading:true}))
+        takeDebounceLeadingSum(num:number){
+            return this.sum(num);
+        }
+
     }
 
     test('默认情况下agent方法返回数据即为下一个state值', async () => {
@@ -189,6 +200,28 @@ describe('agent-reducer的基本使用', () => {
         expect(changes.map(({state}) => state)).toEqual([1]);
     });
 
+    test('使用 MiddleWarePresets.takeThrottle 可以降低方法的调用频率', async () => {
+        const {agent} = createAgentReducer(CountAgent);
+        const {takeThrottleSum}=agent;
+        takeThrottleSum(1); // 立即调用，并准备 200ms 内对当前方法调用的拦截和记录，最后一条记录会在距离这次调用 200ms 以后执行
+        takeThrottleSum(1); // 被下一次调用覆盖
+        takeThrottleSum(1); // 当前方法被记录为最新的调用记录，在 200ms 以后调用
+        expect(agent.state).toBe(1);
+        await new Promise((r)=>setTimeout(r,220));
+        expect(agent.state).toBe(2);
+    });
+
+    test('使用 MiddleWarePresets.takeDebounce 可以降低方法的调用频率', async () => {
+        const {agent} = createAgentReducer(CountAgent);
+        const {takeDebounceLeadingSum}=agent;
+        takeDebounceLeadingSum(1); // 立即调用
+        setTimeout(()=>takeDebounceLeadingSum(1),100);  // 200ms 内的调用不起效果，在此基础上再推迟 200ms 之后可以调用成功
+        setTimeout(()=>takeDebounceLeadingSum(1),320); // 立即调用
+        expect(agent.state).toBe(1);
+        await new Promise((r)=>setTimeout(r,450));
+        expect(agent.state).toBe(2);
+    });
+
 });
 
 describe('一个 agent 方法中的this，永远指向 origin-agent 实例对象，将方法赋值给其他对象，或重新绑定均无效', () => {
@@ -210,6 +243,7 @@ describe('一个 agent 方法中的this，永远指向 origin-agent 实例对象
             await Promise.resolve();
             return this.stepUp();
         }
+
     }
 
     test('将 method 赋值给其他 object 属性，直接调用 object 的属性方法，不会改变 this 的指向，this 应该为 origin-agent', async () => {
@@ -365,6 +399,16 @@ describe('useMiddleWare 会对已存在的 agent 复制一个生命周期不同�
         expect(agent.state).toBe(1);
     });
 
+    test('使用 LifecycleMiddleWares.takeLazy, 如果使用方法再次调用在触发的设置时间之后，相当于一个普通延时调用', async () => {
+        const {agent} = createAgentReducer(CountAgent);
+        const {stepUp} = useMiddleWare(agent, MiddleWares.takeLazy(200));
+        // 延时200ms执行，若200ms内再被触发，以触发时间开始继续延迟200ms
+        stepUp();
+        setTimeout(() => stepUp(), 200);
+        await new Promise((r) => setTimeout(r, 500));
+        expect(agent.state).toBe(2);
+    });
+
 });
 
 describe('使用 middleWare 方法可以对当前被调用方法单独添加指定MiddleWare特性', () => {
@@ -411,6 +455,11 @@ describe('使用 middleWare 方法可以对当前被调用方法单独添加指�
             return this.agent.sum(tms);
         }
 
+        @middleWare(MiddleWarePresets.takeLazy(200))
+        callingStepUpAfterRequestLazy() {
+            this.agent.sum(1);
+        }
+
     }
 
     test('在 agent 的 middle-action 上都可以通过添加middleWare的形式实现简易的useMiddleWare', async () => {
@@ -449,6 +498,19 @@ describe('使用 middleWare 方法可以对当前被调用方法单独添加指�
         expect(agent.state).toBe(2);
     });
 
+    test('在 MiddleActions 的所有方法上都可以通过添加middleWare的形式实现简易的useMiddleWare,比如takeLazy', async () => {
+        const {agent} = createAgentReducer(CountAgent);
+        const {callingStepUpAfterRequestLazy} = useMiddleActions(CountBesides,agent);
+        callingStepUpAfterRequestLazy();
+        callingStepUpAfterRequestLazy();
+        setTimeout(()=>{
+            callingStepUpAfterRequestLazy();
+        },250);
+        await new Promise((r)=>setTimeout(r,200));
+        expect(agent.state).toBe(1);
+        await new Promise((r)=>setTimeout(r,300));
+        expect(agent.state).toBe(2);
+    });
 
 });
 

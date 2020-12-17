@@ -6,14 +6,15 @@ export interface OriginAgent<S = any> {
 export interface Env {
     updateBy?: 'manual' | 'auto',
     expired?: boolean,
-    strict?: boolean
+    strict?: boolean,
+    legacy?:boolean
 }
 
 
 
 export interface GlobalConfig {
     env?:Env,
-    defaultMiddleWare:MiddleWare
+    defaultMiddleWare?:MiddleWare
 }
 
 type Caller = (...args: any[]) => any;

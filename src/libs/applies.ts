@@ -1,4 +1,5 @@
 import {Runtime, NextProcess, MiddleWare, LifecycleMiddleWare, LifecycleRuntime} from "./global.type";
+import {isPromise} from "./util";
 
 export function composeCallArray(calls: ((p: any) => any)[]) {
     const callList = [...calls].reverse();
@@ -7,9 +8,20 @@ export function composeCallArray(calls: ((p: any) => any)[]) {
     }
 }
 
-export function defaultMiddleWare<T>() {
-    return function nextResolver(next: (result: any) => any) {
-        return function stateResolver(result: any) {
+export function defaultMiddleWare<T>(runtime: Runtime) {
+    // 支持1.+.+版本
+    if (runtime.env.legacy) {
+        return function nextResolver(next: (result: any) => any) {
+            return function stateResolver(result: any) {
+                if (isPromise(result) || result === undefined) {
+                    return result;
+                }
+                return next(result);
+            }
+        }
+    }
+    return function nextProcess(next: (result: any) => any) {
+        return function stateProcess(result: any) {
             return next(result);
         }
     }

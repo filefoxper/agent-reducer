@@ -4,7 +4,7 @@ import {
     useMiddleWare,
     useMiddleActions,
     MiddleActions,
-    LifecycleMiddleWares, applyMiddleWares, MiddleWarePresets
+    LifecycleMiddleWares, applyMiddleWares, MiddleWarePresets, Runtime, StateProcess
 } from "../../src";
 
 describe('agent的方法不能被修改', () => {
@@ -161,6 +161,39 @@ describe('不要对一个 origin-agent 使用 useMiddleActions', () => {
     test('对一个 origin-agent 使用 useMiddleActions，将得到一个错误信息', () => {
         expect(() => {
             useMiddleActions(ObjectBesides,new ObjectAgent());
+        }).toThrowError();
+    });
+
+});
+
+describe('自定义MiddleWare的时候要注意，MiddleWare的runtime.env属性不允许修改',()=>{
+
+    const customMiddleWare=(runtime:Runtime)=>{
+        runtime.env.legacy=true;
+        return (next:StateProcess):StateProcess=>{
+            return (result:any)=>{
+                next(result);
+            }
+        }
+    };
+
+    class ObjectAgent implements OriginAgent<{ id: number, name: string }> {
+
+        state = {id: 0, name: ''};
+
+        props = 1;
+
+        rename = (name: string) => {
+            return {...this.state, name};
+        }
+
+    }
+
+    test('自定义MiddleWare的时候要注意，修改MiddleWare的runtime.env属性，在使用时将得到一个异常信息', () => {
+        const {agent} = createAgentReducer(ObjectAgent);
+        const b=useMiddleWare(agent, customMiddleWare);
+        expect(() => {
+            b.rename('agent');
         }).toThrowError();
     });
 

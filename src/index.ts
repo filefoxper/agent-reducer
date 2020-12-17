@@ -18,7 +18,11 @@ export {MiddleWarePresets} from './libs/middleWarePresets';
 
 /** global set and defines **/
 
-export {globalConfig, clearGlobalConfig, DefaultActionType, getAgentNamespaceKey,isAgent} from './libs/defines';
+export {globalConfig, clearGlobalConfig, DefaultActionType, getAgentNamespaceKey, isAgent} from './libs/defines';
+
+/** legacy api **/
+
+export {branch, BranchResolvers} from './libs/branch';
 
 /** types **/
 

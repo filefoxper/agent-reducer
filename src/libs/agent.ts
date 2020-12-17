@@ -63,7 +63,10 @@ function createActionRunner<S, T extends OriginAgent<S>>(
             return;
         }
 
-        const nextState = runtime.sourceCaller.apply(entry, [...args]);
+        // 支持1.+.+版本
+        const nextState = env.legacy ?
+            runtime.sourceCaller.apply(proxy, [...args]) :
+            runtime.sourceCaller.apply(entry, [...args]);
         const stateProcess = nextProcess(defaultStateResolver);
         return stateProcess(nextState);
     }
