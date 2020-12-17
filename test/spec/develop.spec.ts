@@ -40,7 +40,7 @@ describe('通过createAgentReducer产生的reducer API可以整合其他 reducer
         }
     }
 
-    class CountAgent implements OriginAgent<number> {
+    class CountAgent implements OriginAgent<number|undefined> {
 
         state = 0;
 
@@ -53,6 +53,10 @@ describe('通过createAgentReducer产生的reducer API可以整合其他 reducer
         sum = (...counts: number[]): number => {
             return this.state + counts.reduce((r, c): number => r + c, 0);
         };
+
+        clear(){
+
+        }
 
     }
 
@@ -80,6 +84,19 @@ describe('通过createAgentReducer产生的reducer API可以整合其他 reducer
         agent.stepUp();
         expect(agent.state).toBe(2);
         expect(store.getState()).toBe(agent.state); // agent.state 应该与 store.getState() 相同
+        unlisten();
+    });
+
+    test('新接口支持 state 为 undefined',()=>{
+        const reducer = createAgentReducer(CountAgent, {updateBy: 'manual'});
+        const store = createStore(reducer, 1); //创建一个store对象，store至少拥有getState和dispatch接口
+        const {agent, useStoreSlot, update} = reducer;
+        const unlisten = store.subscribe(() => {
+            update(store.getState(), store.dispatch);
+        });
+        agent.clear();
+        expect(agent.state).toBe(undefined);
+        expect(store.getState()).toBe(agent.state);
         unlisten();
     });
 
