@@ -109,7 +109,7 @@ export function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>
                 throw new Error('You should set env.updateBy to be `manual` before updating state and dispatch from outside.');
             }
 
-            entity.state = state !== undefined ? state : storeSlot.getState();
+            entity.state = (dispatch !== undefined ? state : storeSlot.getState()) as S;
             if(dispatch!==undefined){
                 storeSlot.dispatch = dispatch;
             }
