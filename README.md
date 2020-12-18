@@ -750,5 +750,7 @@ const namespaceKey = getAgentNamespaceKey();
 
 [更多例子](https://github.com/filefoxper/agent-reducer/blob/master/test/spec/develop.spec.ts)
 
+[change logs](https://github.com/filefoxper/agent-reducer/blob/master/CHANGE_LOG.md)
+
 ###### 如果觉得满意请在github页面上给个小星星哦。
 
