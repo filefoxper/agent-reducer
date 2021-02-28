@@ -1,44 +1,40 @@
-import {createAgentReducer, OriginAgent} from "../../src";
+import { createAgentReducer, OriginAgent } from "../../src";
 
-describe('if (global||window).Proxy is not exist',()=>{
+describe("if (global||window).Proxy is not exist", () => {
+  class ObjectAgent implements OriginAgent<{ id: number; name: string }> {
+    state = { id: 0, name: "" };
 
-    class ObjectAgent implements OriginAgent<{ id: number, name: string }> {
+    props = 1;
 
-        state = {id: 0, name: ''};
+    rename = (name: string) => {
+      return { ...this.state, name };
+    };
+  }
 
-        props=1;
+  const P = global.Proxy;
 
-        rename = (name: string) => {
-            return {...this.state, name};
-        }
+  beforeAll(() => {
+    delete global["Proxy"];
+  });
 
-    }
+  afterAll(() => {
+    global.Proxy = P;
+  });
 
-    const P=global.Proxy;
+  test("if (global||window).Proxy is not exist, it should work too", () => {
+    const { agent } = createAgentReducer(ObjectAgent);
+    agent.rename("abc");
+    expect(agent.state.name).toBe("abc");
+  });
 
-    beforeAll(()=>{
-        delete global['Proxy'];
-    });
-
-    afterAll(()=>{
-        global.Proxy=P;
-    });
-
-    test('if (global||window).Proxy is not exist, it should work too',()=>{
-        const {agent}=createAgentReducer(ObjectAgent);
-        agent.rename('abc');
-        expect(agent.state.name).toBe('abc');
-    });
-
-    test('reset a function of agent should not work',()=>{
-        const {agent}=createAgentReducer(ObjectAgent);
-        agent.props=2;
-        expect(agent.props).toBe(2);
-        expect(()=>{
-            agent.rename=function (name: string) {
-                return {id:1,name };
-            }
-        }).toThrowError();
-    });
-
+  test("reset a function of agent should not work", () => {
+    const { agent } = createAgentReducer(ObjectAgent);
+    agent.props = 2;
+    expect(agent.props).toBe(2);
+    expect(() => {
+      agent.rename = function (name: string) {
+        return { id: 1, name };
+      };
+    }).toThrowError();
+  });
 });

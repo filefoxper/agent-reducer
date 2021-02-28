@@ -73,7 +73,7 @@ describe('补全MiddleActions上的MiddleWare测试',()=>{
 
     class ObjectMiddleActions extends MiddleActions<ObjectAgent>{
 
-        @middleWare(MiddleWarePresets.takeLatestAssignable())
+        @middleWare(MiddleWarePresets.takeAssignable())
         async remoteRename(ms:number){
             const name:string=await new Promise((r)=>setTimeout(()=>r('name'+ms),ms*100));
             return this.agent.rename(name);
@@ -88,9 +88,7 @@ describe('补全MiddleActions上的MiddleWare测试',()=>{
     it('MiddleActions的MiddleWare只对MiddleActions有效，对agent无效',async ()=>{
         const {agent}=createAgentReducer(ObjectAgent);
         const actions=useMiddleActions(ObjectMiddleActions,agent);
-        const f= actions.remoteRename(5);
-        const s= actions.remoteRename(2);
-        await Promise.all([f,s]);
+        await actions.remoteRename(2);
         expect(agent.state.id).toBe(undefined);
         expect(agent.state.name).toBe('name2');
     });
