@@ -1,157 +1,213 @@
-import {Action, StoreSlot} from "./reducer.type";
-import {Env, MiddleWare} from './global.type';
-import {agentDependenciesKey, agentIdentifyKey, agentNamespaceKey} from "./defines";
-import {createProxy} from "./util";
-import {decorateWithMiddleWare} from "./useMiddleWare";
-import {AgentDependencies} from './agent.type';
-import {OriginAgent} from "./global.type";
+import { Action, StoreSlot } from "./reducer.type";
+import { Env, MiddleWare, Runtime } from "./global.type";
+import {
+  agentDependenciesKey,
+  agentIdentifyKey,
+  agentNamespaceKey,
+} from "./defines";
+import { createProxy } from "./util";
+import { decorateWithMiddleWare } from "./useMiddleWare";
+import { AgentDependencies } from "./agent.type";
+import { OriginAgent } from "./global.type";
+import {defaultMiddleWare} from "./applies";
 
 /**
  *
  * @param invokeDependencies
  */
-function generateDispatchCall<S, T extends OriginAgent<S>>(invokeDependencies: AgentDependencies<S, T>) {
-    const {entry, store, env} = invokeDependencies;
-    const namespace = entry[agentNamespaceKey];
-    return ({type, args}: Action) => {
-        if (env.expired) {
-            return args;
-        }
-        const newType = namespace === undefined ? type : (namespace + ':' + type);
-        const nextState = args;
-        if (nextState !== undefined && !env.strict) {
-            entry.state = nextState;
-        }
-        return store.dispatch({type: newType, args});
-    };
+function generateDispatchCall<S, T extends OriginAgent<S>>(
+  invokeDependencies: AgentDependencies<S, T>
+) {
+  const { entry, store, env } = invokeDependencies;
+  const namespace = entry[agentNamespaceKey];
+  return ({ type, args }: Action) => {
+    if (env.expired) {
+      return args;
+    }
+    const newType = namespace === undefined ? type : namespace + ":" + type;
+    const nextState = args;
+    if (nextState !== undefined && !env.strict) {
+      entry.state = nextState;
+    }
+    return store.dispatch({ type: newType, args });
+  };
 }
 
 function createActionRunner<S, T extends OriginAgent<S>>(
-    proxy: T,
-    invokeDependencies: AgentDependencies<S, T>,
-    type: string,
-    source: Function
+  proxy: T,
+  invokeDependencies: AgentDependencies<S, T>,
+  type: string,
+  source: Function
 ) {
+  const dispatchCall = generateDispatchCall(invokeDependencies);
 
-    const dispatchCall = generateDispatchCall(invokeDependencies);
+  const defaultStateResolver = <NS = S>(nextState: NS): NS => {
+    dispatchCall({ type, args: nextState });
+    return nextState;
+  };
 
-    const defaultStateResolver = <NS = S>(nextState: NS): NS => {
-        dispatchCall({type, args: nextState});
-        return nextState;
-    };
+  let { cache, functionCache, middleWare, entry } = invokeDependencies;
 
-    let {cache, functionCache, middleWare, entry} = invokeDependencies;
+  cache[type] = cache[type] || {};
 
-    cache[type] = cache[type] || {};
+  if (functionCache[type]) {
+    return functionCache[type];
+  }
 
-    if (functionCache[type]) {
-        return functionCache[type];
+  function caller(...args: any[]) {
+    const { env } = invokeDependencies;
+    let runtime = cache[type];
+    if (runtime) {
+      runtime.args = [...args];
+      runtime.env = env;
+    }
+    const nextProcess = middleWare(runtime);
+
+    if (!nextProcess) {
+      runtime.tempCaller = undefined;
+      return;
     }
 
-    function caller(...args: any[]) {
+    const sourceCaller = runtime.tempCaller || runtime.sourceCaller;
+    // 支持1.+.+版本
+    try {
+      const nextState = env.legacy
+          ? sourceCaller.apply(proxy, [...args])
+          : sourceCaller.apply(entry, [...args]);
 
-        const {env} = invokeDependencies;
-        let runtime = cache[type];
-        if (runtime) {
-            runtime.args = [...args];
-            runtime.env = env;
-        }
-
-        const nextProcess = middleWare(runtime);
-
-        if (!nextProcess) {
-            return;
-        }
-
-        // 支持1.+.+版本
-        const nextState = env.legacy ?
-            runtime.sourceCaller.apply(proxy, [...args]) :
-            runtime.sourceCaller.apply(entry, [...args]);
-        const stateProcess = nextProcess(defaultStateResolver);
-        return stateProcess(nextState);
+      const stateProcess = nextProcess(defaultStateResolver);
+      const result = stateProcess(nextState);
+      runtime.tempCaller = undefined;
+      return result;
+    }catch (e) {
+      runtime.tempCaller = undefined;
+      throw e;
     }
 
-    cache[type] = {
-        caller,
-        callerName: type,
-        sourceCaller: source as (...args: any[]) => any,
-        target: proxy,
-        source: entry,
-        env: invokeDependencies.env,
-        cache: {}
-    };
+  }
 
-    functionCache[type] = caller;
+  cache[type] = {
+    caller,
+    callerName: type,
+    sourceCaller: source as (...args: any[]) => any,
+    target: proxy,
+    source: entry,
+    env: invokeDependencies.env,
+    cache: {},
+    rollbacks: {},
+    mapSourceProperty(
+      key: keyof T,
+      callback: (value: any, instance: T, runtime: Runtime<T>) => any
+    ) {
+      const current = entry[key];
+      const newValue = callback(current, entry, this);
+      if (type === key) {
+        this.tempCaller = newValue;
+      } else {
+        entry[key] = newValue;
+        this.rollbacks[key] = current;
+      }
+      return this;
+    },
+    rollback() {
+      Object.assign(entry, this.rollbacks);
+      this.rollbacks = {};
+      this.tempCaller = undefined;
+      return this;
+    },
+  } as Runtime<T>;
 
-    return caller;
+  functionCache[type] = caller;
+
+  return caller;
 }
 
 export function generateAgent<S, T extends OriginAgent<S>>(
-    entry: T & { [agentDependenciesKey]?: AgentDependencies<S, T> },
-    store: StoreSlot<S>,
-    env: Env,
-    middleWare: MiddleWare,
-    copyInfo?: {
-        sourceAgent: T & { [agentDependenciesKey]?: AgentDependencies<S, T> },
-        type: 'copy' | 'decorator'
-    }
+  entry: T & { [agentDependenciesKey]?: AgentDependencies<S, T> },
+  store: StoreSlot<S>,
+  env: Env,
+  middleWare: MiddleWare,
+  copyInfo?: {
+    sourceAgent: T & { [agentDependenciesKey]?: AgentDependencies<S, T> };
+    type: "copy" | "decorator";
+  }
 ): T {
+  let invokeDependencies: AgentDependencies<S, T> = {
+    entry,
+    store,
+    env,
+    cache: {},
+    functionCache: {},
+    middleWare,
+  };
 
-    let invokeDependencies: AgentDependencies<S, T> = {entry, store, env, cache: {}, functionCache: {}, middleWare};
+  let methodWithMiddleWares: { [key in keyof T]?: any } = {};
 
-    let methodWithMiddleWares: { [key in keyof T]?: any } = {};
+  let cache = {
+    methodWithMiddleWares,
+    invokeDependencies: undefined,
+    isAgent: true,
+  };
 
-    let cache = {
-        methodWithMiddleWares,
-        invokeDependencies: undefined,
-        isAgent: true
-    }
+  let { type: copyType, sourceAgent } = copyInfo || {};
 
-    let {type: copyType, sourceAgent} = copyInfo || {};
+  let proxy: T & {
+    [agentDependenciesKey]?: AgentDependencies<S, T>;
+    [agentIdentifyKey]?: true;
+  } = createProxy(entry, {
+    get(target: T, p: string & keyof T): any {
+      const source = target[p];
+      if (typeof source === "function" && methodWithMiddleWares[p]) {
+        return methodWithMiddleWares[p];
+      }
+      if (
+        typeof source === "function" &&
+        source.middleWare &&
+          (
+              env.nextExperience?
+              (copyType === undefined||copyType==='copy'&&middleWare===defaultMiddleWare):
+              copyType!=='decorator'
+          )
+      ) {
+        const methodWithMiddleWare = decorateWithMiddleWare(
+          sourceAgent || proxy,
+          source.middleWare
+        )[p];
+        methodWithMiddleWares[p] = methodWithMiddleWare;
+        return methodWithMiddleWare;
+      }
 
-    let proxy: T & { [agentDependenciesKey]?: AgentDependencies<S, T>, [agentIdentifyKey]?: true } = createProxy(entry, {
-        get(target: T, p: string & keyof T): any {
-            const source = target[p];
-            if (typeof source === 'function' && methodWithMiddleWares[p]) {
-                return methodWithMiddleWares[p];
-            }
-            if (typeof source === 'function' && source.middleWare && copyType !== 'decorator') {
-                const methodWithMiddleWare = decorateWithMiddleWare(sourceAgent || proxy, source.middleWare)[p];
-                methodWithMiddleWares[p] = methodWithMiddleWare;
-                return methodWithMiddleWare;
-            }
-
-            if (typeof source === 'function') {
-                return createActionRunner(proxy, invokeDependencies, p, source);
-            }
-            if (p === agentIdentifyKey) {
-                return cache.isAgent;
-            }
-            if (p === agentDependenciesKey) {
-                return cache.invokeDependencies;
-            }
-            return entry[p];
-        },
-        set(target: T, p: string & keyof T, value: any): boolean {
-            const source = entry[p];
-            if (typeof source === 'function') {
-                return false;
-            }
-            if (p === agentDependenciesKey) {
-                cache.invokeDependencies = value;
-            } else if (p === agentIdentifyKey) {
-                cache.isAgent = true;
-            } else {
-                entry[p] = value;
-            }
-            return true;
-        }
-    });
-    proxy[agentIdentifyKey] = true;
-    if (copyInfo) {
-        proxy[agentDependenciesKey] = undefined;
-        return proxy as T;
-    }
-    proxy[agentDependenciesKey] = invokeDependencies;
+      if (typeof source === "function") {
+        return createActionRunner(proxy, invokeDependencies, p, source);
+      }
+      if (p === agentIdentifyKey) {
+        return cache.isAgent;
+      }
+      if (p === agentDependenciesKey) {
+        return cache.invokeDependencies;
+      }
+      return entry[p];
+    },
+    set(target: T, p: string & keyof T, value: any): boolean {
+      const source = entry[p];
+      if (typeof source === "function") {
+        return false;
+      }
+      if (p === agentDependenciesKey) {
+        cache.invokeDependencies = value;
+      } else if (p === agentIdentifyKey) {
+        cache.isAgent = true;
+      } else {
+        entry[p] = value;
+      }
+      return true;
+    },
+  });
+  proxy[agentIdentifyKey] = true;
+  if (copyInfo) {
+    proxy[agentDependenciesKey] = undefined;
     return proxy as T;
+  }
+  proxy[agentDependenciesKey] = invokeDependencies;
+  return proxy as T;
 }

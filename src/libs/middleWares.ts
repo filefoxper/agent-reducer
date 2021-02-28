@@ -3,19 +3,15 @@ import {
     NextProcess,
     OriginAgent,
     Runtime,
-    StateProcess
+    StateProcess,
 } from "./global.type";
 import {isObject, isPromise} from "./util";
 import {isAgent} from "./defines";
 
 export class MiddleWares {
-
     static takePromiseResolve(): MiddleWare {
-
         return function () {
-
             return function (next: StateProcess): StateProcess {
-
                 return function (result: any) {
                     if (!isPromise(result)) {
                         return next(result);
@@ -23,41 +19,42 @@ export class MiddleWares {
                     return result.then((data: any) => {
                         return next(data);
                     });
-                }
-            }
-        }
-
+                };
+            };
+        };
     }
 
     static takeAssignable(): MiddleWare {
-
         return function (runtime: Runtime) {
             const {target} = runtime;
             const state = (target as OriginAgent).state;
             return function (next: StateProcess): StateProcess {
-
                 return function (result: any) {
                     if (!isAgent(target) || !isObject(result) || !isObject(state)) {
                         return next(result);
                     }
-                    const copy = Object.create(Object.getPrototypeOf(state), Object.getOwnPropertyDescriptors(state));
+                    const copy = Object.create(
+                        Object.getPrototypeOf(state),
+                        Object.getOwnPropertyDescriptors(state)
+                    );
                     return next(Object.assign(copy, result));
-                }
-            }
-        }
+                };
+            };
+        };
     }
 
     static takeBlock(blockMs?: number): MiddleWare {
-
         return function <T>(runtime: Runtime<T>): NextProcess | void {
             let {cache} = runtime;
             const now = new Date().getTime();
-            if (cache.running && (blockMs === undefined || (now - cache.running < blockMs))) {
+            if (
+                cache.running &&
+                (blockMs === undefined || now - cache.running < blockMs)
+            ) {
                 return;
             }
             cache.running = now;
             return function (next: StateProcess) {
-
                 return function (result: any): StateProcess {
                     if (isPromise(result)) {
                         const data = next(result);
@@ -68,11 +65,9 @@ export class MiddleWares {
                     }
                     cache.running = undefined;
                     return next(result);
-                }
-
-            }
-
-        }
+                };
+            };
+        };
     }
 
     static takeLazy(waitMs: number): MiddleWare {
@@ -80,10 +75,12 @@ export class MiddleWares {
     }
 
     static takeThrottle(waitMs: number): MiddleWare {
-
         return function <T>(runtime: Runtime<T>): NextProcess | void {
-
-            function timeout(lastCallerInfo: { caller: Function, args: any[], target: T }) {
+            function timeout(lastCallerInfo: {
+                caller: Function;
+                args: any[];
+                target: T;
+            }) {
                 if (!lastCallerInfo) {
                     return;
                 }
@@ -104,45 +101,29 @@ export class MiddleWares {
                 cache.lastCallerInfo = undefined;
             }, waitMs);
             return function (next: StateProcess): StateProcess {
-
                 return function (result: any) {
                     return next(result);
-                }
-
-            }
-
-        }
-
+                };
+            };
+        };
     }
 
     static takeDebounce(waitMs: number, opt?: { leading?: boolean }): MiddleWare {
 
         const {leading} = opt || {};
 
-        function timeout<T>(runtime: Runtime<T>) {
-            const now = new Date().getTime();
-            const {cache, caller, target, args} = runtime;
-            const last = cache.last;
-            if (now - (last === undefined ? now : last) < waitMs) {
-                return;
-            }
-            caller.apply(target, args || []);
-        }
-
-        return leading ?
-            function <T>(runtime: Runtime<T>): NextProcess | void {
-                let {cache, caller, args, target} = runtime;
+        return leading
+            ? function <T>(runtime: Runtime<T>): NextProcess | void {
+                let {caller, args, target, cache} = runtime;
                 const now = new Date().getTime();
                 const last = cache.last;
                 if (last === undefined) {
                     cache.last = now;
                     return function (next: StateProcess): StateProcess {
-
                         return function (result: any) {
                             return next(result);
-                        }
-
-                    }
+                        };
+                    };
                 }
                 if (now - last < waitMs) {
                     cache.last = now;
@@ -151,27 +132,27 @@ export class MiddleWares {
                     caller.apply(target, args || []);
                 }
             }
-            :
-            function <T>(runtime: Runtime<T>): NextProcess | void {
-                let {cache} = runtime;
-                const now = new Date().getTime();
-                const last = cache.last;
-                if (now - (last === undefined ? now : last) < waitMs) {
-                    setTimeout(() => timeout(runtime), waitMs);
-                    cache.last = now;
+            : function <T>(runtime: Runtime<T>): NextProcess | void {
+
+                function call<T>(runtime: Runtime<T>) {
+                    const {caller, target, args, cache} = runtime;
+                    cache.debtimeout = null;
+                    caller.apply(target, args || []);
+                }
+
+                const {cache} = runtime;
+                const {debtimeout} = cache;
+                if (debtimeout === undefined || debtimeout !== null) {
+                    clearTimeout(debtimeout);
+                    cache.debtimeout = setTimeout(() => call(runtime), waitMs);
                     return;
                 }
-                cache.last = undefined;
+                cache.debtimeout = undefined;
                 return function (next: StateProcess): StateProcess {
-
                     return function (result: any) {
                         return next(result);
-                    }
-
-                }
-
-            }
-
+                    };
+                };
+            };
     }
-
 }

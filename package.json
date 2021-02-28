@@ -1,10 +1,11 @@
 {
   "name": "agent-reducer",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "main": "./index.js",
   "author": "Jimmy.Harding",
   "description": "the purpose of this project is using a class to replace a reducer",
   "scripts": {
+    "clear": "rm -rf ./dist & rm -rf ./libs & rm -f ./index.d.ts",
     "build": "webpack --config ./webpack.config.js --env.mode=production",
     "test": "jest --coverage"
   },
@@ -24,9 +25,11 @@
     "state",
     "agent",
     "proxy",
+    "middleWare",
     "object",
     "typescript",
-    "browser"
+    "browser",
+    "js"
   ],
   "license": "MIT",
   "devDependencies": {

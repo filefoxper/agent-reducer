@@ -1,3 +1,5 @@
-import {MiddleWare} from "./global.type";
+import { MiddleWare } from "./global.type";
 
-export type middleWareAbleFunction = ((...args: any[]) => any) & { middleWare?: MiddleWare };
+export type MiddleWareAbleFunction = ((...args: any[]) => any) & {
+  middleWare?: MiddleWare;
+};
