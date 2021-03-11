@@ -394,7 +394,7 @@ describe("useMiddleWare 会对已存在的 agent 复制一个生命周期不同�
     }, 600);
   });
 
-  test("使用useMiddleWare时，若被调用的方法已经有指定的middleWare时， 以内部middleWare为准", () => {
+  test("使用useMiddleWare时，若被调用的方法已经有指定的middleWare时， 以useMiddleWare为准", () => {
     const { agent, recordChanges } = createAgentReducer(CountAgent);
     // MiddleWarePresets是一个常用MiddleWares的串行集合，比如：
     // MiddleWarePresets.takeBlock = applyMiddleWares(LifecycleMiddleWares.takeBlock(ms),MiddleWares.takePromiseResolve(),MiddleWares.takeAssignable());
@@ -407,7 +407,7 @@ describe("useMiddleWare 会对已存在的 agent 复制一个生命周期不同�
     const second = callingSumAfterWithDec(2); // resolve after 200ms
     setTimeout(() => {
       const records = unRecord();
-      expect(agent.state).toBe(2);
+      expect(agent.state).toBe(5);
       expect(records.length).toBe(1);
     }, 600);
   });

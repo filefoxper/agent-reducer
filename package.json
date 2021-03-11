@@ -1,13 +1,15 @@
 {
   "name": "agent-reducer",
-  "version": "3.1.2",
+  "version": "3.2.0",
   "main": "./index.js",
   "author": "Jimmy.Harding",
   "description": "the purpose of this project is using a class to replace a reducer",
   "scripts": {
     "clear": "rm -rf ./dist & rm -rf ./libs & rm -f ./index.d.ts",
     "build": "webpack --config ./webpack.config.js --env.mode=production",
-    "test": "jest --coverage"
+    "test": "jest --coverage",
+    "lint": "eslint src --fix --ext .ts ",
+    "lint-init": "eslint --init"
   },
   "repository": {
     "type": "git",
@@ -20,6 +22,7 @@
     "index.d.ts"
   ],
   "keywords": [
+    "typescript",
     "reducer",
     "class",
     "state",
@@ -34,9 +37,6 @@
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "7.2.2",
-    "@babel/runtime": "7.3.0",
-    "@babel/preset-env": "^7.5.2",
-    "@babel/preset-typescript": "^7.3.3",
     "@babel/plugin-proposal-async-generator-functions": "7.2.0",
     "@babel/plugin-proposal-class-properties": "7.3.0",
     "@babel/plugin-proposal-export-default-from": "7.2.0",
@@ -48,27 +48,34 @@
     "@babel/plugin-proposal-pipeline-operator": "7.3.0",
     "@babel/plugin-syntax-dynamic-import": "7.2.0",
     "@babel/plugin-transform-runtime": "7.2.0",
+    "@babel/preset-env": "^7.5.2",
+    "@babel/preset-typescript": "^7.3.3",
+    "@babel/runtime": "7.3.0",
     "@types/jest": "^23.3.12",
-    "core-js": "^3.8.0",
-    "jest": "^26.0.1",
-    "typescript": "^3.8.3",
+    "@typescript-eslint/eslint-plugin": "^4.16.1",
+    "@typescript-eslint/parser": "1.13.0",
     "babel-eslint": "^9.0.0",
-    "eslint": "^5.4.0",
+    "babel-loader": "^8.0.6",
+    "core-js": "^3.8.0",
+    "eslint": "^7.21.0",
+    "eslint-config-airbnb": "^18.2.1",
+    "eslint-config-airbnb-base": "^14.2.1",
     "eslint-plugin-flowtype": "^2.50.0",
-    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-jsx-a11y": "^5.1.1",
     "husky": "^0.14.3",
+    "immer": "^8.0.0",
+    "jest": "^26.0.1",
     "lint-staged": "^7.2.2",
     "ts-jest": "^24.0.2",
+    "ts-loader": "6.0.4",
+    "tsconfig-paths-webpack-plugin": "^3.2.0",
     "tslint": "^5.12.0",
     "tslint-eslint-rules": "^5.4.0",
-    "webpack-cli": "3.3.5",
-    "webpack": "4.35.3",
-    "babel-loader": "^8.0.6",
-    "ts-loader": "6.0.4",
+    "typescript": "^3.8.3",
     "uglifyjs-webpack-plugin": "^2.1.3",
-    "tsconfig-paths-webpack-plugin": "^3.2.0",
-    "immer": "^8.0.0"
+    "webpack": "4.35.3",
+    "webpack-cli": "3.3.5"
   },
   "engines": {
     "node": ">=8.0.0"

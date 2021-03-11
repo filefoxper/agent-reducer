@@ -26,6 +26,18 @@ class UserModel implements OriginAgent<User>{
 
 describe('use MiddleWares',()=>{
 
+    it("MiddleWares.takeNone", () => {
+        const {agent, recordChanges} = createAgentReducer(UserModel, MiddleWares.takeNone());
+        // call function recordChanges to record state changing.
+        const getStateChanges = recordChanges();
+        agent.changeName('Master');
+        // after change, use getStateChanges function to get state changing records
+        const changes = getStateChanges();
+        expect(agent.state.name).toBeUndefined();
+        // MiddleWares.takeNone stops state changing.
+        expect(changes.length).toBe(0);
+    });
+
     it("MiddleWares.takePromiseResolve",async ()=>{
         const {agent}=createAgentReducer(UserModel,MiddleWares.takePromiseResolve());
         await agent.fetchUser();

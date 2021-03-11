@@ -34,4 +34,4 @@ export interface Env {
 ```
 你可以在[这里](https://github.com/filefoxper/agent-reducer/blob/master/test/zh/guides/tryEnv.spec.ts)查看 env 的配置方法。
 
-[下一节](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/guides/not_recommend.md)， `agent-reducer` 不推荐使用的接口。
+[下一节](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/guides/model_agent_relationship.md)， `Agent` 与 `OriginAgent` 的关系。

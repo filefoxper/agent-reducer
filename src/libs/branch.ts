@@ -1,6 +1,6 @@
-import { useMiddleWare } from "./useMiddleWare";
-import { LifecycleMiddleWares } from "./lifecycleMiddleWares";
-import { MiddleWares } from "./middleWares";
+import { useMiddleWare } from './useMiddleWare';
+import { LifecycleMiddleWares } from './lifecycleMiddleWares';
+import MiddleWares from './middleWares';
 
 /**
  * @deprecated

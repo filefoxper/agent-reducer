@@ -1,0 +1,7 @@
+node_modules/
+/dist
+/libs
+/package-lock.json
+/index.d.ts
+/.idea/
+/coverage/

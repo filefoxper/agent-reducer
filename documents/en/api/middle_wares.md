@@ -2,6 +2,16 @@
 
 MiddleWares is a class which contains some static MiddleWare properties. It is a set of often using MiddleWare.
 
+## MiddleWares.takeNone()
+
+This MiddleWare can stop any state change. 
+
+```typescript
+class MiddleWares{
+    static takeNone(): MiddleWare
+}
+```
+
 ## MiddleWares.takePromiseResolve()
 
 This MiddleWare helps for waiting a promise object which is returned by an `Agent` method or passed from a previous MiddleWare, and passes the promise resolved data to next process. This is a very common MiddleWare, and it just process a promise object, if the object passed in is not a promise, it will be passed to a next process immediately.

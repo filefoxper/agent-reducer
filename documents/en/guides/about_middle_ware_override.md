@@ -3,10 +3,8 @@
 There are three api functions for you to set MiddleWares.
 
 1. `createAgentReducer`, it is a basic api in `agent-reducer`, you can set MiddleWares like: `createAgentReducer( OriginAgent, MiddleWare )`.
-2. `useMiddleWare`, this api will copy an `Agent` object, and override MiddleWares of `Agent` object on the copy one. It is used like: `useMiddleWare( Agent, MiddleWare )`.
-3. `middleWare`, it can add MiddleWare directly on an `OriginAgent` method, and when the `Agent` method is called, it can uses this MiddleWare on its origin one. These MiddleWares will override MiddleWares which are added by `createAgentReducer` or `useMiddleWare`.
-
-Attention: MiddleWares added by api `middleWare` has a highest running prior level in this version, but it is not reasonable, and we will change the running prior level between `useMiddleWare` and `middleWare` at version 3.2.0. You can set `env.nextExperience` to be `true` for experience.
+2. `middleWare`, it can add MiddleWare directly on an `OriginAgent` method, and when the `Agent` method is called, it can uses this MiddleWare on its origin one. These MiddleWares will override MiddleWares which are added by `createAgentReducer`.
+3. `useMiddleWare`, this api will copy an `Agent` object, and override MiddleWares of `Agent` object on the copy one. It is used like: `useMiddleWare( Agent, MiddleWare )`. The MiddleWare additions from this api has a highest running prior level in this version. So, in the copied `Agent` object, its MiddleWare can override MiddleWares which are added by `createAgentReducer` and `middleWare`.
 
 You can check code in [middleWare.override.spec.ts](https://github.com/filefoxper/agent-reducer/blob/master/test/en/guides/middleWare.override.spec.ts).
 
@@ -85,16 +83,8 @@ describe('use different middleWare api', () => {
         expect(agent.state).toEqual({id: 0, name: 'name'});
     });
 
-    it("MiddleWare from api 'middleWare' will override MiddleWare from api 'useMiddleWare' in current version", async () => {
+    it("MiddleWare from api 'useMiddleWare' will override MiddleWare from api 'middleWare' in current version", async () => {
         const {agent} = createAgentReducer(MiddleWareOverrideModel, MiddleWares.takePromiseResolve());
-        const branch = useMiddleWare(agent, MiddleWarePresets.takePromiseResolveAssignable());
-        await branch.changeByPromiseResolve('name');
-        expect(agent.state).toEqual({name: 'name'});
-        expect(agent.state.id).toBeUndefined();
-    });
-
-    it("MiddleWare from api 'useMiddleWare' will override MiddleWare from api 'middleWare' in next version: 3.2.0", async () => {
-        const {agent} = createAgentReducer(MiddleWareOverrideModel, MiddleWares.takePromiseResolve(), {nextExperience: true});
         const branch = useMiddleWare(agent, MiddleWarePresets.takePromiseResolveAssignable());
         await branch.changeByPromiseResolve('name');
         expect(agent.state).toEqual({id: 0, name: 'name'});

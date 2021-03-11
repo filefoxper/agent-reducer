@@ -71,16 +71,8 @@ describe('use different middleWare api', () => {
         expect(agent.state).toEqual({id: 0, name: 'name'});
     });
 
-    it("MiddleWare from api 'middleWare' will override MiddleWare from api 'useMiddleWare' in current version", async () => {
+    it("MiddleWare from api 'useMiddleWare' will override MiddleWare from api 'middleWare' in current version", async () => {
         const {agent} = createAgentReducer(MiddleWareOverrideModel, MiddleWares.takePromiseResolve());
-        const branch = useMiddleWare(agent, MiddleWarePresets.takePromiseResolveAssignable());
-        await branch.changeByPromiseResolve('name');
-        expect(agent.state).toEqual({name: 'name'});
-        expect(agent.state.id).toBeUndefined();
-    });
-
-    it("MiddleWare from api 'useMiddleWare' will override MiddleWare from api 'middleWare' in next version: 3.2.0", async () => {
-        const {agent} = createAgentReducer(MiddleWareOverrideModel, MiddleWares.takePromiseResolve(), {nextExperience: true});
         const branch = useMiddleWare(agent, MiddleWarePresets.takePromiseResolveAssignable());
         await branch.changeByPromiseResolve('name');
         expect(agent.state).toEqual({id: 0, name: 'name'});

@@ -4,7 +4,7 @@ export interface OriginAgent<S = any> {
 }
 
 export interface Env {
-  updateBy?: "manual" | "auto";
+  updateBy?: 'manual' | 'auto';
   expired?: boolean;
   strict?: boolean;
   legacy?: boolean;
@@ -18,6 +18,8 @@ export interface GlobalConfig {
 
 export type Caller = (...args: any[]) => any;
 
+type SourcePropertyMapper<T>=(value:any, instance:T, runtime:Runtime<T>)=>any
+
 export type Runtime<T = any> = {
   caller: Caller;
   sourceCaller: Caller;
@@ -28,7 +30,7 @@ export type Runtime<T = any> = {
   env: Env;
   cache: { [key: string]: any };
   rollbacks:{[key in keyof T]?:T[key]};
-  mapSourceProperty:(key:keyof T,callback:(value:any,instance:T,runtime:Runtime<T>)=>any)=>Runtime<T>;
+  mapSourceProperty:(key:keyof T, caller:SourcePropertyMapper<T>)=>Runtime<T>;
   rollback:()=>Runtime<T>;
   tempCaller?: Caller;
 };

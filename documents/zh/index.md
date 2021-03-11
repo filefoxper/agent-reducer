@@ -24,6 +24,7 @@
 * [MiddleWare 的覆盖现象](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/guides/about_middle_ware_override.md)
 * [接入其他 reducer 工具](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/guides/with_other_reducer_tools.md)
 * [env 运行环境配置](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/guides/about_env.md)
+* [Agent 与 OriginAgent 的关系](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/guides/model_agent_relationship.md)
 * [不推荐使用的接口](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/guides/not_recommend.md)
 
 ## API 接口
@@ -43,4 +44,4 @@
 
 * [下一版本体验特性](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/next/index.md)
 
-如果想要知道相关的内容变更请查看[变更日志](https://github.com/filefoxper/agent-reducer/blob/master/CHANGE_LOG.md)。
+如果想要知道相关的内容变更请查看[变更日志](https://github.com/filefoxper/agent-reducer/blob/master/CHANGE_LOG_ZH.md)。

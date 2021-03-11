@@ -36,7 +36,7 @@ function entry() {
         },
         resolve: {
             plugins: [
-                new TsconfigPathsPlugin({configFile: "./tsconfig.json"})
+                new TsconfigPathsPlugin({configFile: pathBuilder.resolve('src','tsconfig.json')})
             ],
             extensions: ['.js', '.ts', '.tsx', '.json', 'txt']
         },

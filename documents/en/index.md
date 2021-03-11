@@ -23,6 +23,7 @@
 * [about runtime](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/guides/about_runtime.md)
 * [about middleWare override](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/guides/about_middle_ware_override.md)
 * [about env](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/guides/about_env.md)
+* [relationship of Agent and OriginAgent](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/guides/model_agent_relationship.md)
 * [not recommend](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/guides/not_recommend.md)
 
 ## API Reference

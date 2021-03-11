@@ -90,10 +90,9 @@ describe('保证数据为最新版本数据', () => {
     });
 
     it('在使用MiddleWarePresets.takeLatest的帮助翻页时，不可能出现最新数据被慢响应数据覆盖的情况', async () => {
-        const {agent} = createAgentReducer(TodoList, {nextExperience: true});
+        const {agent} = createAgentReducer(TodoList);
         // MiddleWarePresets.takeLatest() 已经连入了一个 MiddleWares.takePromiseResolve()
         // useMiddleWare 会创建一个 'agent' 对象的复制版，
-        // 因为我们提前使用了`env.nextExperience`，
         // useMiddleWare 添加的 MiddleWare 将会覆盖通过 decorator 在`OriginAgent`上添加的 MiddleWare
         const takeLatestAgent = useMiddleWare(agent, MiddleWarePresets.takeLatest());
 
