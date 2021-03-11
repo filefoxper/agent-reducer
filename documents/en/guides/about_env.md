@@ -29,7 +29,12 @@ export interface Env {
   // default 'false',
   // if set it to be 'true',
   // 'agent-reducer' will run with a next version features
-  nextExperience?:boolean;
+  nextExperience? :boolean;
+  // default 'true',
+  // if set it to be 'false',
+  // 'agent-reducer' will not keep state updating with its brothers,
+  // which are from the same model instance.
+  autoSyncUpdate?: boolean;
 }
 ```
 You can check out the code about how to set env, [here](https://github.com/filefoxper/agent-reducer/blob/master/test/en/guides/tryEnv.spec.ts).

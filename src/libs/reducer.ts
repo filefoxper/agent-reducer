@@ -88,6 +88,7 @@ function mergeEnv(...envs:Env[]):Env {
     expired: false,
     strict: true,
     updateBy: 'auto',
+    autoSyncUpdate: true,
   };
   return Object.assign({}, defaults, ...envs);
 }
@@ -152,8 +153,11 @@ export function createAgentReducer<
         return;
       }
       const nextState = reducer(this.getState(), action);
-      if (nextState !== entity.state) {
+      const needUpdate = nextState !== entity.state;
+      if (needUpdate) {
         entity.state = nextState;
+      }
+      if (needUpdate && env.autoSyncUpdate) {
         notify();
       }
       if (stateChanges) {
@@ -185,10 +189,14 @@ export function createAgentReducer<
       const nextState = (dispatch !== undefined
         ? state
         : storeSlot.getState()) as S;
-      if (nextState !== entity.state) {
-        entity.state = nextState;
+      if (nextState === entity.state) {
+        return undefined;
+      }
+      entity.state = nextState;
+      if (env.autoSyncUpdate) {
         notify();
       }
+      return notify;
     },
     useStoreSlot(slot: StoreSlot) {
       if (env.updateBy === 'auto') {
@@ -212,7 +220,10 @@ export function createAgentReducer<
         return result;
       };
     },
-    unsubscribe,
+    destroy() {
+      unsubscribe();
+      env.expired = true;
+    },
   };
 
   return Object.assign(reducer, transition);

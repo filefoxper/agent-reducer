@@ -24,3 +24,7 @@
 * [feature] `MiddleWare`的覆盖优先级已经变更为：
 `useMiddleWare` -> `middleWare` -> `createAgentReducer`。
 * [feature] 使用相同实例模型的`Agent`代理对象之间数据更新同步。
+
+## v3.2.1 2021-03-11
+
+* [bug] 解决 `use-agent-reducer` 同步更新数据时, react throw error: `Cannot update a component (`xxx`) while rendering a different component (`xxx`)`

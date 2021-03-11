@@ -1,6 +1,6 @@
 {
   "name": "agent-reducer",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "main": "./index.js",
   "author": "Jimmy.Harding",
   "description": "the purpose of this project is using a class to replace a reducer",

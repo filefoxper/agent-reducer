@@ -18,10 +18,10 @@ export interface ReducerPadding<
   namespace?: string;
   env: Env;
   agent: T;
-  update: (state?: S, dispatch?: Dispatch) => void;
+  update: (state?: S, dispatch?: Dispatch) => undefined|(()=>any);
   useStoreSlot: (slot: StoreSlot) => void;
   recordChanges: () => () => Array<Change<S>>;
-  unsubscribe:()=>void
+  destroy:()=>void
 }
 
 export type AgentReducer<
