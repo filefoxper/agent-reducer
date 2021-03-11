@@ -5,7 +5,6 @@ export interface OriginAgent<S = any> {
 
 export interface Env {
   updateBy?: 'manual' | 'auto';
-  autoSyncUpdate?:boolean;
   expired?: boolean;
   strict?: boolean;
   legacy?: boolean;

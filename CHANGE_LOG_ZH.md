@@ -28,3 +28,7 @@
 ## v3.2.1 2021-03-11
 
 * [bug] 解决 `use-agent-reducer` 同步更新数据时, react throw error: `Cannot update a component (`xxx`) while rendering a different component (`xxx`)`
+
+## v3.2.2 2021-03-12
+
+* [bug] 解决 `use-agent-reducer` 同步更新数据时, react throw error: `Cannot update a component (`xxx`) while rendering a different component (`xxx`)`
