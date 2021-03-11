@@ -74,7 +74,7 @@ export function createReducer<S, T extends OriginAgent<S>>(
 function subscribe<
     S,
     T extends OriginAgent<S> = OriginAgent<S>
-    >(originAgent: T&{[agentListenerKey]?:(()=>any)[]}, listener:()=>any) {
+    >(originAgent: T&{[agentListenerKey]?:((s:S)=>any)[]}, listener:(s:S)=>any) {
   const listeners = originAgent[agentListenerKey] || [];
   originAgent[agentListenerKey] = [...listeners, listener];
   return function unsubscribe() {
@@ -95,7 +95,7 @@ function mergeEnv(...envs:Env[]):Env {
 function createAgentInstance<
     S,
     T extends OriginAgent<S> = OriginAgent<S>
-    >(originAgent: T | { new (): T }):T&{[agentListenerKey]?:(()=>any)[]} {
+    >(originAgent: T | { new (): T }):T&{[agentListenerKey]?:((s:S)=>any)[]} {
   return typeof originAgent === 'function' ? createInstance(originAgent) : originAgent;
 }
 
@@ -127,19 +127,19 @@ export function createAgentReducer<
 
   let stateChanges: undefined | Array<Change<S>>;
 
-  let listener:()=>any;
+  let listener:(s:S)=>any;
 
   const entity = createAgentInstance(originAgent);
 
   const reducer = createReducer<S, T>(entity);
 
-  const notify = () => {
+  const notify = (nextState:S) => {
     const ls = entity[agentListenerKey] || [];
     ls.forEach((l) => {
       if (l === listener) {
         return;
       }
-      l();
+      l(nextState);
     });
   };
 
@@ -152,9 +152,12 @@ export function createAgentReducer<
         return;
       }
       const nextState = reducer(this.getState(), action);
-      if (nextState !== entity.state) {
+      const needUpdate = nextState !== entity.state;
+      if (needUpdate) {
         entity.state = nextState;
-        notify();
+      }
+      if (needUpdate) {
+        notify(nextState);
       }
       if (stateChanges) {
         stateChanges.push({ type: action.type, state: nextState });
@@ -162,8 +165,8 @@ export function createAgentReducer<
     },
   };
 
-  listener = () => {
-    storeSlot.dispatch({ type: DefaultActionType.DX_MUTE_STATE, args: entity.state });
+  listener = (nextState:S) => {
+    storeSlot.dispatch({ type: DefaultActionType.DX_MUTE_STATE, args: nextState });
   };
 
   const unsubscribe = subscribe(entity, listener);
@@ -179,16 +182,22 @@ export function createAgentReducer<
           'You should set env.updateBy to be `manual` before updating state and dispatch from outside.',
         );
       }
-      if (dispatch !== undefined) {
-        storeSlot.dispatch = dispatch;
-      }
       const nextState = (dispatch !== undefined
         ? state
         : storeSlot.getState()) as S;
-      if (nextState !== entity.state) {
-        entity.state = nextState;
-        notify();
+      if (dispatch !== undefined) {
+        storeSlot.dispatch = (action:Action) => {
+          dispatch(action);
+          if (action.type === DefaultActionType.DX_MUTE_STATE) {
+            return;
+          }
+          notify(action.args);
+        };
       }
+      if (nextState === entity.state) {
+        return;
+      }
+      entity.state = nextState;
     },
     useStoreSlot(slot: StoreSlot) {
       if (env.updateBy === 'auto') {
@@ -212,7 +221,10 @@ export function createAgentReducer<
         return result;
       };
     },
-    unsubscribe,
+    destroy() {
+      unsubscribe();
+      env.expired = true;
+    },
   };
 
   return Object.assign(reducer, transition);

@@ -21,7 +21,7 @@ export interface ReducerPadding<
   update: (state?: S, dispatch?: Dispatch) => void;
   useStoreSlot: (slot: StoreSlot) => void;
   recordChanges: () => () => Array<Change<S>>;
-  unsubscribe:()=>void
+  destroy:()=>void
 }
 
 export type AgentReducer<
