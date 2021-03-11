@@ -12,6 +12,7 @@
 2. `method` is a function for producing a `next state`.
    
 for example:
+
 ```typescript
 import {OriginAgent} from 'agent-reducer';
 
@@ -84,6 +85,7 @@ const agent=reducer.agent;
 6. `recordStateChanges`: this function is designed for unit test. It records state change histories when you used it in your unit test.
 
 using AgentReducer properties example:
+
 ```typescript
 import {OriginAgent,createAgentReducer} from 'agent-reducer';
 
@@ -158,6 +160,7 @@ It is a little different with redux MiddleWare, the MiddleWare ecosystem in `age
 MiddleWares are functions, they can be chained together. When MiddleWare accept a data from its previous one, it process this data, and pass a processed result to its next one.
 
  MiddleWare structure looks like:
+ 
 ```typescript
 const MiddleWare = <T>(runtime: Runtime<T>):NextProcess | void =>{
   // this function is called before current method calls.
@@ -190,6 +193,7 @@ const MiddleWare = <T>(runtime: Runtime<T>):NextProcess | void =>{
 
 };
 ```
+
 If you want to know how to chain `MiddleWares` together, and how the chained `MiddleWare` work with system, [see the guides about middle ware](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/guides/about_middle_ware.md).
 
 [next to installation](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/introduction/installation.md)

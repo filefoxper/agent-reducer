@@ -1,33 +1,34 @@
-import { GlobalConfig } from "./global.type";
-import { getScope } from "./util";
+import { GlobalConfig } from './global.type';
+import { getScope } from './util';
 
-export const agentDependenciesKey = "@@agent-reducer-dependencies";
+export const agentDependenciesKey = '@@agent-reducer-dependencies';
 
-export const agentIdentifyKey = "@@agent-reducer-identify";
+export const agentIdentifyKey = '@@agent-reducer-identify';
 
-export const agentNamespaceKey = "@@agent-reducer-namespace";
+export const agentListenerKey = '@@agent-reducer-listeners';
 
-export const agentGlobalScopeKey = "@@agent-reducer-global-scope";
+export const agentNamespaceKey = '@@agent-reducer-namespace';
 
-export const getAgentNamespaceKey = () => {
-  return agentNamespaceKey;
-};
+export const agentGlobalScopeKey = '@@agent-reducer-global-scope';
+
+export const getAgentNamespaceKey = ():string => agentNamespaceKey;
 
 export enum DefaultActionType {
-  DX_INITIAL_STATE = "@@AGENT_REDUCER_INITIAL_STATE",
+  DX_INITIAL_STATE = '@@AGENT_REDUCER_INITIAL_STATE',
+  DX_MUTE_STATE = '@@AGENT_MUTE_STATE',
 }
 
-export function isAgent(data: any) {
+export function isAgent<T extends {[key:string]:any}>(data: T):boolean {
   const dataType = typeof data;
-  return dataType === "object" && data[agentIdentifyKey] === true;
+  return dataType === 'object' && data[agentIdentifyKey] === true;
 }
 
-export const globalConfig = (config?: GlobalConfig) => {
-  let scope: any = getScope();
-  if(!scope&&!config){
+export const globalConfig = (config?: GlobalConfig):GlobalConfig => {
+  const scope: any = getScope();
+  if (!scope && !config) {
     return {};
   }
-  if(!scope&&config){
+  if (!scope && config) {
     throw new Error('Cannot find "window","self" or "global"');
   }
   if (config !== undefined) {
@@ -37,13 +38,13 @@ export const globalConfig = (config?: GlobalConfig) => {
       configurable: true,
       enumerable: true,
     });
-  } else {
-    return scope[agentGlobalScopeKey];
+    return config;
   }
+  return scope[agentGlobalScopeKey];
 };
 
-export const clearGlobalConfig = () => {
-  let scope: any = getScope();
+export const clearGlobalConfig = ():void => {
+  const scope: any = getScope();
   Object.defineProperty(scope, agentGlobalScopeKey, {
     value: undefined,
     writable: true,

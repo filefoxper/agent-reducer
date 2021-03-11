@@ -9,13 +9,11 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "baseUrl": ".",
-    "strict": true,
-    "paths": {
-      "@/*": ["src/*"],
-      "@test/*": ["test/*"]
-    }
+    "outDir": "../",
+    "strict": true
   },
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "test"
   ]
 }

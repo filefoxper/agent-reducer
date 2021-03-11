@@ -3,12 +3,10 @@
 设置`agent-reducer`的 MiddleWare 有三种接口。
 
 1. `createAgentReducer`， 这是`agent-reducer`的基础接口, 你可以通过 `createAgentReducer( OriginAgent, MiddleWare )`这样的方式来设置 MiddleWare。
+2. `middleWare`, 允许直接在模型 `OriginAgent` 方法上预置 MiddleWare，当`Agent`相应方法被调用时，预置的 MiddleWare 就起作用了，通过 middleWare 接口加入的方法级 MiddleWare 覆盖来自 API createAgentReducer 的 MiddleWare。
+3. `useMiddleWare`, 当前接口会复制一个`Agent`对象, 通过当前接口设置的 MiddleWare 在`Agent`对象中会覆盖通过 API createAgentReducer 和 middleWare 加入的 MiddleWare。 用法如： `useMiddleWare( Agent, MiddleWare )`。
    
-2. `useMiddleWare`, 当前接口会复制一个`Agent`对象, 通过当前接口设置的 MiddleWare 会覆盖来自 API createAgentReducer 的 MiddleWare. 用法如： `useMiddleWare( Agent, MiddleWare )`。
-   
-3. `middleWare`, 允许直接在模型 `OriginAgent` 方法上预置 MiddleWare，当`Agent`相应方法被调用时，预置的 MiddleWare 就起作用了，通过 middleWare 接口加入的方法级 MiddleWare 会对前两种接口加入的 MiddleWare 产生覆盖现象。
 
-注意：通过 API `middleWare` 添加的方法级 MiddleWare 的覆盖优先级将在`agent-reducer@3.2.0`版本起调低，届时，API `useMiddleWare`添加的 MiddleWare 将会覆盖通过 API `middleWare` 添加的方法级 MiddleWare。通过设置`env.nextExperience`为 true ，可预先体验这一特性。
 
 单元测试源码位置：[middleWare.override.spec.ts](https://github.com/filefoxper/agent-reducer/blob/master/test/zh/guides/middleWare.override.spec.ts).
 
@@ -86,16 +84,8 @@ describe('使用不同的接口设置MiddleWare，体验MiddleWare覆盖现象',
         expect(agent.state).toEqual({id: 0, name: 'name'});
     });
 
-    it("当前版本，通过 api 'middleWare' 添加的 MiddleWare 会覆盖通过 api 'useMiddleWare'添加的 MiddleWare", async () => {
+    it("当前版本，通过 api 'useMiddleWare'添加的 MiddleWare 会覆盖通过 api 'middleWare' 添加的 MiddleWare", async () => {
         const {agent} = createAgentReducer(MiddleWareOverrideModel, MiddleWares.takePromiseResolve());
-        const branch = useMiddleWare(agent, MiddleWarePresets.takePromiseResolveAssignable());
-        await branch.changeByPromiseResolve('name');
-        expect(agent.state).toEqual({name: 'name'});
-        expect(agent.state.id).toBeUndefined();
-    });
-
-    it("3.2.0版本开始，通过 api 'useMiddleWare'添加的 MiddleWare 会覆盖通过 api 'middleWare' 添加的 MiddleWare", async () => {
-        const {agent} = createAgentReducer(MiddleWareOverrideModel, MiddleWares.takePromiseResolve(), {nextExperience: true});
         const branch = useMiddleWare(agent, MiddleWarePresets.takePromiseResolveAssignable());
         await branch.changeByPromiseResolve('name');
         expect(agent.state).toEqual({id: 0, name: 'name'});

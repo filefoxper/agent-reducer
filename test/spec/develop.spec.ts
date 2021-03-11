@@ -168,35 +168,44 @@ describe("自定义一个MiddleWare", () => {
       }
     }
 
-    // 注意：immer.js的produce回调函数不能异步回调，故该middleWare不能用来处理异步方法，也不能和MiddleWares.takePromiseResolve()串行使用
-    // 在未来版本中，我们会有响应的异步immer解决之道
+    // 注意：immer.js API 中的 produce function 不能作用与一个异步方法，
+    // 所以我们不能让我们的 'immutableMiddleWare' 和
+    // 'MiddleWares.takePromiseResolve'一起工作了。
     const immutableMiddleWare = (runtime: Runtime) => {
       const { target, callerName } = runtime;
-      // 判断是否是agent对象，如果不是agent对象应该报错
+      // 检查调用者是否是一个 'Agent' 对象
       if (!isAgent(target)) {
         throw new Error("immutableMiddleWare should work with an agent object");
       }
-      // 通过使用mapSourceProperty暂时设置原agent对象中key为callerName（当前调用方法属性名）的属性
-      // 回调函数入参中：caller（当然也可以取名叫value）为当前属性对应值，instance为原agent对象，runtime为当前的Runtime对象
+      // 当 'Agent' 方法被调用时，
+      // 我们可以通过 runtime.mapSourceProperty 修改模型 'OriginAgent' 方法，
+      // 来暂时性的支持 immer。
       runtime.mapSourceProperty(
-        callerName,
-        (caller: (...args: any[]) => any, instance: any, runtime: Runtime) => {
-          // 返回值为当前属性对应的新对象
-          return function (...args: any[]) {
-            const result = produce(instance.state, (draft: any) => {
-              // 再次通过mapSourceProperty将instance的state对象暂时设置为immer.js产生的draft对象
-              runtime.mapSourceProperty("state", () => draft);
-              // 调用方法，这时候方法内部的this.state将使用draft对象，所以所有修改都将累积到produce结束产生的result值中
-              return caller.apply(instance, [...args]);
-            });
-            // 在调用完成时，需通过rollback方法回滚mapSourceProperty修改的数据
-            runtime.rollback();
-            return result;
-          };
-        }
+          callerName,
+          // caller 为需要被修改的源值，
+          // instance 为模型对象，
+          // runtime 为方法运行参数
+          (caller: (...args: any[]) => any, instance: any, runtime: Runtime) => {
+            // 返回一个新 function 来代替模型 'OriginAgent' 的方法
+            return function (...args: any[]) {
+              // 使用 immer 的 produce
+              const result = produce(instance.state, (draft: any) => {
+                // 在 produce 回调开始时，
+                // 修改模型 'OriginAgent' 的 state 为 produce 生成的 draft 对象
+                runtime.mapSourceProperty("state", () => draft);
+                // 调用源方法，这时源方法中的 this.state 已经被替换成了 draft
+                return caller.apply(instance, [...args]);
+              });
+              // 方法运行结束时，需要通过 runtime.rollback 回滚被修改的模型数据，
+              // 当前方法及state
+              runtime.rollback();
+              // 最后把结果返回出去就行了
+              return result;
+            };
+          }
       );
+      // 在完成了对源方法的零时替换后，就开始运行零时替换方法了。
       return (next: StateProcess) => {
-        //数据运行完毕，还原场景
         return (result: any) => {
           return next(result);
         };

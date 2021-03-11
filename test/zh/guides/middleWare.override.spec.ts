@@ -70,16 +70,8 @@ describe('使用不同的接口设置MiddleWare，体验MiddleWare覆盖现象',
         expect(agent.state).toEqual({id: 0, name: 'name'});
     });
 
-    it("当前版本，通过 api 'middleWare' 添加的 MiddleWare 会覆盖通过 api 'useMiddleWare'添加的 MiddleWare", async () => {
+    it("当前版本开始，通过 api 'useMiddleWare'添加的 MiddleWare 会覆盖通过 api 'middleWare' 添加的 MiddleWare", async () => {
         const {agent} = createAgentReducer(MiddleWareOverrideModel, MiddleWares.takePromiseResolve());
-        const branch = useMiddleWare(agent, MiddleWarePresets.takePromiseResolveAssignable());
-        await branch.changeByPromiseResolve('name');
-        expect(agent.state).toEqual({name: 'name'});
-        expect(agent.state.id).toBeUndefined();
-    });
-
-    it("3.2.0版本开始，通过 api 'useMiddleWare'添加的 MiddleWare 会覆盖通过 api 'middleWare' 添加的 MiddleWare", async () => {
-        const {agent} = createAgentReducer(MiddleWareOverrideModel, MiddleWares.takePromiseResolve(), {nextExperience: true});
         const branch = useMiddleWare(agent, MiddleWarePresets.takePromiseResolveAssignable());
         await branch.changeByPromiseResolve('name');
         expect(agent.state).toEqual({id: 0, name: 'name'});

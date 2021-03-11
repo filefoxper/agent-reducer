@@ -1,25 +1,25 @@
-/** main **/
+/** main * */
 
-export { createAgentReducer } from "./libs/reducer";
+export { createAgentReducer } from './libs/reducer';
 
-export { useMiddleWare, middleWare } from "./libs/useMiddleWare";
+export { useMiddleWare, middleWare } from './libs/useMiddleWare';
 
-export { useMiddleActions, MiddleActions } from "./libs/middleActions";
+export { useMiddleActions, MiddleActions } from './libs/middleActions';
 
-/** middleWares **/
+/** middleWares * */
 
-export { defaultMiddleWare, applyMiddleWares } from "./libs/applies";
+export { defaultMiddleWare, applyMiddleWares } from './libs/applies';
 
 export {
   LifecycleMiddleWares,
   toLifecycleMiddleWare,
-} from "./libs/lifecycleMiddleWares";
+} from './libs/lifecycleMiddleWares';
 
-export { MiddleWares } from "./libs/middleWares";
+export { default as MiddleWares } from './libs/middleWares';
 
-export { MiddleWarePresets } from "./libs/middleWarePresets";
+export { default as MiddleWarePresets } from './libs/middleWarePresets';
 
-/** global set and defines **/
+/** global set and defines * */
 
 export {
   globalConfig,
@@ -27,13 +27,13 @@ export {
   DefaultActionType,
   getAgentNamespaceKey,
   isAgent,
-} from "./libs/defines";
+} from './libs/defines';
 
-/** legacy api **/
+/** legacy api * */
 
-export { branch, BranchResolvers } from "./libs/branch";
+export { branch, BranchResolvers } from './libs/branch';
 
-/** types **/
+/** types * */
 
 export {
   OriginAgent,
@@ -44,6 +44,6 @@ export {
   StateProcess,
   LifecycleRuntime,
   LifecycleEnv,
-} from "./libs/global.type";
+} from './libs/global.type';
 
-export { Reducer, Action, AgentReducer } from "./libs/reducer.type";
+export { Reducer, Action, AgentReducer } from './libs/reducer.type';

@@ -80,7 +80,7 @@ The state processing MiddleWares can not work with `MiddleActions`, but method c
 
 2 . useMiddleActions(middleActions, ...otherParams)
 
-This function can build an `Agent` use helper. It returns a `MiddleActions` instance which is a proxy object. You can use `method control MiddleWares` on this proxy object.
+This function can build an `Agent` using helper. It returns a `MiddleActions` instance which is a proxy object. You can use `method control MiddleWares` on this proxy object.
 
 ```typescript
 type MiddleActionsInterface<T>={agent:T,[key:string]:any};

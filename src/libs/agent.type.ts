@@ -1,5 +1,7 @@
-import { OriginAgent, Env, Runtime, MiddleWare } from "./global.type";
-import { StoreSlot } from "./reducer.type";
+import {
+  OriginAgent, Env, Runtime, MiddleWare,
+} from './global.type';
+import { StoreSlot } from './reducer.type';
 
 export type AgentDependencies<S, T extends OriginAgent<S>> = {
   entry: T;

@@ -1,4 +1,4 @@
-import { agentDependenciesKey } from "./defines";
+import { agentDependenciesKey } from './defines';
 import {
   OriginAgent,
   Env,
@@ -6,23 +6,23 @@ import {
   LifecycleMiddleWare,
   LifecycleEnv,
   LifecycleRuntime,
-} from "./global.type";
-import { AgentDependencies } from "./agent.type";
+} from './global.type';
+import { AgentDependencies } from './agent.type';
 import {
   MiddleActionsInterface,
   MiddleActionDependencies,
   AsyncInvokeDependencies,
   AsyncRuntime,
-} from "./middleActions.type";
-import { createProxy } from "./util";
-import { MiddleWareAbleFunction } from "./useMiddleWare.type";
-import { generateAgent } from "./agent";
-import { applyMiddleWares, defaultMiddleWare } from "./applies";
+} from './middleActions.type';
+import { createInstance, createProxy } from './util';
+import { MiddleWareAbleFunction } from './useMiddleWare.type';
+import { generateAgent } from './agent';
+import { applyMiddleWares, defaultMiddleWare } from './applies';
 
 function rebuildMiddleActionDependencies<T extends OriginAgent<S>, S>(
   agent: T | undefined,
   source: MiddleWareAbleFunction,
-  globalMiddleWare?: MiddleWare | LifecycleMiddleWare
+  globalMiddleWare?: MiddleWare | LifecycleMiddleWare,
 ): MiddleActionDependencies<T> {
   const { middleWare: cloneMiddleWare } = source;
   const invokeDependencies: AgentDependencies<S, T> = agent
@@ -30,31 +30,25 @@ function rebuildMiddleActionDependencies<T extends OriginAgent<S>, S>(
     : undefined;
   if (!agent || !invokeDependencies) {
     return {
-      middleWare: cloneMiddleWare
-        ? cloneMiddleWare
-        : globalMiddleWare
-        ? globalMiddleWare
-        : defaultMiddleWare,
+      middleWare: cloneMiddleWare || (globalMiddleWare || defaultMiddleWare),
     };
   }
-  const { entry, store, env, middleWare } = invokeDependencies;
+  const {
+    entry, store, env, middleWare,
+  } = invokeDependencies;
 
   let branchAgent: MiddleActionDependencies<T>;
 
-  const reCloneAgentWithNewExpired = () => {
-    branchAgent = cloneAgentWithNewExpired();
-  };
-
   const cloneAgentWithNewExpired = (): MiddleActionDependencies<T> => {
-    let expired: boolean = false;
-    let cloneEnv: LifecycleEnv = {
+    let expired = false;
+    const cloneEnv: LifecycleEnv = {
       ...env,
       expire: () => {
         expired = true;
       },
       rebuild: () => {
         expired = true;
-        reCloneAgentWithNewExpired();
+        branchAgent = cloneAgentWithNewExpired();
       },
     };
     const cloneEnvProxy = createProxy(cloneEnv, {
@@ -62,23 +56,19 @@ function rebuildMiddleActionDependencies<T extends OriginAgent<S>, S>(
         return false;
       },
       get(target: Env, property: keyof Env) {
-        const source = target[property];
-        if (property === "expired") {
+        const data = target[property];
+        if (property === 'expired') {
           return env.expired || expired;
         }
-        return source;
+        return data;
       },
     });
     return {
       agent: generateAgent(entry, store, cloneEnvProxy, middleWare, {
         sourceAgent: agent,
-        type: "copy",
+        type: 'copy',
       }),
-      middleWare: cloneMiddleWare
-        ? cloneMiddleWare
-        : globalMiddleWare
-        ? globalMiddleWare
-        : defaultMiddleWare,
+      middleWare: cloneMiddleWare || (globalMiddleWare || defaultMiddleWare),
       agentEnv: cloneEnvProxy,
     };
   };
@@ -88,7 +78,7 @@ function rebuildMiddleActionDependencies<T extends OriginAgent<S>, S>(
   return createProxy(branchAgent, {
     get(
       target: MiddleActionDependencies<T>,
-      p: keyof MiddleActionDependencies<T>
+      p: keyof MiddleActionDependencies<T>,
     ): any {
       return branchAgent[p];
     },
@@ -102,7 +92,7 @@ function copyMiddleActions<
 >(middleActionsInstance: P, agent?: T) {
   return createProxy(middleActionsInstance, {
     get(target: P, p: string): any {
-      if (p === "agent" && agent) {
+      if (p === 'agent' && agent) {
         return agent;
       }
       return target[p];
@@ -119,43 +109,42 @@ export function useMiddleActions<
   ...middleWares: (T | MiddleWare | LifecycleMiddleWare)[]
 ): P {
   const [agent, ...rest] = middleWares;
-  const ag = agent && typeof agent !== "function" ? agent : undefined;
-  const mdwStart = agent && typeof agent === "function" ? [agent] : [];
+  const ag = agent && typeof agent !== 'function' ? agent : undefined;
+  const mdwStart = agent && typeof agent === 'function' ? [agent] : [];
   const mdws = [
     ...mdwStart,
     ...rest.filter(
-      (d): d is MiddleWare | LifecycleMiddleWare => typeof d === "function"
+      (d): d is MiddleWare | LifecycleMiddleWare => typeof d === 'function',
     ),
   ];
   const mdw = mdws.length ? applyMiddleWares(...mdws) : undefined;
-  if (typeof middleActions === "function" && !ag) {
+  if (typeof middleActions === 'function' && !ag) {
     throw new Error(
-      'When the first param "middleAction" is a class or a function, the second param should be an agent object.'
+      'When the first param "middleAction" is a class or a function, the second param should be an agent object.',
     );
   }
-  let invokeDependencies: AsyncInvokeDependencies = {
+  const invokeDependencies: AsyncInvokeDependencies = {
     cache: {},
     functionCache: {},
   };
-  const sideByCallerInstance: P =
-    typeof middleActions === "function"
-      ? new middleActions(ag as T)
-      : middleActions;
+  const sideByCallerInstance: P = typeof middleActions === 'function'
+    ? createInstance(middleActions, ag as T)
+    : middleActions;
 
   const agentShouldBe = sideByCallerInstance.agent;
   if (agentShouldBe && agentShouldBe[agentDependenciesKey] === undefined) {
     throw new Error(
-      "`middleActions` should create with an valid agent or no agent."
+      '`middleActions` should create with an valid agent or no agent.',
     );
   }
-  const defaultMiddleWare = <T>(data: T) => data;
+  const middleWareDefault = <T>(data: T) => data;
   const proxy = createProxy(sideByCallerInstance, {
     get(target: any, type: string): any {
       const source = target[type];
-      if (type === "agent" || typeof source !== "function") {
+      if (type === 'agent' || typeof source !== 'function') {
         return target[type];
       }
-      let { cache, functionCache } = invokeDependencies;
+      const { cache, functionCache } = invokeDependencies;
 
       cache[type] = cache[type] || {};
 
@@ -165,23 +154,23 @@ export function useMiddleActions<
       const middleWareActionDependencies = rebuildMiddleActionDependencies(
         sideByCallerInstance.agent,
         source,
-        mdw
+        mdw,
       );
       const copy = copyMiddleActions<T, P, S>(
         sideByCallerInstance,
-        middleWareActionDependencies.agent
+        middleWareActionDependencies.agent,
       );
-      const caller = function caller(...args: any[]) {
-        let runtime = cache[type];
+      const caller = function caller(...args: any[]):any {
+        const runtime = cache[type];
         if (runtime) {
           runtime.args = [...args];
         }
-        const { agent, middleWare } = middleWareActionDependencies;
+        const { agent: agr, middleWare } = middleWareActionDependencies;
         const lifecycleMiddleWare = middleWare as LifecycleMiddleWare;
         const normalMiddleWare = middleWare as MiddleWare;
-        if (lifecycleMiddleWare.lifecycle && !agent) {
+        if (lifecycleMiddleWare.lifecycle && !agr) {
           throw new Error(
-            "a middleAction without agent can not use lifecycle middleWare."
+            'a middleAction without agent can not use lifecycle middleWare.',
           );
         }
         const nextProcess = lifecycleMiddleWare.lifecycle
@@ -189,11 +178,11 @@ export function useMiddleActions<
           : normalMiddleWare(cache[type]);
         if (!nextProcess) {
           runtime.tempCaller = undefined;
-          return;
+          return undefined;
         }
         const sourceCaller = runtime.tempCaller || source;
         const nextState = sourceCaller.apply(copy, args);
-        const stateProcess = nextProcess(defaultMiddleWare);
+        const stateProcess = nextProcess(middleWareDefault);
         const result = stateProcess(nextState);
         runtime.tempCaller = undefined;
         return result;
@@ -209,7 +198,7 @@ export function useMiddleActions<
         rollbacks: {},
         mapSourceProperty(
           key: keyof P,
-          callback: (value: any, instance: P, runtime: AsyncRuntime<P>) => any
+          callback: (value: any, instance: P, runtime: AsyncRuntime<P>) => any,
         ) {
           const current = sideByCallerInstance[key];
           const newValue = callback(current, sideByCallerInstance, this);

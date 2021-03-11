@@ -1,11 +1,11 @@
-import { agentDependenciesKey } from "./defines";
-import { AgentDependencies } from "./agent.type";
+import { agentDependenciesKey } from './defines';
+import { AgentDependencies } from './agent.type';
 import {
   Env,
   OriginAgent,
   MiddleWare,
   LifecycleMiddleWare,
-} from "./global.type";
+} from './global.type';
 
 export interface MiddleActionsInterface<T extends OriginAgent<S>, S> {
   agent?: T & { [agentDependenciesKey]?: AgentDependencies<S, T> };
@@ -41,5 +41,5 @@ export type AsyncRuntime<T = any> = {
 
 export interface AsyncInvokeDependencies<T = any> {
   cache: { [key: string]: AsyncRuntime<T> };
-  functionCache: { [key: string]: Function };
+  functionCache: { [key: string]: (...args:any[])=>any };
 }

@@ -36,4 +36,4 @@ You can check out the code about how to set env, [here](https://github.com/filef
 
 Be careful in `env.strict`, you'd better not set it to be `false`. For it will make the state difference between `Agent` and your reducer tool.
 
-Go to [next section](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/guides/not_recommend.md), and know some bad design in `agent-reducer` which are not recommend to use.
+Go to [next section](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/guides/model_agent_relationship.md) to learn relationship of `Agent` and `OriginAgent`.

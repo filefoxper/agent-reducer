@@ -95,11 +95,10 @@ describe('take latest state when change page', () => {
 
     it('when call changePage method with a takeLatest middleWare, ' +
         'the newest state should not be covered by a prev action state', async () => {
-        const {agent} = createAgentReducer(TodoList,{nextExperience:true});
+        const {agent} = createAgentReducer(TodoList);
         // MiddleWarePresets.takeLatest() has chained with a MiddleWares.takePromiseResolve()
         // useMiddleWare create a copy version from 'agent',
-        // and for we have open `env.nextExperience`,
-        // its MiddleWare will cover MiddleWare from decorators in 'OriginAgent'
+        // and its MiddleWare will cover MiddleWare from decorators in 'OriginAgent'
         const takeLatestAgent = useMiddleWare(agent, MiddleWarePresets.takeLatest());
 
         const handleSubmit = () => takeLatestAgent.submit({});

@@ -2,6 +2,16 @@
 
 MiddleWares 是一个用于存储多个常用 MiddleWare 的 class 集合。
 
+## MiddleWares.takeNone()
+
+这个 MiddleWare 可以拦截所有的 state 变化。 
+
+```typescript
+class MiddleWares{
+    static takeNone(): MiddleWare
+}
+```
+
 ## MiddleWares.takePromiseResolve()
 
 当前 MiddleWare 用于处理 promise 返回值，它将 promise resolve 的数据传递给下一个 MiddleWare 数据处理器。如果待处理数据并非 promise ，该 MiddleWare 会跳过处理，直接将数据透传给下一个 MiddleWare。
