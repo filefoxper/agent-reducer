@@ -207,6 +207,49 @@ const {
     takeDebounceAssignable
 } = MiddleWarePresets;
 ```
-8 . [not often usage](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/not_often_use.md): There are some apis which are not often used, if you want to know, check them [here](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/not_often_use.md).
 
-9 . [not recommend](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/not_recommend.md): There are some apis which are not recommended to use, if you want to know, check them [here](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/not_recommend.md).
+8 . [sharing](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/sharing.md) is for generating a persistent model.
+
+```typescript
+import {sharing, createAgentReducer, OriginAgent} from 'agent-reducer';
+
+class Model implements OriginAgent<any>{
+
+    state = {};
+
+    method():any{
+        return {}
+    }
+
+}
+
+const sharingModelRef1 = sharing(()=>Model);
+
+const {agent:agent1} = createAgentReducer(sharingModelRef1.current);
+const {agent:agent2} = createAgentReducer(sharingModelRef1.current);
+```
+
+9 . [weakSharing](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/weak_sharing.md) is for generating a weak persistent model.
+
+```typescript
+import {weakSharing, createAgentReducer, OriginAgent} from 'agent-reducer';
+
+class Model implements OriginAgent<any>{
+
+    state = {};
+
+    method():any{
+        return {}
+    }
+
+}
+
+const sharingModelRef1 = weakSharing(()=>Model);
+
+const {agent:agent1} = createAgentReducer(sharingModelRef1.current);
+const {agent:agent2} = createAgentReducer(sharingModelRef1.current);
+```
+
+10 . [not often usage](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/not_often_use.md): There are some apis which are not often used, if you want to know, check them [here](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/not_often_use.md).
+
+11 . [not recommend](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/not_recommend.md): There are some apis which are not recommended to use, if you want to know, check them [here](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/not_recommend.md).

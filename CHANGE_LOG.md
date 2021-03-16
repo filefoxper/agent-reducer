@@ -24,3 +24,8 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v3.2.2 2021-03-12
 
 * [bug] fix when `use-agent-reducer` update state by its brothers, react throw error: `Cannot update a component (`xxx`) while rendering a different component (`xxx`)`
+
+## v3.2.7 2021-03-16
+
+* [api] add `sharing` for generating a persistent model.
+* [api] add `weakSharing` for generating a weak persistent model.

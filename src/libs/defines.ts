@@ -7,6 +7,8 @@ export const agentIdentifyKey = '@@agent-reducer-identify';
 
 export const agentListenerKey = '@@agent-reducer-listeners';
 
+export const agentModelResetKey = '@@agent-reducer-model-reset';
+
 export const agentNamespaceKey = '@@agent-reducer-namespace';
 
 export const agentGlobalScopeKey = '@@agent-reducer-global-scope';

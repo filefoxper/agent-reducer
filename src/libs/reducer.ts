@@ -9,11 +9,12 @@ import {
   Dispatch,
 } from './reducer.type';
 import {
+  agentModelResetKey,
   agentListenerKey, agentNamespaceKey, DefaultActionType, globalConfig,
 } from './defines';
 import { defaultMiddleWare } from './applies';
 import { generateAgent } from './agent';
-import { createInstance } from './util';
+import { createInstance, createProxy } from './util';
 
 /**
  * Create a reducer function for a standard reducer system.
@@ -74,12 +75,24 @@ export function createReducer<S, T extends OriginAgent<S>>(
 function subscribe<
     S,
     T extends OriginAgent<S> = OriginAgent<S>
-    >(originAgent: T&{[agentListenerKey]?:((s:S)=>any)[]}, listener:(s:S)=>any) {
-  const listeners = originAgent[agentListenerKey] || [];
-  originAgent[agentListenerKey] = [...listeners, listener];
-  return function unsubscribe() {
+    >(
+  originAgent: T&{[agentModelResetKey]?:()=>void, [agentListenerKey]?:((s:S)=>any)[]},
+  listener:(s:S)=>any,
+) {
+  const listeners = originAgent[agentListenerKey];
+  originAgent[agentListenerKey] = [...(listeners || []), listener];
+  return function unsubscribe():void {
     const ls = originAgent[agentListenerKey] || [];
-    originAgent[agentListenerKey] = ls.filter((l) => l !== listener);
+    const currentListeners = ls.filter((l) => l !== listener);
+    originAgent[agentListenerKey] = currentListeners;
+    if (!currentListeners.length) {
+      originAgent[agentListenerKey] = undefined;
+    }
+    if (!currentListeners.length && typeof originAgent[agentModelResetKey] === 'function') {
+      const reset = originAgent[agentModelResetKey] as ()=>void;
+      originAgent[agentModelResetKey] = undefined;
+      reset();
+    }
   };
 }
 
@@ -97,6 +110,41 @@ function createAgentInstance<
     T extends OriginAgent<S> = OriginAgent<S>
     >(originAgent: T | { new (): T }):T&{[agentListenerKey]?:((s:S)=>any)[]} {
   return typeof originAgent === 'function' ? createInstance(originAgent) : originAgent;
+}
+
+export function sharing<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    >(
+  factory:()=>T|{new ():T},
+):{current:T} {
+  const Model = factory();
+  const current:T&{
+    [agentModelResetKey]?:()=>void,
+    [agentListenerKey]?:((s:S)=>any)[]
+  } = typeof Model === 'function' ? new Model() : Model;
+  return { current };
+}
+
+export function weakSharing<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    >(
+  factory:()=>T|{new ():T},
+):{current:T} {
+  const ref:{current:T|null} = { current: null };
+  const reset = () => {
+    ref.current = null;
+    const Model = factory();
+    const nextModel:T&{
+      [agentModelResetKey]?:()=>void,
+      [agentListenerKey]?:((s:S)=>any)[]
+    } = typeof Model === 'function' ? new Model() : Model;
+    nextModel[agentModelResetKey] = reset;
+    ref.current = nextModel;
+  };
+  reset();
+  return ref as {current:T};
 }
 
 export function createAgentReducer<

@@ -79,6 +79,7 @@ const agent=reducer.agent;
 4. `namespace`: 提供给类似`redux`这类需要名字空间的reducer工具使用。
 5. `env`: `agent`运行环境参数，它包含了属性 `strict`,`expired`... ， 这些属性可用于控制`agent`的运行方式，影响其运行结果。
 6. `recordStateChanges`: 该方法目前只允许用于单元测试，通过使用该方法，可以记录`agent`的state变更情况。
+7. `destroy`: 该方法用于销毁一个 `Agent` 对象。
 
 例子:
 ```typescript
@@ -184,5 +185,45 @@ const MiddleWare = <T>(runtime: Runtime<T>):NextProcess | void =>{
 };
 ```
 如果你希望了解如何串连`MiddleWares`，或是串行好的`MiddleWare`是如何工作的，[请参考引导章节中关于MiddleWare的说明](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/guides/about_middle_ware.md)。
+
+## 模型共享
+
+模型共享是 `agent-reducer@3.2.0` 新加入的特性。该特性声明为所有建立在同一`对象模型`上的 `Agent` 代理共享 state 数据更新。
+
+也就是说，不同组件中的`Agent`只要使用了同一个`对象化的模型`，那么它们的数据更改与相关的组件渲染就是同步的。这与 redux 的 subscribe 行为非常类似。
+
+该特性与 redux 表现得非常类似，需要注意的是，如果使用的是普通对象模型，或者通过 API `sharing` 产生的模型，那模型将是持久存在的，它并不会随着 `Agent` 代理被一并销毁；如果你需要的是一份弱持久化的模型，可通过另一个 API `weakSharing` 来生成，当弱持久化模型的所有 `Agent` 代理全被销毁时，整个模型将被重置。
+
+#### sharing(factory)
+```typescript
+function sharing<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    >(
+  factory:()=>T|{new ():T},
+):{current:T}
+```
+
+* factory - 生成共享模型的工厂方法，通过该方法返回一个被共享的模型（class 或 object）
+  
+该方法返回一个持久化共享模型包装，从返回值的 `current` 属性中可取出模型。
+
+#### weakSharing(factory)
+
+```typescript
+function weakSharing<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    >(
+  factory:()=>T|{new ():T},
+):{current:T}
+```
+
+* factory - 生成共享模型的工厂方法，通过该方法返回一个被共享的模型（class 或 object）
+  
+该方法返回一个弱持久化共享模型包装，从返回值的 `current` 属性中可取出模型，当模型生成的 `Agent` 代理全被销毁时，模型会通过传入的  factory 工厂方法进行模型重置。
+
+[模型共享单元测试](https://github.com/filefoxper/agent-reducer/blob/master/test/zh/spec/modelSharing.spec.ts)源码
+
 
 [下一节，安装](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/introduction/installation.md)

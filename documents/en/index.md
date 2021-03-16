@@ -36,6 +36,8 @@
 * [MiddleWares](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/middle_wares.md)
 * [LifecycleMiddleWares](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/lifecycle_middle_wares.md)
 * [MiddleWarePresets](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/middle_ware_presets.md)
+* [sharing](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/sharing.md)
+* [weakSharing](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/weak_sharing.md)
 * [not often usage](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/not_often_use.md)
 * [not recommend](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/api/not_recommend.md)
 

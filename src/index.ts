@@ -1,6 +1,6 @@
 /** main * */
 
-export { createAgentReducer } from './libs/reducer';
+export { createAgentReducer, sharing, weakSharing } from './libs/reducer';
 
 export { useMiddleWare, middleWare } from './libs/useMiddleWare';
 
