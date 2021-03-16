@@ -209,6 +209,49 @@ const {
     takeDebounceAssignable
 } = MiddleWarePresets;
 ```
-8 . [不常用 API](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/api/not_often_use.md): 有些API可能一辈子也用不到，但我们依然列出了它们以供不时之需。
 
-9 . [不推荐使用的 API](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/api/not_recommend.md): 有些设计不理想API，我们并不推荐使用，但我们依然列出了它们。
+8 . [sharing](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/api/sharing.md) 用于创建一个持久化共享模型。
+
+```typescript
+import {sharing, createAgentReducer, OriginAgent} from 'agent-reducer';
+
+class Model implements OriginAgent<any>{
+
+    state = {};
+
+    method():any{
+        return {}
+    }
+
+}
+
+const sharingModelRef1 = sharing(()=>Model);
+
+const {agent:agent1} = createAgentReducer(sharingModelRef1.current);
+const {agent:agent2} = createAgentReducer(sharingModelRef1.current);
+```
+
+9 . [weakSharing](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/api/weak_sharing.md) 用于创建一个弱持久化共享模型。
+
+```typescript
+import {weakSharing, createAgentReducer, OriginAgent} from 'agent-reducer';
+
+class Model implements OriginAgent<any>{
+
+    state = {};
+
+    method():any{
+        return {}
+    }
+
+}
+
+const sharingModelRef1 = weakSharing(()=>Model);
+
+const {agent:agent1} = createAgentReducer(sharingModelRef1.current);
+const {agent:agent2} = createAgentReducer(sharingModelRef1.current);
+```
+
+10 . [不常用 API](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/api/not_often_use.md): 有些API可能一辈子也用不到，但我们依然列出了它们以供不时之需。
+
+11 . [不推荐使用的 API](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/api/not_recommend.md): 有些设计不理想API，我们并不推荐使用，但我们依然列出了它们。

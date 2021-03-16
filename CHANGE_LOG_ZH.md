@@ -32,3 +32,8 @@
 ## v3.2.2 2021-03-12
 
 * [bug] 解决 `use-agent-reducer` 同步更新数据时, react throw error: `Cannot update a component (`xxx`) while rendering a different component (`xxx`)`
+
+## v3.2.7 2021-03-16
+
+* [api] 新增接口 `sharing` 用于生成持久化模型.
+* [api] 新增接口 `weakSharing` 用于生成弱持久化模型

@@ -2,11 +2,11 @@
 
 ## Overview
 
-`agent-reducer` is a reducer transforming tool. It turns model ([OriginAgent](#OriginAgent)) to a reducer function ([AgentReducer](#AgentReducer)), and generates a model proxy object (`Agent`). When you call a method from `Agent` directly, its result (method returns) will be passed into `MiddleWare` system for reproducing, after that, the final result will be `dispatched` to the reducer function which is transfromed from [OriginAgent](#OriginAgent).
+`agent-reducer` is a reducer transforming tool. It transforms a model ([OriginAgent](#OriginAgent)) into a reducer function ([AgentReducer](#AgentReducer)), and generates a proxy object (`Agent`) of this model. Everytime, after a method of `Agent` is called, `Agent` changes its state to be what the method returns.
 
 ## OriginAgent
 
-`OriginAgent` is an object or a class which has a `state` property for storing the data you want to persist. And you can maintian `methods` in it, for producing a `next state`. So, consider it as a data-flow model.
+`OriginAgent` is an object or a class which has a `state` property for storing the data you want to persist. And you can maintian `methods` in it, for producing a `next state`. So, consider it as a data processing model.
 
 1. Property `state` stores the data you want to persist, it can be any type. When you want to use it, please ensure it is immutable.
 2. `method` is a function for producing a `next state`.
@@ -21,17 +21,17 @@ class CountAgent implements OriginAgent<number> {
     // OriginAgent should has a state for storing what you want persist
     state = 0;
 
-    // you can use arrow function to generate the next state candidate
+    // you can use arrow function to generate the next state
     stepUp = (): number => this.state + 1;
 
-    // you can use a method function to generate the next state candidate
+    // you can use a method function to generate the next state
     stepDown(): number {
       // use this.state to generate next state
       return this.state - 1;
     }
 
     step(isUp: boolean): number {
-      // use other functions here to generate a next state candidate,
+      // use other functions here to generate a next state,
       // when the method in 'agent' is called,
       // only the final result will be dispatched into 'reducer',
       // the inside methods 'stepUp' ,'stepDown' only provides data.
@@ -83,6 +83,7 @@ const agent=reducer.agent;
 4. `namespace`: it is designed for the reducer tools like `redux` which may need it.
 5. `env`: it is the running environment data for `agent`. It contains properties like `strict`,`expired`... , these properties can affect `agent` running features, and they will be introduced in [guide](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/guides/about_env.md).
 6. `recordStateChanges`: this function is designed for unit test. It records state change histories when you used it in your unit test.
+7. `destroy`: this function is used for destroy an `Agent` object.
 
 using AgentReducer properties example:
 
@@ -195,5 +196,44 @@ const MiddleWare = <T>(runtime: Runtime<T>):NextProcess | void =>{
 ```
 
 If you want to know how to chain `MiddleWares` together, and how the chained `MiddleWare` work with system, [see the guides about middle ware](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/guides/about_middle_ware.md).
+
+## model sharing
+
+Model sharing is a new feature from `agent-reducer@3.2.0`. It declares every `Agent` bases on a same model (`OriginAgent`) object shares state updating with each other. 
+
+That means we can create `Agents` base on a same model object in different react components, and they can update state synchronously. It is similar with the subscribe system in redux.
+
+This feature is similar with redux, and you should know if you are using a normal object model, or using one generated from API `sharing` , the model is persistent。If you need a weak persistent model, try another API `weakSharing`. A weak persistent model is often reset when its `Agents` are all destroyed.
+
+#### sharing
+```typescript
+function sharing<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    >(
+  factory:()=>T|{new ():T},
+):{current:T}
+```
+
+* factory - a factory callback function for generating a model（class or object）
+  
+It returns a wrap object which contains a persistent model at property `current`.
+
+#### weakSharing
+
+```typescript
+function weakSharing<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    >(
+  factory:()=>T|{new ():T},
+):{current:T}
+```
+
+* factory - a factory callback function for generating a model（class or object）
+  
+It returns a wrap object which contains a weak persistent model at property `current`. When `Agents` from this model are all destroyed, the factory callback generates a new one.
+
+[model sharing unit test](https://github.com/filefoxper/agent-reducer/blob/master/test/zh/spec/modelSharing.spec.ts) source code.
 
 [next to installation](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/introduction/installation.md)
