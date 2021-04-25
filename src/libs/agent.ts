@@ -225,7 +225,7 @@ export function copyWithMiddleWare<S, T extends OriginAgent<S>>(
   }
 
   const {
-    entry, store, env, middleWare,
+    entry, store, env,
   } = invokeDependencies;
 
   const cloneAgentWithNewExpired = () => {

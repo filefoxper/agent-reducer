@@ -16,8 +16,8 @@ function getDescriptors(
   handler: ProxyHandler<any>,
 ) {
   const owns = Object.getOwnPropertyDescriptors(ownOrPrototype);
-  const it = Object.entries(owns);
-  const newOwns: Array<[string, PropertyDescriptor]> = it.map(([key]) => {
+  const it = Object.keys(owns);
+  const newOwns: Array<[string, PropertyDescriptor]> = it.map((key) => {
     const newDesc: PropertyDescriptor = {
       get: (): any => {
         if (!handler.get) {
@@ -87,14 +87,6 @@ export function createInstance<T extends Record<string, unknown>>(
   ...args:any[]
 ):T {
   return new Clazz(...args);
-}
-
-export function copyObject<T extends Record<string, any>>(object:T):T {
-  return Object.create(Object.getPrototypeOf(object), Object.getOwnPropertyDescriptors(object));
-}
-
-export function assignWith<T extends Record<string, any>>(object:T, ...args:Array<Partial<T>>):T {
-  return Object.assign(copyObject(object), ...args);
 }
 
 export function noop():void {

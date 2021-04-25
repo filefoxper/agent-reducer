@@ -38,6 +38,7 @@ module.exports = {
         "no-param-reassign": "off",
         "no-use-before-define": ["error", { "functions": false, "classes": true }],
         "@typescript-eslint/no-explicit-any":"off",
-        "@typescript-eslint/no-unused-vars": ["off"]
+        "@typescript-eslint/no-unused-vars": ["off"],
+        "max-classes-per-file":['off']
     }
 };

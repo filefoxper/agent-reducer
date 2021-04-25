@@ -1,5 +1,7 @@
 const webpack = require('webpack');
 
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+
 const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
@@ -10,7 +12,7 @@ const entryPath = pathBuilder.resolve('src', 'index.ts');
 
 const targetPath = pathBuilder.resolve('dist');
 
-function entry() {
+function entry(env) {
     return {
         mode: 'production',
         devtool: false,
@@ -36,7 +38,7 @@ function entry() {
         },
         resolve: {
             plugins: [
-                new TsconfigPathsPlugin({configFile: pathBuilder.resolve('src','tsconfig.json')})
+                new TsconfigPathsPlugin({configFile: pathBuilder.resolve('src', 'tsconfig.json')})
             ],
             extensions: ['.js', '.ts', '.tsx', '.json', 'txt']
         },
@@ -51,8 +53,7 @@ function entry() {
                             options: {
                                 cacheDirectory: true
                             }
-                        },
-                        "ts-loader"
+                        }
                     ]
                 }
             ]
@@ -63,10 +64,10 @@ function entry() {
                     'NODE_ENV': JSON.stringify('production')
                 }
             })
-        ]
+        ].concat(env.analyze ? new BundleAnalyzerPlugin() : [])
     }
 }
 
 module.exports = function (env) {
-    return entry();
+    return entry(env);
 };

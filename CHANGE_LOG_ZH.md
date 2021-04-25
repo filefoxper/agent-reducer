@@ -37,3 +37,7 @@
 
 * [api] 新增接口 `sharing` 用于生成持久化模型.
 * [api] 新增接口 `weakSharing` 用于生成弱持久化模型
+
+## v3.3.0 2021-04-25
+
+* [compile] 编译新增目录 `es`，直接使用`import {...} from 'agent-reducer/es'` 对减包由帮助，[详情清见](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/introduction/installation.md)。

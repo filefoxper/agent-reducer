@@ -29,3 +29,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 
 * [api] add `sharing` for generating a persistent model.
 * [api] add `weakSharing` for generating a weak persistent model.
+
+## v3.3.0 2021-04-25
+
+* [compile] add import usage like `import {...} from 'agent-reducer\es'`. And this can decrease `agent-reducer` package size. [See detail](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/introduction/installation.md).

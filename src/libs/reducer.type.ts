@@ -1,8 +1,5 @@
 import { Env, OriginAgent } from './global.type';
 
-// out lib interface
-type Listener=()=>any
-
 export interface StoreSlot<S = any> {
   dispatch: Dispatch,
   getState(): S,
@@ -24,17 +21,16 @@ export interface ReducerPadding<
   destroy:()=>void
 }
 
-export type AgentReducer<
-  S = any,
-  A = any,
-  T extends OriginAgent<S> = any
-> = Reducer<S, A> & ReducerPadding<S, T>;
-
 // inner interface
 export declare type Action = {
   type: string;
   args?: any;
 };
+
+export type AgentReducer<
+    S = any,
+    T extends OriginAgent<S> = any
+    > = Reducer<S, Action> & ReducerPadding<S, T>;
 
 export type Dispatch = (action: Action) => any;
 
