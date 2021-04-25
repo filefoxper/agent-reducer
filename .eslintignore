@@ -2,5 +2,7 @@
 test/
 jest.config.js
 babel.config.js
+babel.es.config.js
 index.js
 webpack.config.js
+webpack.es.config.js

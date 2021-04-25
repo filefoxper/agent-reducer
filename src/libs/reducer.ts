@@ -154,7 +154,7 @@ export function createAgentReducer<
   originAgent: T | { new (): T },
   middleWareOrEnv?: (MiddleWare & { lifecycle?: boolean }) | Env,
   e?: Env,
-): AgentReducer<S, Action, T> {
+): AgentReducer<S, T> {
   const config = globalConfig() || {};
 
   const settingEnv = typeof middleWareOrEnv !== 'function'

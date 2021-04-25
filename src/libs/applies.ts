@@ -5,7 +5,7 @@ import {
   LifecycleMiddleWare,
   LifecycleRuntime,
 } from './global.type';
-import { assignWith, createProxy, isPromise } from './util';
+import { createProxy, isPromise } from './util';
 
 export function composeCallArray(calls: ((p: any) => any)[]):(p:any)=>any {
   const callList = [...calls].reverse();

@@ -18,7 +18,7 @@ export interface GlobalConfig {
 
 export type Caller = (...args: any[]) => any;
 
-type SourcePropertyMapper<T>=(value:any, instance:T, runtime:Runtime<T>)=>any
+type SourcePropertyMapper<T> = (value:any, instance:T, runtime:Runtime<T>)=>any
 
 export type Runtime<T = any> = {
   caller: Caller;
