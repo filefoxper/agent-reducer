@@ -67,14 +67,14 @@ export const createProxy = <T extends Record<string, any>>(
   return new Proxy(target, handler);
 };
 
-export function isPromise(data: any): data is Promise<any> {
+export function isPromise(data: unknown): data is Promise<any> {
   if (!data) {
     return false;
   }
   const dataType = typeof data;
   return (
     (dataType === 'object' || dataType === 'function')
-    && typeof data.then === 'function'
+    && typeof (data as {then:(d:unknown)=>unknown}).then === 'function'
   );
 }
 

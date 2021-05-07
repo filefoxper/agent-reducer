@@ -32,4 +32,8 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 
 ## v3.3.0 2021-04-25
 
-* [compile] add import usage like `import {...} from 'agent-reducer\es'`. And this can decrease `agent-reducer` package size. [See detail](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/introduction/installation.md).
+* [compile] add import usage like `import {...} from 'agent-reducer\es'`. And this can decrease `agent-reducer` package size. [See detail](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/introduction/installation.md) .
+
+## v3.3.1 2021-05-07
+
+* [compile] make es package less.
