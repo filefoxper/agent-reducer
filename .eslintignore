@@ -1,5 +1,8 @@
 .eslintrc.js
 test/
+es/
+dist/
+coverage/
 jest.config.js
 babel.config.js
 babel.es.config.js

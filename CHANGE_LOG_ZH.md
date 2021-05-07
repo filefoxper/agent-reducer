@@ -40,4 +40,8 @@
 
 ## v3.3.0 2021-04-25
 
-* [compile] 编译新增目录 `es`，直接使用`import {...} from 'agent-reducer/es'` 对减包由帮助，[详情清见](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/introduction/installation.md)。
+* [compile] 编译新增目录 `es`，直接使用`import {...} from 'agent-reducer/es'` 对减包由帮助，[详情清见](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/introduction/installation.md) 。
+
+## v3.3.1 2021-05-07
+
+* [compile] 进一步减小 `es` 目录内容。
