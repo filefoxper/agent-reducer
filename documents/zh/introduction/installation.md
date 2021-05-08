@@ -59,6 +59,37 @@ module.exports = {
 
 ```javascript
 {
+    module: {
+            rules: [
+                // 你的代码
+                {
+                    test: /\.js$|\.ts$|\.tsx$/,
+                    exclude: /(node_modules|bower_components)/,
+                    use: [
+                        {
+                            loader: 'babel-loader',
+                            options: {
+                                cacheDirectory: true
+                            }
+                        }
+                    ]
+                },
+                // agent-reducer/es的代码
+                {
+                    test: /\.js$|\.ts$|\.tsx$/,
+                    include: /(node_modules\/agent-reducer\/es)/,
+                    use: [
+                        {
+                            loader: 'babel-loader',
+                            options: {
+                                cacheDirectory: true
+                            }
+                        }
+                    ]
+                },
+                ......
+            ]
+    },
     ...,
     resolve: {
         alias:{

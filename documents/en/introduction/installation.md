@@ -49,6 +49,37 @@ For example, you can use webpack.config.js like:
 
 ```javascript
 {
+    module: {
+            rules: [
+                // your code
+                {
+                    test: /\.js$|\.ts$|\.tsx$/,
+                    exclude: /(node_modules|bower_components)/,
+                    use: [
+                        {
+                            loader: 'babel-loader',
+                            options: {
+                                cacheDirectory: true
+                            }
+                        }
+                    ]
+                },
+                // agent-reducer/es code
+                {
+                    test: /\.js$|\.ts$|\.tsx$/,
+                    include: /(node_modules\/agent-reducer\/es)/,
+                    use: [
+                        {
+                            loader: 'babel-loader',
+                            options: {
+                                cacheDirectory: true
+                            }
+                        }
+                    ]
+                },
+                ......
+            ]
+    },
     ...,
     resolve: {
         alias:{
