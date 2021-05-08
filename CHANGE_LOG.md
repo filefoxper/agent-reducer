@@ -37,3 +37,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v3.3.1 2021-05-07
 
 * [compile] make es package less.
+
+## v3.3.2 2021-05-08
+
+* [bug] fix the problem when using model sharing, an expired reducer still can modify state.

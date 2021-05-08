@@ -214,6 +214,9 @@ export function createAgentReducer<
   };
 
   listener = (nextState:S) => {
+    if (env.expired) {
+      return;
+    }
     storeSlot.dispatch({ type: DefaultActionType.DX_MUTE_STATE, args: nextState });
   };
 
