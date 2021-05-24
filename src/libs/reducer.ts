@@ -204,11 +204,14 @@ export function createAgentReducer<
       if (needUpdate) {
         entity.state = nextState;
       }
-      if (needUpdate) {
-        notify(nextState);
-      }
       if (stateChanges) {
         stateChanges.push({ type: action.type, state: nextState });
+      }
+      if (action.type === DefaultActionType.DX_MUTE_STATE) {
+        return;
+      }
+      if (needUpdate) {
+        notify(nextState);
       }
     },
   };
