@@ -41,3 +41,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v3.3.2 2021-05-08
 
 * [bug] fix the problem when using model sharing, an expired reducer still can modify state.
+
+## v3.3.3 2021-05-24
+
+* [bug] fix the problem about notify always runs in updateBy:'auto' env.
