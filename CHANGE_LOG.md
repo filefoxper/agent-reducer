@@ -45,3 +45,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v3.3.3 2021-05-24
 
 * [bug] fix the problem about notify always runs in updateBy:'auto' env.
+
+## v3.4.0 2021-05-31
+
+* [refactor] do refactor for `agent.ts` and `reducer.ts`.

@@ -4,6 +4,8 @@ export interface OriginAgent<S = any> {
     [key: string]: any;
 }
 
+export type Model<S = any> = OriginAgent<S>;
+
 export interface Env {
     updateBy?: 'manual' | 'auto';
     expired?: boolean;

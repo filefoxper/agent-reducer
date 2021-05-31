@@ -145,7 +145,7 @@ export default class MiddleWares {
         return undefined;
       }
       : function debounceMiddleWare <T>(runtime: Runtime<T>): NextProcess | void {
-        function call<T>(rt: Runtime<T>) {
+        function call(rt: Runtime<T>) {
           const {
             caller, target, args, cache,
           } = rt;

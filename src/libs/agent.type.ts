@@ -1,11 +1,11 @@
 import {
   OriginAgent, Env, Runtime, MiddleWare,
 } from './global.type';
-import { StoreSlot } from './reducer.type';
+import { Store } from './reducer.type';
 
 export type AgentDependencies<S, T extends OriginAgent<S>> = {
   entry: T;
-  store: StoreSlot<S>;
+  store: Store<S>;
   env: Env;
   cache: { [key: string]: Runtime<T> };
   functionCache: any;

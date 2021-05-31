@@ -36,9 +36,13 @@ module.exports = {
     rules: {
         "import/extensions": "off",
         "no-param-reassign": "off",
-        "no-use-before-define": ["error", { "functions": false, "classes": true }],
         "@typescript-eslint/no-explicit-any":"off",
         "@typescript-eslint/no-unused-vars": ["off"],
-        "max-classes-per-file":['off']
+        "max-classes-per-file":['off'],
+        "no-shadow": "off",
+        "@typescript-eslint/no-shadow": ["error"],
+        "no-use-before-define": "off",
+        "@typescript-eslint/no-use-before-define": ["error", { "functions": false, "classes": true }],
+        "prefer-rest-params":['off']
     }
 };

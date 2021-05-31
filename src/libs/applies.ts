@@ -4,14 +4,15 @@ import {
   MiddleWare,
   LifecycleMiddleWare,
   LifecycleRuntime,
+  ComposeCaller,
 } from './global.type';
 import { createProxy, isPromise } from './util';
 
-export function composeCallArray(calls: ((p: any) => any)[]):(p:any)=>any {
+export function composeCallArray(calls: ComposeCaller[]):ComposeCaller {
   const callList = [...calls].reverse();
   return function composed(p: any): any | void {
     return callList.reduce(
-      (result: any, call: (p: any) => any) => call(result),
+      (result: any, call: ComposeCaller) => call(result),
       p,
     );
   };
@@ -20,7 +21,7 @@ export function composeCallArray(calls: ((p: any) => any)[]):(p:any)=>any {
 export function defaultMiddleWare<T>(runtime: Runtime):NextProcess {
   // 支持1.+.+版本
   if (runtime.env && runtime.env.legacy) {
-    return function nextResolver(next: (result: any) => any) {
+    return function nextResolver(next: ComposeCaller) {
       return function stateResolver(result: any) {
         if (isPromise(result) || result === undefined) {
           return result;
@@ -29,7 +30,7 @@ export function defaultMiddleWare<T>(runtime: Runtime):NextProcess {
       };
     };
   }
-  return function nextProcess(next: (result: any) => any) {
+  return function nextProcess(next: ComposeCaller) {
     return function stateProcess(result: any) {
       return next(result);
     };
