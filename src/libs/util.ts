@@ -83,7 +83,7 @@ export function isObject<T extends {[key:string]:any}>(data: T):boolean {
 }
 
 export function createInstance<T extends Record<string, unknown>>(
-  Clazz:{new (...args:any[]):T},
+  Clazz:{new (...a:any[]):T},
   ...args:any[]
 ):T {
   return new Clazz(...args);

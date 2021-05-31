@@ -53,3 +53,7 @@
 ## v3.3.3 2021-05-24
 
 * [bug] 解决 notify 在 updateBy:'auto'时，死循环问题
+
+## v3.4.0 2021-05-31
+
+* [refactor] 重构 `agent.ts` 和 `reducer.ts`.

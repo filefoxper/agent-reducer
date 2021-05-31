@@ -11,14 +11,11 @@ export interface Env {
   nextExperience?:boolean;
 }
 
-export interface GlobalConfig {
-  env?: Env;
-  defaultMiddleWare?: MiddleWare;
-}
+export type ComposeCaller = (p: any) => any;
 
 export type Caller = (...args: any[]) => any;
 
-type SourcePropertyMapper<T> = (value:any, instance:T, runtime:Runtime<T>)=>any
+type SourcePropertyMapper<T, R> = (value:any, instance:T, runtime:R)=>any
 
 export type Runtime<T = any> = {
   caller: Caller;
@@ -30,7 +27,7 @@ export type Runtime<T = any> = {
   env: Env;
   cache: { [key: string]: any };
   rollbacks:{[key in keyof T]?:T[key]};
-  mapSourceProperty:(key:keyof T, caller:SourcePropertyMapper<T>)=>Runtime<T>;
+  mapSourceProperty:(key:keyof T, caller:SourcePropertyMapper<T, Runtime<T>>)=>Runtime<T>;
   rollback:()=>Runtime<T>;
   tempCaller?: Caller;
 };
@@ -53,3 +50,8 @@ export interface LifecycleRuntime<T = any> extends Runtime<T> {
 export type LifecycleMiddleWare = (<T>(
   runtime: LifecycleRuntime<T>
 ) => NextProcess | void) & { lifecycle: true };
+
+export interface GlobalConfig {
+  env?: Env;
+  defaultMiddleWare?: MiddleWare;
+}

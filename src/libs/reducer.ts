@@ -4,9 +4,10 @@ import {
   AgentReducer,
   Reducer,
   Change,
-  StoreSlot,
+  Store,
   ReducerPadding,
   Dispatch,
+  Listener, StoreSlot,
 } from './reducer.type';
 import {
   agentModelResetKey,
@@ -14,7 +15,7 @@ import {
 } from './defines';
 import { defaultMiddleWare } from './applies';
 import { generateAgent } from './agent';
-import { createInstance, createProxy } from './util';
+import { createInstance } from './util';
 
 /**
  * Create a reducer function for a standard reducer system.
@@ -112,6 +113,71 @@ function createAgentInstance<
   return typeof originAgent === 'function' ? createInstance(originAgent) : originAgent;
 }
 
+function createModelConnector<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    >(modelInstance: T&{[agentListenerKey]?:((s:S)=>any)[]}) {
+  let listener:undefined|((s:S)=>any);
+  return {
+    subscribe(l:(s:S)=>any) {
+      listener = l;
+      return subscribe(modelInstance, l);
+    },
+    notify(nextState:S) {
+      const ls = modelInstance[agentListenerKey] || [];
+      ls.forEach((l) => {
+        if (l === listener) {
+          return;
+        }
+        l(nextState);
+      });
+    },
+  };
+}
+
+function createStoreSlot<S>(initialState:S, reducer: Reducer<S, Action>, env:Env):Store<S> {
+  let storeState = initialState;
+  let listener:Listener<S>|null = null;
+  return {
+    getState() {
+      return storeState;
+    },
+    dispatch(action: Action) {
+      if (env.updateBy !== 'auto') {
+        return;
+      }
+      storeState = reducer(this.getState(), action);
+      if (!listener) {
+        return;
+      }
+      listener(storeState, action);
+    },
+    subscribe(ls: Listener<S>) {
+      listener = ls;
+    },
+  };
+}
+
+function createChangeStack<S>() {
+  let stack: undefined | Array<Change<S>>;
+  return {
+    push(state:S, action:Action) {
+      if (!stack) {
+        return;
+      }
+      stack.push({ type: action.type, state });
+    },
+    record() {
+      stack = [];
+      return function getStateChanges(): Array<Change<S>> {
+        const result = stack !== undefined ? [...stack] : [];
+        stack = undefined;
+        return result;
+      };
+    },
+  };
+}
+
 export function sharing<
     S,
     T extends OriginAgent<S> = OriginAgent<S>
@@ -147,83 +213,52 @@ export function weakSharing<
   return ref as {current:T};
 }
 
-export function createAgentReducer<
+export function oldCreateAgentReducer<
   S,
   T extends OriginAgent<S> = OriginAgent<S>
 >(
   originAgent: T | { new (): T },
-  middleWareOrEnv?: (MiddleWare & { lifecycle?: boolean }) | Env,
-  e?: Env,
+  finalMiddleWare: (MiddleWare & { lifecycle?: boolean }),
+  env: Env,
 ): AgentReducer<S, T> {
-  const config = globalConfig() || {};
-
-  const settingEnv = typeof middleWareOrEnv !== 'function'
-    ? { ...middleWareOrEnv, ...e }
-    : { ...e };
-
-  const finalMiddleWare:MiddleWare&{lifecycle?:boolean} = typeof middleWareOrEnv === 'function'
-    ? middleWareOrEnv
-    : config.defaultMiddleWare || defaultMiddleWare;
-
   if (finalMiddleWare.lifecycle) {
     throw new Error(
       'you can not use a lifecycle middleWare when creating an agent.',
     );
   }
 
-  const env: Env = mergeEnv(config.env || {}, settingEnv);
-
-  let stateChanges: undefined | Array<Change<S>>;
-
-  let listener:(s:S)=>any;
+  const changeStack = createChangeStack<S>();
 
   const entity = createAgentInstance(originAgent);
 
   const reducer = createReducer<S, T>(entity);
 
-  const notify = (nextState:S) => {
-    const ls = entity[agentListenerKey] || [];
-    ls.forEach((l) => {
-      if (l === listener) {
-        return;
-      }
-      l(nextState);
-    });
-  };
+  const modelConnector = createModelConnector<S, T>(entity);
 
-  const storeSlot: StoreSlot<S> = {
-    getState() {
-      return entity.state;
-    },
-    dispatch(action: Action) {
-      if (env.updateBy !== 'auto') {
-        return;
-      }
-      const nextState = reducer(this.getState(), action);
-      const needUpdate = nextState !== entity.state;
-      if (needUpdate) {
-        entity.state = nextState;
-      }
-      if (stateChanges) {
-        stateChanges.push({ type: action.type, state: nextState });
-      }
-      if (action.type === DefaultActionType.DX_MUTE_STATE) {
-        return;
-      }
-      if (needUpdate) {
-        notify(nextState);
-      }
-    },
-  };
+  const storeSlot: Store<S> = createStoreSlot<S>(entity.state, reducer, env);
 
-  listener = (nextState:S) => {
+  const listener = (nextState:S) => {
     if (env.expired) {
       return;
     }
     storeSlot.dispatch({ type: DefaultActionType.DX_MUTE_STATE, args: nextState });
   };
 
-  const unsubscribe = subscribe(entity, listener);
+  storeSlot.subscribe((nextState:S, action:Action) => {
+    const needUpdate = nextState !== entity.state;
+    if (needUpdate) {
+      entity.state = nextState;
+    }
+    changeStack.push(nextState, action);
+    if (action.type === DefaultActionType.DX_MUTE_STATE) {
+      return;
+    }
+    if (needUpdate) {
+      modelConnector.notify(nextState);
+    }
+  });
+
+  const unsubscribe = modelConnector.subscribe(listener);
 
   const transition: ReducerPadding<S, T> = {
     initialState: entity.state,
@@ -245,7 +280,7 @@ export function createAgentReducer<
           if (action.type === DefaultActionType.DX_MUTE_STATE) {
             return;
           }
-          notify(action.args);
+          modelConnector.notify(action.args);
         };
       }
       if (nextState === entity.state) {
@@ -268,12 +303,7 @@ export function createAgentReducer<
           'You should set env.updateBy to be `auto` before record.',
         );
       }
-      stateChanges = [];
-      return function getStateChanges(): Array<Change<S>> {
-        const result = stateChanges !== undefined ? [...stateChanges] : [];
-        stateChanges = undefined;
-        return result;
-      };
+      return changeStack.record();
     },
     destroy() {
       unsubscribe();
@@ -282,4 +312,30 @@ export function createAgentReducer<
   };
 
   return Object.assign(reducer, transition);
+}
+
+export function createAgentReducer<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    >(
+    originAgent: T | { new (): T },
+    middleWareOrEnv?: (MiddleWare & { lifecycle?: boolean }) | Env,
+    e?: Env,
+): AgentReducer<S, T>
+export function createAgentReducer<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    >(...args:any[]): AgentReducer<S, T> {
+  const config = globalConfig() || {};
+  const dmw = config.defaultMiddleWare || defaultMiddleWare;
+  if (args.length === 2) {
+    const finishMiddleWare = typeof args[1] === 'function';
+    return finishMiddleWare
+      ? createAgentReducer(args[0], args[1], mergeEnv(config.env || {}))
+      : createAgentReducer(args[0], dmw, mergeEnv(config.env || {}, args[1]));
+  }
+  if (args.length === 1) {
+    return createAgentReducer(args[0], dmw, mergeEnv(config.env || {}));
+  }
+  return oldCreateAgentReducer(args[0], args[1], mergeEnv(config.env || {}, args[2]));
 }

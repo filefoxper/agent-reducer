@@ -4,6 +4,8 @@ import { LifecycleMiddleWares } from './lifecycleMiddleWares';
 import { MiddleWare } from './global.type';
 
 export default class MiddleWarePresets {
+  static takeNone = MiddleWares.takeNone;
+
   static takeAssignable = MiddleWares.takeAssignable;
 
   static takePromiseResolve = MiddleWares.takePromiseResolve;

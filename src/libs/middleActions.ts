@@ -137,7 +137,7 @@ export function useMiddleActions<
       '`middleActions` should create with an valid agent or no agent.',
     );
   }
-  const middleWareDefault = <T>(data: T) => data;
+  const middleWareDefault = <D>(data: D) => data;
   const proxy = createProxy(sideByCallerInstance, {
     get(target: any, type: string): any {
       const source = target[type];
