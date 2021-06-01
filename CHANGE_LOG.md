@@ -49,3 +49,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v3.4.0 2021-05-31
 
 * [refactor] do refactor for `agent.ts` and `reducer.ts`.
+
+## v3.4.1 2021-06-01
+
+* [bug] fix the problem about when middle param is empty, cause `NPE`.

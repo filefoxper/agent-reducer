@@ -331,11 +331,11 @@ export function createAgentReducer<
   if (args.length === 2) {
     const finishMiddleWare = typeof args[1] === 'function';
     return finishMiddleWare
-      ? createAgentReducer(args[0], args[1], mergeEnv(config.env || {}))
+      ? createAgentReducer(args[0], args[1] || dmw, mergeEnv(config.env || {}))
       : createAgentReducer(args[0], dmw, mergeEnv(config.env || {}, args[1]));
   }
   if (args.length === 1) {
     return createAgentReducer(args[0], dmw, mergeEnv(config.env || {}));
   }
-  return oldCreateAgentReducer(args[0], args[1], mergeEnv(config.env || {}, args[2]));
+  return oldCreateAgentReducer(args[0], args[1] || dmw, mergeEnv(config.env || {}, args[2] || {}));
 }
