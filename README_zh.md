@@ -124,8 +124,8 @@ import {MiddleWarePresets,createAgentReducer} from 'agent-reducer';
 `agent-reducer`提供了一套实用的`MiddleWare`系统，你可以从`MiddleWarePresets`或`MiddleWares`中挑选合适的`MiddleWare`使用，api：`middleWare`、`useMiddleWare`、`createAgentReducer`都为你提供了使用接口。当然如果有特殊需求，你也可以写一个自己的`MiddleWare`。
 
 ## 连接器
-1. [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer) react hook，用来代替 `react useReducer`.
-2. [use-redux-agent](https://www.npmjs.com/package/use-redux-agent) react hook ，用来代替 `react-redux`.
+
+[use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer) react hook，用来代替 `react useReducer`.
 
 ## 文档
 

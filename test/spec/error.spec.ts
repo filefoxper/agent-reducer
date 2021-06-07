@@ -44,13 +44,6 @@ describe("其他reducer管理工具整合可能踩到的坑", () => {
     dispatch() {},
   };
 
-  test('在env.updateBy==="auto"时直接调用useStoreSlot，将会得到一个错误信息', () => {
-    const { agent, useStoreSlot } = createAgentReducer(ObjectAgent);
-    expect(() => {
-      useStoreSlot(store);
-    }).toThrowError();
-  });
-
   test('在env.updateBy==="auto"时直接调用update，将会得到一个错误信息', () => {
     const { agent, update } = createAgentReducer(ObjectAgent);
     expect(() => {
@@ -58,17 +51,6 @@ describe("其他reducer管理工具整合可能踩到的坑", () => {
     }).toThrowError();
   });
 
-  test("如果和其他reducer管理工具整合在一起，使用recordChanges记录功能，将会得到一个错误信息", () => {
-    const {
-      agent,
-      useStoreSlot,
-      recordChanges,
-    } = createAgentReducer(ObjectAgent, { updateBy: "manual" });
-    useStoreSlot(store);
-    expect(() => {
-      recordChanges();
-    }).toThrowError();
-  });
 });
 
 describe("不要对一个 origin-agent 使用 useMiddleWare", () => {

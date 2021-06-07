@@ -133,9 +133,9 @@ import {MiddleWarePresets,createAgentReducer} from 'agent-reducer';
 
 `agent-reducer` provides a rich `MiddleWare` ecosystem, you can pick some appropriate `MiddleWares` from `MiddleWarePresets` or `MiddleWares`, and add them to your method by using api `middleWare` or `useMiddleWare` or `createAgentReducer` directly. You can write your own `MiddleWare`, and use it with the `MiddleWare` ecosystem too.
 
-## connectors
-1. [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer) react hook for replacing `react useReducer`.
-2. [use-redux-agent](https://www.npmjs.com/package/use-redux-agent) react hook for replacing `react-redux`.
+## connector
+
+[use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer) react hook for replacing `react useReducer`.
 
 ## document
 
