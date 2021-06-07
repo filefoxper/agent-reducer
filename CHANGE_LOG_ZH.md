@@ -61,3 +61,7 @@
 ## v3.4.1 2021-06-01
 
 * [bug] 修复中间变量为 undefined 引起的 `NPE` 问题.
+
+## v3.5.0 2021-06-08
+
+* [refactor] 再次重构 `agent.ts` 和 `reducer.ts`.

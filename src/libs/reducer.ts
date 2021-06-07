@@ -7,11 +7,11 @@ import {
   Store,
   ReducerPadding,
   Dispatch,
-  Listener, StoreSlot,
+  Listener,
 } from './reducer.type';
 import {
   agentModelResetKey,
-  agentListenerKey, agentNamespaceKey, DefaultActionType, globalConfig,
+  agentListenerKey, agentNamespaceKey, DefaultActionType, globalConfig, agentHardSharingKey,
 } from './defines';
 import { defaultMiddleWare } from './applies';
 import { generateAgent } from './agent';
@@ -135,7 +135,11 @@ function createModelConnector<
   };
 }
 
-function createStoreSlot<S>(initialState:S, reducer: Reducer<S, Action>, env:Env):Store<S> {
+function createStoreSlot<S>(
+  initialState:S,
+  reducer: Reducer<S, Action>,
+  env:Env,
+):Store<S> {
   let storeState = initialState;
   let listener:Listener<S>|null = null;
   return {
@@ -146,11 +150,14 @@ function createStoreSlot<S>(initialState:S, reducer: Reducer<S, Action>, env:Env
       if (env.updateBy !== 'auto') {
         return;
       }
-      storeState = reducer(this.getState(), action);
+      const nextState = reducer(this.getState(), action);
+      if (!env.expired) {
+        storeState = nextState;
+      }
       if (!listener) {
         return;
       }
-      listener(storeState, action);
+      listener(nextState, action);
     },
     subscribe(ls: Listener<S>) {
       listener = ls;
@@ -187,8 +194,10 @@ export function sharing<
   const Model = factory();
   const current:T&{
     [agentModelResetKey]?:()=>void,
-    [agentListenerKey]?:((s:S)=>any)[]
+    [agentListenerKey]?:((s:S)=>any)[],
+    [agentHardSharingKey]?:boolean
   } = typeof Model === 'function' ? new Model() : Model;
+  current[agentHardSharingKey] = true;
   return { current };
 }
 
@@ -246,7 +255,7 @@ export function oldCreateAgentReducer<
 
   storeSlot.subscribe((nextState:S, action:Action) => {
     const needUpdate = nextState !== entity.state;
-    if (needUpdate) {
+    if (needUpdate && (!env.expired || entity[agentHardSharingKey])) {
       entity.state = nextState;
     }
     changeStack.push(nextState, action);
@@ -276,7 +285,18 @@ export function oldCreateAgentReducer<
         : storeSlot.getState()) as S;
       if (dispatch !== undefined) {
         storeSlot.dispatch = (action:Action) => {
-          dispatch(action);
+          if (
+            (
+              entity[agentHardSharingKey]
+              || (!env.strict && !env.expired)
+            )
+              && action.args !== entity.state
+          ) {
+            entity.state = action.args;
+          }
+          if (!env.expired) {
+            dispatch(action);
+          }
           if (action.type === DefaultActionType.DX_MUTE_STATE) {
             return;
           }
@@ -287,15 +307,6 @@ export function oldCreateAgentReducer<
         return;
       }
       entity.state = nextState;
-    },
-    useStoreSlot(slot: StoreSlot) {
-      if (env.updateBy === 'auto') {
-        throw new Error(
-          'You should set env.updateBy to be `manual` before updating state and dispatch from outside.',
-        );
-      }
-      storeSlot.getState = () => slot.getState();
-      storeSlot.dispatch = (action: Action) => slot.dispatch(action);
     },
     recordChanges() {
       if (env.updateBy !== 'auto') {

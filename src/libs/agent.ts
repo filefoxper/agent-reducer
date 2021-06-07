@@ -4,6 +4,7 @@ import {
 } from './global.type';
 import {
   agentDependenciesKey,
+  agentHardSharingKey,
   agentIdentifyKey,
   agentNamespaceKey,
 } from './defines';
@@ -15,23 +16,20 @@ import { applyMiddleWares, defaultMiddleWare } from './applies';
 /**
  *  use dependencies to create a dispatch callback
  * @param invokeDependencies
+ * @param proxy
  */
 function generateDispatchCall<S, T extends OriginAgent<S>>(
   invokeDependencies: AgentDependencies<S, T>,
+  proxy:T,
 ) {
   const { entry, store, env } = invokeDependencies;
   const namespace = entry[agentNamespaceKey];
   return ({ type, args }: Action) => {
-    // if this agent is expired, do nothing
-    if (env.expired) {
+    if ((!proxy[agentDependenciesKey]) && env.expired) {
       return;
     }
     // if agent has a namespace, dispatch `${namespace}:${type}` as the type
     const newType = namespace === undefined ? type : `${namespace}:${type}`;
-    // if env.strict is false, the state will be changed immediately
-    if (!env.strict) {
-      entry.state = args;
-    }
     store.dispatch({ type: newType, args });
   };
 }
@@ -41,12 +39,14 @@ function generateDispatchCall<S, T extends OriginAgent<S>>(
  * which is used for dispatching the result to store
  * @param methodName
  * @param invokeDependencies
+ * @param proxy
  */
 function createDispatchStateProcess<S, T extends OriginAgent<S>>(
   methodName: string,
   invokeDependencies: AgentDependencies<S, T>,
+  proxy:T,
 ) {
-  const dispatchCall = generateDispatchCall(invokeDependencies);
+  const dispatchCall = generateDispatchCall(invokeDependencies, proxy);
   return function finalStateProcess<NS = S>(nextState: NS): NS {
     dispatchCall({ type: methodName, args: nextState });
     return nextState;
@@ -105,7 +105,7 @@ function createActionRunner<S, T extends OriginAgent<S>>(
   methodName: string,
 ) {
   // create final stateProcess
-  const dispatchStateProcess = createDispatchStateProcess(methodName, invokeDependencies);
+  const dispatchStateProcess = createDispatchStateProcess(methodName, invokeDependencies, proxy);
 
   const {
     cache, functionCache, entry,
@@ -321,7 +321,7 @@ function createLifecycleEnv(env:Env, rebuild:()=>any):Env {
     get(target: Env, property: keyof Env) {
       const source = target[property];
       if (property === 'expired') {
-        return env.expired || expired;
+        return expired;
       }
       return source;
     },
