@@ -61,7 +61,8 @@ describe("尝试配置env", () => {
         // 修改 state
         agent.stepUp();
         // 因为 redux 更新的人工延迟，agent.state没有更新，它在等待 redux 的更新通知
-        expect(agent.state).toBe(1);
+        expect(agent.state).toBe(2)
+        expect(store.getState()).toBe(1);
         // 外部造成一个小延迟
         await Promise.resolve();
         // state 随 redux 更新

@@ -1,10 +1,12 @@
 # not recommend
 
-There are some bad design in `agent-reducer`, for some reason, we can not delete them at this version. But you should know which parts are not recommended to use.
+There are some bad design in `agent-reducer`, for some reason, we can not delete them at this version. But you should know which parts are not recommended to use. From `agent-reducer@4.0.0`, these design will be removed.
 
-## env.strict
+## ~~env.strict~~
 
-As we have knew `agent-reducer` allows `Agent` state changing happens immediately by setting `env.strict` to false, and this may cause difference between `Agent` state and reducer tool state at moment. Though the final `Agent` state is equal with the reducer tool state, but we still do not recommend you to set it `false`.
+~~As we have knew `agent-reducer` allows `Agent` state changing happens immediately by setting `env.strict` to false, and this may cause difference between `Agent` state and reducer tool state at moment. Though the final `Agent` state is equal with the reducer tool state, but we still do not recommend you to set it `false`.~~
+
+Notice: From `agent-reducer@3.6.0`, we decide to adopt the state changing strategy of `redux`, that means the model state is always updated immediately, just like a `strict: false` config.
 
 example:
 ```typescript

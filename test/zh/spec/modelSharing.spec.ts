@@ -31,6 +31,11 @@ class UserModel implements OriginAgent<User>{
         return new Promise((r)=>setTimeout(r,300,{name:'remoteName'}));
     }
 
+    @middleWare(MiddleWarePresets.takeLatestAssignable())
+    remoteLatestChange(delay:number,name:string){
+        return new Promise((r)=>setTimeout(r,delay,{name}));
+    }
+
 }
 
 describe("持久化模型共享",()=>{
@@ -88,6 +93,21 @@ describe("持久化模型共享",()=>{
         // 新建 agent3, agent3.state 和当前 model.state 保持一致
         const {agent:agent3}=createAgentReducer(ref.current);
         expect(agent3.state.name).toBe('remoteName');
+    });
+
+    it('模型共享时，方法级middleWare状态也共享',async ()=>{
+        const ref = sharing(()=>UserModel);
+        const {agent:agent1,destroy:destroy1}=createAgentReducer(ref.current);
+        const {agent:agent2,destroy:destroy2}=createAgentReducer(ref.current);
+        const p1= agent1.remoteLatestChange(200, 'name1');
+        const p2 = agent2.remoteLatestChange(100, 'name2');
+
+        await Promise.all([p1,p2]);
+
+        expect(agent1.state.name).toBe('name2');
+        // 销毁 agent1 和 agent2
+        destroy2();
+        destroy1();
     });
 
 });

@@ -4,9 +4,8 @@ import {
 } from './global.type';
 import {
   agentDependenciesKey,
-  agentHardSharingKey,
   agentIdentifyKey,
-  agentNamespaceKey,
+  agentNamespaceKey, agentSharingMiddleWareKey, agentSharingTypeKey,
 } from './defines';
 import { createProxy } from './util';
 import { AgentDependencies } from './agent.type';
@@ -173,22 +172,31 @@ function createActionRunner<S, T extends OriginAgent<S>>(
 
 // generate the function about how to reproduce a method
 function methodProducer<S, T extends OriginAgent<S>>(
-  invokeDependencies: AgentDependencies<S, T>,
+  invokeDependencies: AgentDependencies<
+      S,
+      T&{[agentSharingMiddleWareKey]?:{[key in keyof T]?: any}}
+      >,
   copyInfo?: {
       sourceAgent: T & { [agentDependenciesKey]?: AgentDependencies<S, T> };
       type: 'copy' | 'decorator';
     },
 ) {
-  const { middleWare } = invokeDependencies;
+  const { middleWare, entry } = invokeDependencies;
   // for storing the method from a decorator middleWare copy agent
-  const methodWithMiddleWares: { [key in keyof T]?: any } = {};
+  if (entry[agentSharingTypeKey] && !entry[agentSharingMiddleWareKey]) {
+    entry[agentSharingMiddleWareKey] = {};
+  }
+  const methodWithMiddleWares: {
+    [key in keyof T]?: any
+  } = entry[agentSharingMiddleWareKey] || {};
   const { type: copyType, sourceAgent } = copyInfo || {};
   return function produceMethod(target: T, property: string, receiver:T) {
     const p = property as keyof T;
     const source = target[p];
     // if the decorator methods cache has current method name,
     // fetch it out directly from the cache
-    if (methodWithMiddleWares[p]) {
+    if (methodWithMiddleWares[p] && (copyType === undefined
+        || (copyType === 'copy' && middleWare === defaultMiddleWare))) {
       return methodWithMiddleWares[p];
     }
     // if the method has property middleWare,

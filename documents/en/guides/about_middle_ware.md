@@ -171,9 +171,30 @@ If the order is `MiddleWares.takeAssignable` first, then `MiddleWares.takePromis
 
 Current state processing MiddleWares in `agent-reducer` system are `MiddleWares.takePromiseResolve` and `MiddleWares.takeAssignable`. We have chain them for you as `MiddleWarePresets.takePromiseResolveAssignable`, you can use it directly. But, if you want to write State processing MiddleWares yourself, and use them with or without our current State processing MiddleWares, you should know about the order.
 
-2 . Method control MiddleWares can be chained at any place. We often put method control MiddleWares before state processing MiddleWares, but infact, you can put them as you wish without any order limit. The current MiddleWares except state processing MiddleWares `MiddleWares.takePromiseResolve` and `MiddleWares.takeAssignable`, are all method control MiddleWares.
+2 . Method control MiddleWares should be chained before lifecycle control MiddleWares and state processing MiddleWares. The current MiddleWares except state processing MiddleWares and lifecycle control MiddleWares, are all method control MiddleWares.
 
 3 . `LifecycleMiddleWares.takeLatest` is a method control MiddleWare, but it is also a lifecycle control MiddleWare. It is a little different with other method control MiddleWare, the `finalMiddleWare` can not be used directly as a param for api `createAgentReducer`.
+
+The order we recommended to chain these three MiddleWares is: 
+
+```
+method control MiddleWares => lifecycle control MiddleWare => state processing MiddleWare
+```
+
+for example:
+
+```
+applyMiddleWare(MiddleWares.takeDebounce(200), LifecycleMiddleWares.takeLatest(), MiddleWares.takePromiseResolve())
+```
+
+you can consider it like:
+
+```
+const deb = MiddleWares.takeDebounce(200);
+const latest = LifecycleMiddleWares.takeLatest();
+const promiseResolve = MiddleWares.takePromiseResolve();
+const middleWare = deb(takelatest(promiseResolve))(source);
+```
 
 Now, you know a lot about MiddleWare, let us write a state processing MiddleWare.
 
@@ -188,7 +209,7 @@ import {
     OriginAgent,
     Runtime,
     StateProcess
-} from "../../../src";
+} from "agent-reducer";
 
 type State={
     [key:string]:any

@@ -65,3 +65,8 @@
 ## v3.5.0 2021-06-08
 
 * [refactor] 再次重构 `agent.ts` 和 `reducer.ts`.
+
+## v3.6.0 2021-06-25
+
+* [design] 采取了 redux state 数据变更策略，先改变数据后通知渲染。
+* [design] 模型共享时，模型方法级 `middleWare` 特性和状态也共享。
