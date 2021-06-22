@@ -176,11 +176,32 @@ applyMiddleWares(
 
 目前`agent-reducer`中的数据处理类 MiddleWare 只有`MiddleWares.takePromiseResolve`和`MiddleWares.takeAssignable`两种。我们已经帮您串行好了，可以直接使用 api `MiddleWarePresets.takePromiseResolveAssignable`。
 
-2 . 方法控制类 MiddleWare 可以被连接在任何地方。通常我们会将它们放在最前面，表示一开始我们就启动了相应的方法控制，但你应该知道，它们的排列的位置其实无关紧要。在`agent-reducer`中，目前除了上述两个数据处理 MiddleWare ，剩下的 MiddleWare 都是方法控制类型的 MiddleWare。 
+2 . 方法控制类 MiddleWare 应该放在最前面，表示一开始我们就启动了相应的方法控制，它们互相之间并没有排列顺序的要求。在`agent-reducer`中，目前除了上述两个数据处理 MiddleWare ，剩下的 MiddleWare 都是方法控制类型的 MiddleWare。 
 
 3 . `LifecycleMiddleWares.takeLatest`是一种非常特殊的 MiddleWare，它是唯一一款可以控制`Agent`生命周期的 MiddleWare 。但在`agent-reducer`中，只有`Agent`复制对象才允许以 MiddleWare 的形式进行生命周期控制，所以这个 MiddleWare 不能直接用在 API `createAgentReducer`上。如果需要使用这个 MiddleWare ，只能通过 API 接口 `middleWare` 或 `useMiddleWare`来实现。
 
-现在让我们已经了解了足够多的 MiddleWare 知识，让我们实现一个简单的数据处理 MiddleWare。
+这三种 MiddleWare 的串行使用顺序为：
+
+```
+方法控制类，声明周期类（LifecycleMiddleWares.takeLatest），数据处理类。这让 agent 可以按方法组合的模式顺序运行这些 middleWare 组合，比如：
+```
+
+比如：
+
+```
+applyMiddleWare(MiddleWares.takeDebounce(200), LifecycleMiddleWares.takeLatest(), MiddleWares.takePromiseResolve())
+```
+
+可以看作
+
+```
+const deb = MiddleWares.takeDebounce(200);
+const latest = LifecycleMiddleWares.takeLatest();
+const promiseResolve = MiddleWares.takePromiseResolve();
+const middleWare = deb(takelatest(promiseResolve))(source);
+```
+
+现在我们已经了解了足够多的 MiddleWare 知识，让我们实现一个简单的数据处理 MiddleWare。
 
 源码位置：[middleWare.spec.ts](https://github.com/filefoxper/agent-reducer/blob/master/test/zh/guides/middleWare.spec.ts).
 
@@ -193,7 +214,7 @@ import {
     OriginAgent,
     Runtime,
     StateProcess
-} from "../../../src";
+} from "agent-reducer";
 
 type State={
     [key:string]:any

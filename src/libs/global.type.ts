@@ -55,3 +55,5 @@ export interface GlobalConfig {
   env?: Env;
   defaultMiddleWare?: MiddleWare;
 }
+
+export type SharingType = 'hard'|'weak';

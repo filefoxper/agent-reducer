@@ -17,14 +17,17 @@ export const toLifecycleMiddleWare = (
 
 export class LifecycleMiddleWares {
   static takeLatest(): LifecycleMiddleWare {
+    const modelCacheKey = '@agent-reducer-middle-ware-takeLatest-cache';
     const mdw = function takeLatestMiddleWare <T>(runtime: LifecycleRuntime<T>): NextProcess {
       return function takeLatestNextProcess(next: StateProcess): StateProcess {
         return function takeLatestStateProcess(result: any):any {
-          const { cache, env } = runtime;
-          if (!isPromise(result)) {
-            return next(result);
+          const { env } = runtime;
+          const source = runtime.source as T&{[modelCacheKey]?:Record<string, unknown>};
+          if (!source[modelCacheKey]) {
+            source[modelCacheKey] = {};
           }
-          const version = cache.version || 0;
+          const cache = source[modelCacheKey] || {};
+          const version:number = (cache.version as undefined|number) || 0;
           cache.version = version + 1;
           const data = next(result);
           Promise.resolve(data).finally(() => {

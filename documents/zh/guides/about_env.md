@@ -21,6 +21,11 @@ export interface Env {
   // 这意味着 'Agent' state 可能会与外接 reducer 工具维护的 state 不一致.
   // 虽然最终 'Agent' state 会与 reducer 工具中的 state 一致，
   // 但我们仍不推荐将其设置为 'false' 
+  // 注意：自 agent-reducer@3.6.0 开始，设置strict将变得毫无意义。
+  // agent-reducer@3.6.0 为了减少对环境平台的依赖，
+  // 采取了类似 redux 的 state 先行变更，并通知变更的手段
+  // 也就是说，自 agent-reducer@3.6.0 开始，始终采取的是 strict:false 特性
+  // 从 agent-reducer@4.0.0 起，该字段将被彻底删除
   strict?: boolean;
   // 默认 'false',
   // 如果设置为 'true',

@@ -20,7 +20,16 @@ export interface Env {
   // and not wait state updating from reducer tool,
   // it means 'Agent' state may not equal with reducer tool state in moment.
   // though, the 'Agent' state will be equal with reducer tool state finally,
-  // but, we still do not recommend you set it to 'false' 
+  // but, we still do not recommend you set it to 'false'. 
+  // Notice, from 'agent-reducer@3.6.0',
+  // this env property will be meaningless,
+  // `agent-reducer` decide to adopt the state changing strategy of 'redux'.
+  // This state changing strategy is changing state in model first,
+  // then notice the renders.
+  // So, it means the model state is always updated immediately, 
+  // just like the {strict:false} setting.
+  // When the 'agent-reducer@4.0.0' coming, 
+  // this config property will be removed.
   strict?: boolean;
   // default 'false',
   // if set it to be 'true',

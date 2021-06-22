@@ -1,10 +1,12 @@
 # 不推荐使用的接口
 
-`agent-reducer`依然存在一些不好的设计，因为版本连续性等问题，我们不能直接把这些接口删掉，但我们会为您指出这些我们不推荐使用的接口。
+`agent-reducer`依然存在一些不好的设计，因为版本连续性等问题，我们不能直接把这些接口删掉，但我们会为您指出这些我们不推荐使用的接口。从`agent-reducer@4.0.0`开始这些设计将被移除。
 
-## env.strict
+## ~~env.strict~~
 
-通过把`env.strict`设置为false，我们可以让`Agent` state的变化即刻发生，而不会等待外部接入 reducer 工具的 state 更新，这很容易造成 reducer 工具 state 和 Agent state的临时不一致现象，虽然最终这两个 state 会变得一致起来，但我们仍不推荐你把这个参数设置为 false。
+~~通过把`env.strict`设置为false，我们可以让`Agent` state的变化即刻发生，而不会等待外部接入 reducer 工具的 state 更新，这很容易造成 reducer 工具 state 和 Agent state的临时不一致现象，虽然最终这两个 state 会变得一致起来，但我们仍不推荐你把这个参数设置为 false。~~
+
+注意：自 `agent-reducer@3.6.0` 开始，我们将采取 `redux` 的先更新内部 `state` 再通知渲染器的设计模式，所以相当于只采取了 `strict: false` 的设定模式，虽然这个配置项依然保留，但已经毫无意义，`agent-reducer@4.0.0`开始将被删除。
 
 例子:
 ```typescript

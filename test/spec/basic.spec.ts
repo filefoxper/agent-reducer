@@ -163,15 +163,17 @@ describe("agent-reducer的基本使用", () => {
 
     // 通过添加middleWare可以控制方法的调用时机
     @middleWare(
-      applyMiddleWares(
-        LifecycleMiddleWares.takeLatest(),
-        MiddleWarePresets.takeDebounce(200)
-      )
+        applyMiddleWares(
+            MiddleWares.takeDebounce(200),
+            LifecycleMiddleWares.takeLatest(),
+            MiddleWares.takePromiseResolve()
+        )
     )
     async takeDebounceSumAndLatest(num: number) {
       await new Promise((r) => setTimeout(r, num * 100));
       return this.sum(num);
     }
+
   }
 
   test("默认情况下agent方法返回数据即为下一个state值", async () => {

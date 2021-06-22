@@ -61,7 +61,8 @@ describe("try env usage", () => {
         // change agent state
         agent.stepUp();
         // state is not changed, for redux delaying a state updating
-        expect(agent.state).toBe(1);
+        expect(agent.state).toBe(2)
+        expect(store.getState()).toBe(1);
         // make a delay
         await Promise.resolve();
         // state is changed by redux state updating

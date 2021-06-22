@@ -1,4 +1,13 @@
-import {createAgentReducer, weakSharing, OriginAgent, sharing, Reducer, Action} from "../../../src";
+import {
+    createAgentReducer,
+    weakSharing,
+    OriginAgent,
+    sharing,
+    Reducer,
+    Action,
+    middleWare,
+    MiddleWarePresets
+} from "../../../src";
 
 type User={
     name?:string,
@@ -15,6 +24,11 @@ class UserModel implements OriginAgent<User>{
 
     changeId(id:number){
         return {...this.state,id};
+    }
+
+    @middleWare(MiddleWarePresets.takeLatestAssignable())
+    remoteLatestChange(delay:number,name:string){
+        return new Promise((r)=>setTimeout(r,delay,{name}));
     }
 
 }
@@ -53,6 +67,21 @@ describe("persistent model sharing",()=>{
         // create agent3, agent3.state keep equal with model.state
         const {agent:agent3}=createAgentReducer(ref.current);
         expect(agent3.state.name).toBe('name');
+    });
+
+    it('the state of the middleWare on model methods shares too',async ()=>{
+        const ref = sharing(()=>UserModel);
+        const {agent:agent1,destroy:destroy1}=createAgentReducer(ref.current);
+        const {agent:agent2,destroy:destroy2}=createAgentReducer(ref.current);
+        const p1= agent1.remoteLatestChange(200, 'name1');
+        const p2 = agent2.remoteLatestChange(100, 'name2');
+
+        await Promise.all([p1,p2]);
+
+        expect(agent1.state.name).toBe('name2');
+        // 销毁 agent1 和 agent2
+        destroy2();
+        destroy1();
     });
 
 });

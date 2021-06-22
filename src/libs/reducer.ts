@@ -1,4 +1,9 @@
-import { Env, OriginAgent, MiddleWare } from './global.type';
+import {
+  Env,
+  OriginAgent,
+  MiddleWare,
+  SharingType,
+} from './global.type';
 import {
   Action,
   AgentReducer,
@@ -11,7 +16,12 @@ import {
 } from './reducer.type';
 import {
   agentModelResetKey,
-  agentListenerKey, agentNamespaceKey, DefaultActionType, globalConfig, agentHardSharingKey,
+  agentListenerKey,
+  agentNamespaceKey,
+  DefaultActionType,
+  globalConfig,
+  agentSharingTypeKey,
+  agentSharingMiddleWareKey,
 } from './defines';
 import { defaultMiddleWare } from './applies';
 import { generateAgent } from './agent';
@@ -195,20 +205,23 @@ export function sharing<
   const current:T&{
     [agentModelResetKey]?:()=>void,
     [agentListenerKey]?:((s:S)=>any)[],
-    [agentHardSharingKey]?:boolean
+    [agentSharingTypeKey]?:SharingType
   } = typeof Model === 'function' ? new Model() : Model;
-  current[agentHardSharingKey] = true;
+  current[agentSharingTypeKey] = 'hard';
   return { current };
 }
 
 export function weakSharing<
     S,
-    T extends OriginAgent<S> = OriginAgent<S>
+    T extends OriginAgent<S>&{[agentSharingMiddleWareKey]?:Record<string, unknown>} = OriginAgent<S>
     >(
   factory:()=>T|{new ():T},
 ):{current:T} {
   const ref:{current:T|null} = { current: null };
   const reset = () => {
+    if (ref.current) {
+      ref.current[agentSharingMiddleWareKey] = undefined;
+    }
     ref.current = null;
     const Model = factory();
     const nextModel:T&{
@@ -255,7 +268,7 @@ export function oldCreateAgentReducer<
 
   storeSlot.subscribe((nextState:S, action:Action) => {
     const needUpdate = nextState !== entity.state;
-    if (needUpdate && (!env.expired || entity[agentHardSharingKey])) {
+    if (needUpdate && (!env.expired || entity[agentSharingTypeKey] === 'hard')) {
       entity.state = nextState;
     }
     changeStack.push(nextState, action);
@@ -287,8 +300,8 @@ export function oldCreateAgentReducer<
         storeSlot.dispatch = (action:Action) => {
           if (
             (
-              entity[agentHardSharingKey]
-              || (!env.strict && !env.expired)
+              entity[agentSharingTypeKey] === 'hard'
+              || !env.expired
             )
               && action.args !== entity.state
           ) {
