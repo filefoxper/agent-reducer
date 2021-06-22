@@ -226,9 +226,11 @@ export function weakSharing<
     const Model = factory();
     const nextModel:T&{
       [agentModelResetKey]?:()=>void,
+      [agentSharingTypeKey]?:SharingType,
       [agentListenerKey]?:((s:S)=>any)[]
     } = typeof Model === 'function' ? new Model() : Model;
     nextModel[agentModelResetKey] = reset;
+    nextModel[agentSharingTypeKey] = 'weak';
     ref.current = nextModel;
   };
   reset();

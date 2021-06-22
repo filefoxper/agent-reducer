@@ -58,7 +58,11 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 
 * [refactor] do refactor for `agent.ts` and `reducer.ts`.
 
-## v3.6.0 2021-06-25
+## v3.6.0 2021-06-22
 
 * [design] adopt the state changing strategy of `redux`, that means the model state is always updated immediately.
-* [design] when using the model sharing, the `middleWare states` are shared with each agent too. 
+* [design] when using the model sharing, the `middleWare states` are shared with each agent too.
+
+## v3.6.1 2021-06-22
+
+* [bug] fix v3.6.0, weakSharing can not share inside middleWare caches.  
