@@ -295,9 +295,6 @@ export function oldCreateAgentReducer<
           'You should set env.updateBy to be `manual` before updating state and dispatch from outside.',
         );
       }
-      const nextState = (dispatch !== undefined
-        ? state
-        : storeSlot.getState()) as S;
       if (dispatch !== undefined) {
         storeSlot.dispatch = (action:Action) => {
           if (
@@ -318,10 +315,6 @@ export function oldCreateAgentReducer<
           modelConnector.notify(action.args);
         };
       }
-      if (nextState === entity.state) {
-        return;
-      }
-      entity.state = nextState;
     },
     recordChanges() {
       if (env.updateBy !== 'auto') {

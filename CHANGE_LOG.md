@@ -65,4 +65,8 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 
 ## v3.6.1 2021-06-22
 
-* [bug] fix v3.6.0, weakSharing can not share inside middleWare caches.  
+* [bug] fix v3.6.0, weakSharing can not share inside middleWare caches.
+
+## v3.6.2 2021-07-02
+
+* [bug] fix the state feedback problem, the outside state should not feedback from v3.6.0.
