@@ -48,7 +48,7 @@ describe("接入其他 reducer 工具", () => {
         const reducer = createAgentReducer(CountAgent, { updateBy: "manual" });
         // 'AgentReducer' function 是一个 reducer function，
         // 它可以很容易地在一个 reducer 系统中使用起来。
-        const store = createStore(reducer, 1);
+        const store = createStore(reducer, reducer.agent.state);
         const { agent, update } = reducer;
         // 使用 store.subscribe 监听 'redux' 更新
         const unListen = store.subscribe(() => {
@@ -59,7 +59,7 @@ describe("接入其他 reducer 工具", () => {
 
         agent.stepUp();
 
-        expect(agent.state).toBe(2);
+        expect(agent.state).toBe(1);
         // 更新完后，redux中的 state 与 agent.state 保持一致
         expect(store.getState()).toBe(agent.state);
         unListen();

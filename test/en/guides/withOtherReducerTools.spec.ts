@@ -52,7 +52,7 @@ describe("use with other reducer tools", () => {
         // so, it can be used with reducer tool as 'redux'.
         // creating a store by using 'createStore',
         // and this store object has interface function 'getState', 'dispatch' and 'subscribe'
-        const store = createStore(reducer, 1);
+        const store = createStore(reducer, reducer.agent.state);
         const { agent, update } = reducer;
         // use store.subscribe to listen 'redux' running
         const unListen = store.subscribe(() => {
@@ -64,7 +64,7 @@ describe("use with other reducer tools", () => {
         // change agent state
         agent.stepUp();
         // state changed
-        expect(agent.state).toBe(2);
+        expect(agent.state).toBe(1);
         // state in 'redux' store changed too,
         // and it is equal with agent state,
         // or it is better to say agent state is changed by redux 'state'

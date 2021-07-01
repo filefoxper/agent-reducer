@@ -74,3 +74,7 @@
 ## v3.6.1 2021-06-22
 
 * [bug] 修正 v3.6.0, weakSharing 不能共享middleWare缓存的问题。
+
+## v3.6.2 2021-07-02
+
+* [bug] 修正 state 更新回流问题，采用 redux 更新策略后， state 不能回流更新。
