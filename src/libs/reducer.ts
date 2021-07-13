@@ -270,7 +270,10 @@ export function oldCreateAgentReducer<
 
   storeSlot.subscribe((nextState:S, action:Action) => {
     const needUpdate = nextState !== entity.state;
-    if (needUpdate && (!env.expired || entity[agentSharingTypeKey] === 'hard')) {
+    if (needUpdate
+        && (!env.expired || entity[agentSharingTypeKey] === 'hard')
+         && action.type !== DefaultActionType.DX_MUTE_STATE
+    ) {
       entity.state = nextState;
     }
     changeStack.push(nextState, action);
@@ -303,6 +306,7 @@ export function oldCreateAgentReducer<
               || !env.expired
             )
               && action.args !== entity.state
+              && action.type !== DefaultActionType.DX_MUTE_STATE
           ) {
             entity.state = action.args;
           }

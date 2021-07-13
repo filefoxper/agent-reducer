@@ -70,3 +70,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v3.6.2 2021-07-02
 
 * [bug] fix the state feedback problem, the outside state should not feedback from v3.6.0.
+
+## v3.6.3 2021-07-13
+
+* [bug] fix the problem about state modified by a notified action.
