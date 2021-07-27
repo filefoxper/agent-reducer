@@ -145,6 +145,14 @@ function createModelConnector<
   };
 }
 
+function hasListeners<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    >(modelInstance: T&{[agentListenerKey]?:((s:S)=>any)[]}) {
+  const listeners = modelInstance[agentListenerKey] || [];
+  return listeners.length !== 0;
+}
+
 function createStoreSlot<S>(
   initialState:S,
   reducer: Reducer<S, Action>,
@@ -215,14 +223,22 @@ export function weakSharing<
     S,
     T extends OriginAgent<S>&{[agentSharingMiddleWareKey]?:Record<string, unknown>} = OriginAgent<S>
     >(
-  factory:()=>T|{new ():T},
-):{current:T} {
-  const ref:{current:T|null} = { current: null };
+  factory:(...args:any[])=>T|{new ():T},
+):{current:T, initial:(...args:any[])=>T} {
+  const ref:{
+    current:T|null,
+    initial?:(...args:any[])=>void
+  } = {
+    current: null,
+  };
   const reset = () => {
     if (ref.current) {
       ref.current[agentSharingMiddleWareKey] = undefined;
     }
     ref.current = null;
+    if (factory.length) {
+      return;
+    }
     const Model = factory();
     const nextModel:T&{
       [agentModelResetKey]?:()=>void,
@@ -233,8 +249,23 @@ export function weakSharing<
     nextModel[agentSharingTypeKey] = 'weak';
     ref.current = nextModel;
   };
+  ref.initial = (...args:any[]):T => {
+    if (ref.current) {
+      return ref.current;
+    }
+    const Model = factory(...args);
+    const nextModel:T&{
+      [agentModelResetKey]?:()=>void,
+      [agentSharingTypeKey]?:SharingType,
+      [agentListenerKey]?:((s:S)=>any)[]
+    } = typeof Model === 'function' ? new Model() : Model;
+    nextModel[agentModelResetKey] = reset;
+    nextModel[agentSharingTypeKey] = 'weak';
+    ref.current = nextModel;
+    return ref.current;
+  };
   reset();
-  return ref as {current:T};
+  return ref as {current:T, initial:(...args:any[])=>T};
 }
 
 export function oldCreateAgentReducer<
@@ -271,7 +302,7 @@ export function oldCreateAgentReducer<
   storeSlot.subscribe((nextState:S, action:Action) => {
     const needUpdate = nextState !== entity.state;
     if (needUpdate
-        && (!env.expired || entity[agentSharingTypeKey] === 'hard')
+        && (hasListeners(entity) || entity[agentSharingTypeKey] === 'hard')
          && action.type !== DefaultActionType.DX_MUTE_STATE
     ) {
       entity.state = nextState;
@@ -303,7 +334,7 @@ export function oldCreateAgentReducer<
           if (
             (
               entity[agentSharingTypeKey] === 'hard'
-              || !env.expired
+              || hasListeners(entity)
             )
               && action.args !== entity.state
               && action.type !== DefaultActionType.DX_MUTE_STATE

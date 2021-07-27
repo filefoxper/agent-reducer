@@ -63,7 +63,7 @@ describe('how to use createAgentReducer', () => {
         // createAgentReducer has a simple reducer processor inside.
         const {agent} = createAgentReducer(CountAgent, {expired: true});
         await agent.increase();
-        expect(agent.state).toBe(0);
+        expect(agent.state).toBe(1);
     });
 
     it('use both MiddleWare and env directly on createAgentReducer', async () => {

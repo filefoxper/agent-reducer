@@ -66,7 +66,7 @@ describe('如何使用 API createAgentReducer', () => {
         // createAgentReducer 自带一个简单的内置 reducer 处理器
         const {agent} = createAgentReducer(CountAgent, {expired: true});
         await agent.increase();
-        expect(agent.state).toBe(0);
+        expect(agent.state).toBe(1);
     });
 
     it('直接在createAgentReducer上同时使用MiddleWare和运行环境env配置', async () => {

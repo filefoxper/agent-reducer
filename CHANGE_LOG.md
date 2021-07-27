@@ -74,3 +74,8 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v3.6.3 2021-07-13
 
 * [bug] fix the problem about state modified by a notified action.
+
+## v3.7.0 2021-07-27
+
+* [design] the weakSharing agent can change model state whether it is destroyed or not, only when all the sharing agents are destroyed.
+* [design] add the `initial` callback to the weakSharing API returns. 
