@@ -118,9 +118,10 @@ export declare function sharing<S, T extends OriginAgent<S> = OriginAgent<S>>(fa
     current: T;
 };
 export declare function weakSharing<S, T extends OriginAgent<S> = OriginAgent<S>>(
-    factory: () => T | { new (): T; }
+    factory: (...args:any[]) => T | { new (): T; }
 ): {
     current: T;
+    initial:(...args:any[])=>T;
 };
 export declare function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>(
     originAgent: T | { new (): T; },
