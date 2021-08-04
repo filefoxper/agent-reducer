@@ -117,12 +117,26 @@ export declare function sharing<S, T extends OriginAgent<S> = OriginAgent<S>>(fa
 }): {
     current: T;
 };
-export declare function weakSharing<S, T extends OriginAgent<S> = OriginAgent<S>>(
-    factory: (...args:any[]) => T | { new (): T; }
-): {
-    current: T;
-    initial:(...args:any[])=>T;
+
+declare type Factory<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    > = (...args:any[])=>T|{new ():T};
+
+declare type SharingRef<
+    S,
+    T extends OriginAgent<S>= OriginAgent<S>,
+    > = {
+    current:T,
+    initial:Factory<S, T>
 };
+
+export declare function weakSharing<
+    S,
+    T extends OriginAgent<S>=OriginAgent<S>
+    >(
+    factory:Factory<S, T>,
+):SharingRef<S, T>;
 export declare function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>(
     originAgent: T | { new (): T; },
     middleWareOrEnv?: (MiddleWare & { lifecycle?: boolean; }) | Env, e?: Env

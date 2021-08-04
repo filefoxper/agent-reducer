@@ -13,6 +13,9 @@ import {
   ReducerPadding,
   Dispatch,
   Listener,
+  Factory,
+  Ref,
+  SharingRef,
 } from './reducer.type';
 import {
   agentModelResetKey,
@@ -25,7 +28,7 @@ import {
 } from './defines';
 import { defaultMiddleWare } from './applies';
 import { generateAgent } from './agent';
-import { createInstance } from './util';
+import { createInstance, createProxy } from './util';
 
 /**
  * Create a reducer function for a standard reducer system.
@@ -219,16 +222,28 @@ export function sharing<
   return { current };
 }
 
-export function weakSharing<
+function createWeakSharingModel<
     S,
     T extends OriginAgent<S>&{[agentSharingMiddleWareKey]?:Record<string, unknown>} = OriginAgent<S>
+    >(Model:T|{new ():T}, reset:()=>void):T {
+  const nextModel:T&{
+    [agentModelResetKey]?:()=>void,
+    [agentSharingTypeKey]?:SharingType,
+    [agentListenerKey]?:((s:S)=>any)[]
+  } = typeof Model === 'function' ? new Model() : Model;
+  nextModel[agentModelResetKey] = reset;
+  nextModel[agentSharingTypeKey] = 'weak';
+  return nextModel;
+}
+
+export function weakSharing<
+    S,
+    T extends OriginAgent<S>&{[agentSharingMiddleWareKey]?:Record<string, unknown>}=OriginAgent<S>
     >(
-  factory:(...args:any[])=>T|{new ():T},
-):{current:T, initial:(...args:any[])=>T} {
-  const ref:{
-    current:T|null,
-    initial?:(...args:any[])=>void
-  } = {
+  factory:Factory<S, T>,
+):SharingRef<S, T> {
+  let initialed = false;
+  const ref:Ref<S, T> = {
     current: null,
   };
   const reset = () => {
@@ -236,36 +251,30 @@ export function weakSharing<
       ref.current[agentSharingMiddleWareKey] = undefined;
     }
     ref.current = null;
-    if (factory.length) {
-      return;
-    }
-    const Model = factory();
-    const nextModel:T&{
-      [agentModelResetKey]?:()=>void,
-      [agentSharingTypeKey]?:SharingType,
-      [agentListenerKey]?:((s:S)=>any)[]
-    } = typeof Model === 'function' ? new Model() : Model;
-    nextModel[agentModelResetKey] = reset;
-    nextModel[agentSharingTypeKey] = 'weak';
-    ref.current = nextModel;
   };
   ref.initial = (...args:any[]):T => {
-    if (ref.current) {
+    if (ref.current && initialed) {
       return ref.current;
     }
+    initialed = true;
     const Model = factory(...args);
-    const nextModel:T&{
-      [agentModelResetKey]?:()=>void,
-      [agentSharingTypeKey]?:SharingType,
-      [agentListenerKey]?:((s:S)=>any)[]
-    } = typeof Model === 'function' ? new Model() : Model;
-    nextModel[agentModelResetKey] = reset;
-    nextModel[agentSharingTypeKey] = 'weak';
-    ref.current = nextModel;
-    return ref.current;
+    ref.current = createWeakSharingModel(Model, reset);
+    return ref.current as T;
   };
-  reset();
-  return ref as {current:T, initial:(...args:any[])=>T};
+  return createProxy(ref, {
+    get(
+      target: Ref<S, T>,
+      p: keyof Ref<S, T>,
+    ): any {
+      const value = target[p];
+      if (p === 'current' && !value) {
+        const initialCurrent = createWeakSharingModel(factory(), reset);
+        ref.current = initialCurrent;
+        return initialCurrent;
+      }
+      return value;
+    },
+  }) as SharingRef<S, T>;
 }
 
 export function oldCreateAgentReducer<

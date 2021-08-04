@@ -79,3 +79,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 
 * [design] the weakSharing agent can change model state whether it is destroyed or not, only when all the sharing agents are destroyed.
 * [design] add the `initial` callback to the weakSharing API returns. 
+
+## v3.7.1 2021-08-04
+
+* [design] the current property in weakSharing ref will be reset when first usage about it appears.

@@ -12,6 +12,27 @@ export type Change<S = any> = {
   state: S;
 };
 
+export type Factory<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    > = (...args:any[])=>T|{new ():T};
+
+export type Ref<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>,
+    > = {
+  current: T | null,
+  initial?: Factory<S, T>
+}
+
+export type SharingRef<
+    S,
+    T extends OriginAgent<S>= OriginAgent<S>,
+    > = {
+  current:T,
+  initial:Factory<S, T>
+}
+
 export type Listener<S> = (nextState:S, action:Action)=>void;
 
 export interface Store<S = any> {
