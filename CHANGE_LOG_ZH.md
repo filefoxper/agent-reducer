@@ -87,3 +87,7 @@
 
 * [design] 在 weakSharing 模式下，除非所有共享代理全部销毁，否则就可以更改模型的 state，但外部 state 更新依旧依赖于当前 agent 是否被销毁。
 * [design] weakSharing API 返回对象属性中增加了 initial 回调。
+
+## v3.7.1 2021-08-04
+
+* [design] weakSharing 的 current 初始化将发生在第一次重新使用它的时候。
