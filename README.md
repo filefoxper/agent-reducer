@@ -8,135 +8,249 @@
 
 # agent-reducer
 
-Do you want a more simple `reducer`? Try `agent-reducer`. 
+`agent-reducer` is a model container for Javascript apps.
 
-`agent-reducer` turns a model ( class instance or object ) to a `reducer` function. The model we calls `OriginAgent` should has a `state` property for storing a maintainable data, and `methods` for producing `next state`. It just like what a reducer should be. And you can use `MiddleWares` ecosystem to reproduce the `next state`, or control the method actions. 
+It helps you write applications with a micro `mvvm` pattern and provides a great developer experience.
 
-## other language
+You can use `agent-reducer` together with [React](https://reactjs.org), [Redux](https://redux.js.org), or with any other view library.
+
+## Other language
 
 [中文](https://github.com/filefoxper/agent-reducer/blob/master/README_zh.md)
 
-## usage
+## Compare with reducer
 
-#### compare with old reducer
+`agent-reducer` is desgined for splitting reducer function to smaller parts for different action types. And we found that `class` is a appropriate pattern for action splitting. So, the model pattern for `agent-reducer` looks like a class with a `state` property, and some reducer like methods.
+
+With the comparison between `reducer usage` and `agent-reducer usage`, you will have a first impression about what the model looks like. 
+
+The comparison is built on [React hooks](https://reactjs.org/docs/hooks-intro.html) ecosystem.
 
 ```typescript
-import {OriginAgent} from "agent-reducer";
+import {Model} from "agent-reducer";
 import {useReducer} from 'react';
 import {useAgentReducer} from 'use-agent-reducer';
 
-    interface Action {
-        type?: 'stepUp' | 'stepDown' | 'step' | 'sum',
-        payload?: number[] | boolean
+interface Action {
+    type?: 'stepUp' | 'stepDown' | 'step' | 'sum',
+    payload?: number[] | boolean
+}
+
+/**
+* reducer description
+* @param state  last state
+* @param action object as params
+*/
+const countReducer = (state: number = 0, action: Action = {}): number => {
+    switch (action.type) {
+        case "stepDown":
+            return state - 1;
+        case "stepUp":
+            return state + 1;
+        case "step":
+            return state + (action.payload ? 1 : -1);
+        case "sum":
+            return state + (Array.isArray(action.payload) ?
+                action.payload : []).reduce((r, c): number => r + c, 0);
+        default:
+            return state;
     }
+}
 
-    /**
-     * old reducer usage
-     * @param state
-     * @param action
-     */
-    const countReducer = (state: number = 0, action: Action = {}): number => {
-        switch (action.type) {
-            case "stepDown":
-                return state - 1;
-            case "stepUp":
-                return state + 1;
-            case "step":
-                return state + (action.payload ? 1 : -1);
-            case "sum":
-                return state + (Array.isArray(action.payload) ?
-                    action.payload : []).reduce((r, c): number => r + c, 0);
-            default:
-                return state;
-        }
-    }
-
-    /**
-     * agent-reducer looks like a reducer, 
-     * but simplified by using class style
-     */
-    class CountAgent implements OriginAgent<number> {
-
-        state = 0;
+/**
+* model description
+*/
+class Counter implements Model<number> {
+    // current state
+    state = 0;
         
-        stepUp = (): number => this.state + 1;
+    stepUp = (): number => this.state + 1;
 
-        stepDown = (): number => this.state - 1;
+    stepDown = (): number => this.state - 1;
 
-        step(isUp: boolean):number{ 
-            // method 'stepUp','stepDown' will not change state,
-            // only the method from 'agent', 
-            // which is transfromed by createAgentReducer can change state
-            return isUp ? this.stepUp() : this.stepDown();
-        }
-
-        sum(...counts: number[]): number {
-            return this.state + counts.reduce((r, c): number => r + c, 0);
-        };
-
+    step(isUp: boolean):number{
+        return isUp ? this.stepUp() : this.stepDown();
+    }
+    // free to set params
+    sum(...counts: number[]): number {
+        return this.state + counts.reduce((r, c): number => r + c, 0);
     }
 
-    // old reducer
-    const [ state, dispatch ] = useReducer(countReducer,0);
+}
+
+......
+
+// reducer tool
+const [ state, dispatch ] = useReducer(countReducer,0);
     
-    const handleSum = (...additions:number[]) => {
-        // you need to dispatch an action object, 
-        // as the params for your 'reducer' function.
-        dispatch({type:'sum',payload:additions});
-    };
+// define sum callback
+const handleSum = (...additions:number[]) => {
+    dispatch({type:'sum',payload:additions});
+};
 
-    // agent-reducer
-    const agent = useAgentReducer(CountAgent);
+// agent-reducer
+const { 
+    state:agentState, 
+    // sum method reference
+    stepUp:handleAgentSum 
+} = useAgentReducer(Counter);
+// do not worry about the keyword `this`
+// in method `handleAgentSum` from an `agent object`,
+// it is always bind to your model instance,
+// which is created or enhanced by agent-reducer.
 
-    const { state:agentState, stepUp } = agent;
+......
 
-    // Just call a method from your class instance created by 'agent-reducer'.
-    // Keyword 'this' has been bind with agent instance by 'agent-reducer'.
-    // The method is coming from an 'Agent' which is transformed from your model,
-    // so, it will trigger an auto dispatch, and change 'Agent' state.
-    const handleAgentSum = stepUp;
 ```
 
-As `agent-reducer` is an independent library, connectors like [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer) or [use-redux-agent](https://www.npmjs.com/package/use-redux-agent) for `react` or `redux` are necessary. And if you want, there are apis provided for helping you build a custom connector too.
+Like any other independent libraries, `agent-reducer` needs connectors for working with a view library. If you are working with React, we recommend [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer) as its connector. 
 
-#### use MiddleWares
+## Basic usage
+
 ```typescript
-import {MiddleWarePresets,createAgentReducer} from 'agent-reducer';
+import {
+    MiddleWarePresets,
+    create,
+    middleWare,
+    Model
+} from 'agent-reducer';
 
-    class CountAgent implements OriginAgent<number> {
+describe('basic usage',()=>{
 
-        state = 0;
+    // this is a counter model,
+    // we can increase or decrease its state
+    class Counter implements Model<number> {
+
+        state = 0;  // initial state
         
+        // consider what the method returns as a next state for model
         stepUp = (): number => this.state + 1;
 
         stepDown = (): number => this.state - 1;
 
-        step(isUp: boolean):number{ 
+        step(isUp: boolean):number{
             return isUp ? this.stepUp() : this.stepDown();
         }
+
         // if you want to take a promise resolved data as next state,
         // you can add a middleWare.
-        async sumByRequests(): number {
+        @middleWare(MiddleWarePresets.takePromiseResolve())
+        async sumByAsync(): Promise<number> {
             const counts = await Promise.resolve([1,2,3]);
             return counts.reduce((r, c): number => r + c, 0);
-        };
+        }
 
     }
-    // use MiddleWarePresets.takePromiseResolve()
-    const {agent}=createAgentReducer(CountAgent,MiddleWarePresets.takePromiseResolve());
 
-    await agent.sumByRequests();
+    test('by default, a method result should be the next state',()=>{
+        // use create api, you can create an `Agent` object from its `Model`
+        const {agent,connect,disconnect} = create(Counter);
+        // before call the methods,
+        // you need to connect it first
+        connect();
+        // calling result which is returned by method `stepUp` will be next state
+        agent.stepUp();
+        // if there is no more work for `Agent`,
+        // you should disconnect it.
+        disconnect();
+        expect(agent.state).toBe(1);
+    });
 
-    agent.state; // 6
+    test('If you want to take a promise resolve data as next state, you should use MiddleWare',async ()=>{
+        // use create api, you can create an `Agent` object from its `Model`
+        const {agent,connect,disconnect} = create(Counter);
+        // before call the methods,
+        // you need to connect it first
+        connect();
+        // calling result which is returned by method `sumByAsync`
+        // will be reproduced by `MiddleWarePresets.takePromiseResolve()`,
+        // then this MiddleWare will take the promise resolved value as next state
+        await agent.sumByAsync();
+        // if there is no more work for `Agent`,
+        // you should disconnect it.
+        disconnect();
+        expect(agent.state).toBe(6);
+    });
+
+});
     
 ```
 
-`agent-reducer` provides a rich `MiddleWare` ecosystem, you can pick some appropriate `MiddleWares` from `MiddleWarePresets` or `MiddleWares`, and add them to your method by using api `middleWare` or `useMiddleWare` or `createAgentReducer` directly. You can write your own `MiddleWare`, and use it with the `MiddleWare` ecosystem too.
+`agent-reducer` provides a rich MiddleWare ecosystem, you can pick appropriate MiddleWares from MiddleWarePresets, and add them to your method by using api `middleWare, withMiddleWare, agentOf` or `create` directly. You can also write and use your own `MiddleWare` to our system too.
 
-## connector
+## Share state change synchronously
 
-[use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer) react hook for replacing `react useReducer`.
+`agent-reducer` stores state, caches, listeners in the model instance, so you can share state change synchronously between two or more agent objects by using the same model instance.
 
-## document
+```typescript
+import {
+    create,
+    middleWare,
+    MiddleWarePresets,
+    Action,
+    Model
+} from 'agent-reducer';
 
-If you are interested in `agent-reducer`, and want to learn more about it, you can go step to [document](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/index.md).
+describe('update by observing another agent',()=>{
+
+    // this is a counter model,
+    // we can increase or decrease its state
+    class Counter implements Model<number> {
+
+        state = 0;  // initial state
+
+        // consider what the method returns as a next state for model
+        stepUp = (): number => this.state + 1;
+
+        stepDown = (): number => this.state - 1;
+
+        step(isUp: boolean):number{
+            return isUp ? this.stepUp() : this.stepDown();
+        }
+
+    }
+
+    const counter = new Counter();
+
+    test('an agent can share state change with another one, if they share a same model instance',()=>{
+        // we create two listeners `dispatch1` and `dispatch2` for different agent reducer function
+        const dispatch1 = jest.fn().mockImplementation((action:Action)=>{
+            // the agent action contains a `state` property,
+            // this state is what the model state should be now.
+            expect(action.state).toBe(1);
+        });
+        const dispatch2 = jest.fn().mockImplementation((action:Action)=>{
+            expect(action.state).toBe(1);
+        });
+        // use create api,
+        // you can create an `Agent` object from its `Model`
+        const reducer1 = create(counter);
+        const reducer2 = create(counter);
+        // before call the methods,
+        // you need to connect it first,
+        // you can add a listener to listen the agent action,
+        // by using connect function
+        reducer1.connect(dispatch1);
+        reducer2.connect(dispatch2);
+        // calling result which is returned by method `stepUp` will be next state.
+        // then reducer1.agent will notify state change to reducer2.agent.
+        reducer1.agent.stepUp();
+
+        expect(dispatch1).toBeCalled();     // dispatch1 work
+        expect(dispatch2).toBeCalled();     // dispatch2 work
+        expect(counter.state).toBe(1);
+    });
+
+});
+
+```
+
+The previous example may not easy for understanding, but consider if we use this feature in a view library like React, we can update state synchronously between different components without `props` or `context`， and these components will rerender synchronously. You can use it easily with its React connnector [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer).
+
+## Connector
+
+* [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer)
+
+## Document
+
+If you want to learn more, you can go into our [document](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/index.md) for more details.

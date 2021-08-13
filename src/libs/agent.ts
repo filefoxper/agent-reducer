@@ -1,16 +1,26 @@
-import { Action, Store } from './reducer.type';
 import {
-  Env, MiddleWare, Runtime, OriginAgent, LifecycleMiddleWare, LifecycleEnv,
+  Env,
+  MiddleWare,
+  Runtime,
+  OriginAgent,
+  LifecycleMiddleWare,
+  LifecycleEnv,
+  Action,
+  Store,
+  SharingMiddleWareMethods,
+  MethodEffectOption, MethodCaller,
 } from './global.type';
 import {
+  agentCallingMiddleWareKey,
   agentDependenciesKey,
-  agentIdentifyKey,
-  agentNamespaceKey, agentSharingMiddleWareKey, agentSharingTypeKey,
+  agentIdentifyKey, agentMethodEffectKey,
+  agentSharingMiddleWareKey,
 } from './defines';
 import { createProxy } from './util';
 import { AgentDependencies } from './agent.type';
 
 import { applyMiddleWares, defaultMiddleWare } from './applies';
+import { addEffect } from './effect';
 
 /**
  *  use dependencies to create a dispatch callback
@@ -21,15 +31,12 @@ function generateDispatchCall<S, T extends OriginAgent<S>>(
   invokeDependencies: AgentDependencies<S, T>,
   proxy:T,
 ) {
-  const { entry, store, env } = invokeDependencies;
-  const namespace = entry[agentNamespaceKey];
-  return ({ type, args }: Action) => {
+  const { store, env } = invokeDependencies;
+  return ({ type, state }: Action) => {
     if ((!proxy[agentDependenciesKey]) && env.expired) {
       return;
     }
-    // if agent has a namespace, dispatch `${namespace}:${type}` as the type
-    const newType = namespace === undefined ? type : `${namespace}:${type}`;
-    store.dispatch({ type: newType, args });
+    store.dispatch({ type, state });
   };
 }
 
@@ -47,7 +54,7 @@ function createDispatchStateProcess<S, T extends OriginAgent<S>>(
 ) {
   const dispatchCall = generateDispatchCall(invokeDependencies, proxy);
   return function finalStateProcess<NS = S>(nextState: NS): NS {
-    dispatchCall({ type: methodName, args: nextState });
+    dispatchCall({ type: methodName, state: nextState });
     return nextState;
   };
 }
@@ -61,33 +68,15 @@ function createRuntime<S, T extends OriginAgent<S>>(
     entry,
   } = invokeDependencies;
   return {
-    callerName: methodName,
-    sourceCaller: entry[methodName] as (...args: any[]) => any,
-    target: proxy,
-    source: entry,
+    methodName,
+    agent: proxy,
+    model: entry,
     env: invokeDependencies.env,
     cache: {},
-    rollbacks: {},
-    tempCaller: undefined,
-    mapSourceProperty(
-      key: keyof T,
-      callback: (value: any, instance: T, runtime: Runtime<T>) => any,
-    ) {
-      const current = entry[key];
-      const newValue = callback(current, entry, this as Runtime<T>);
-      if (methodName === key) {
-        this.tempCaller = newValue;
-      } else {
-        entry[key] = newValue;
-        this.rollbacks[key] = current;
-      }
-      return this;
-    },
-    rollback() {
-      Object.assign(entry, this.rollbacks);
-      this.rollbacks = {};
-      this.tempCaller = undefined;
-      return this;
+    mappedModel: null,
+    mapModel(handler:ProxyHandler<T>) {
+      this.mappedModel = createProxy(entry, handler);
+      return this.mappedModel;
     },
   } as Omit<Runtime<T>, 'caller'>;
 }
@@ -115,8 +104,10 @@ function createActionRunner<S, T extends OriginAgent<S>>(
   if (functionCache[methodName]) {
     return functionCache[methodName];
   }
+  const modelMethod = entry[methodName] as ((...a: any[]) => any);
+  const sourceMethodDescriptors = Object.getOwnPropertyDescriptors(modelMethod);
   // wrapped method
-  function caller(...args: any[]):any {
+  const caller:MethodCaller<T> = function caller(...args: any[]):any {
     const { env, middleWare } = invokeDependencies;
     const runtime = cache[methodName];
     if (!runtime) {
@@ -131,39 +122,30 @@ function createActionRunner<S, T extends OriginAgent<S>>(
     const nextProcess = middleWare(runtime);
     // if nextProcess is undefined, stop running the source method
     if (!nextProcess) {
-      runtime.tempCaller = undefined;
       return undefined;
     }
     // if middleWare wrapped current method by runtime.mapSourceProperty,
     // the current method should be the wrapped method,
     // and runtime stores it in tempCaller property
-    const sourceCaller = runtime.tempCaller || runtime.sourceCaller;
-    // compatible with >=agent-reducer@1.0.0
-    // TODO remove this compat when agent-reducer@4.0.0 is prepared
+    const { mappedModel } = runtime;
     try {
-      const nextState = env.legacy
-        ? sourceCaller.apply(proxy, [...args])
-        : sourceCaller.apply(entry, [...args]);
-
+      const nextState = mappedModel !== null
+        ? modelMethod.apply(mappedModel, [...args])
+        : modelMethod.apply(entry, [...args]);
       const stateProcess = nextProcess(dispatchStateProcess);
       // pass nextState returned by current method to middleWare stateProcess,
       // middleWare use stateProcess to reproduce state,
-      // and use dispatchStateProcess to dispatch the final state,
-      // TODO returns the reproduced state as a result is not a good idea,
-      // TODO change it to return nextState directly when agent@4.0.0 is prepared
+      // and use dispatchStateProcess to dispatch the final state
       const result = stateProcess(nextState);
-      // after running, clear runtime.tempCaller
-      runtime.tempCaller = undefined;
+      runtime.mappedModel = null;
       return result;
     } catch (e) {
-      // after running, clear runtime.tempCaller
-      runtime.tempCaller = undefined;
+      runtime.mappedModel = null;
       throw e;
     }
-  }
+  };
 
-  // assign wrapped method to runtime caller property
-  cache[methodName].caller = caller;
+  Object.defineProperties(caller, { ...sourceMethodDescriptors });
   // cache method
   functionCache[methodName] = caller;
 
@@ -172,32 +154,27 @@ function createActionRunner<S, T extends OriginAgent<S>>(
 
 // generate the function about how to reproduce a method
 function methodProducer<S, T extends OriginAgent<S>>(
-  invokeDependencies: AgentDependencies<
-      S,
-      T&{[agentSharingMiddleWareKey]?:{[key in keyof T]?: any}}
-      >,
+  invokeDependencies: AgentDependencies<S, T>,
   copyInfo?: {
-      sourceAgent: T & { [agentDependenciesKey]?: AgentDependencies<S, T> };
+      sourceAgent: T;
       type: 'copy' | 'decorator';
     },
 ) {
   const { middleWare, entry } = invokeDependencies;
   // for storing the method from a decorator middleWare copy agent
-  if (entry[agentSharingTypeKey] && !entry[agentSharingMiddleWareKey]) {
+  if (!entry[agentSharingMiddleWareKey]) {
     entry[agentSharingMiddleWareKey] = {};
   }
-  const methodWithMiddleWares: {
-    [key in keyof T]?: any
-  } = entry[agentSharingMiddleWareKey] || {};
+  const methodWithMiddleWares: SharingMiddleWareMethods = entry[agentSharingMiddleWareKey] || {};
   const { type: copyType, sourceAgent } = copyInfo || {};
   return function produceMethod(target: T, property: string, receiver:T) {
     const p = property as keyof T;
     const source = target[p];
     // if the decorator methods cache has current method name,
     // fetch it out directly from the cache
-    if (methodWithMiddleWares[p] && (copyType === undefined
+    if (methodWithMiddleWares[property] && (copyType === undefined
         || (copyType === 'copy' && middleWare === defaultMiddleWare))) {
-      return methodWithMiddleWares[p];
+      return methodWithMiddleWares[property];
     }
     // if the method has property middleWare,
     // and the current agent is not a copy one,
@@ -205,15 +182,15 @@ function methodProducer<S, T extends OriginAgent<S>>(
     // and use the method from this copied agent,
     // then cache this copy method
     if (
-      source.middleWare
+      source[agentCallingMiddleWareKey]
         && (copyType === undefined
         || (copyType === 'copy' && middleWare === defaultMiddleWare))
     ) {
-      const methodWithMiddleWare = decorateWithMiddleWare(
+      const methodWithMiddleWare = decorateWithMiddleWare<S, T>(
         sourceAgent || receiver,
-        source.middleWare,
+        source[agentCallingMiddleWareKey],
       )[p];
-      methodWithMiddleWares[p] = methodWithMiddleWare;
+      methodWithMiddleWares[property] = methodWithMiddleWare;
       return methodWithMiddleWare;
     }
     // create a wrapped method to invoke the source method
@@ -222,7 +199,7 @@ function methodProducer<S, T extends OriginAgent<S>>(
 }
 
 function createAgentDependencies<S, T extends OriginAgent<S>>(
-  entry: T & { [agentDependenciesKey]?: AgentDependencies<S, T> },
+  entry: T,
   store: Store<S>,
   env: Env,
   middleWare: MiddleWare,
@@ -246,16 +223,16 @@ function createAgentDependencies<S, T extends OriginAgent<S>>(
  * @param copyInfo
  */
 export function generateAgent<S, T extends OriginAgent<S>>(
-  entry: T & { [agentDependenciesKey]?: AgentDependencies<S, T> },
+  entry: T,
   store: Store<S>,
   env: Env,
   middleWare: MiddleWare,
   copyInfo?: {
-      sourceAgent: T & { [agentDependenciesKey]?: AgentDependencies<S, T> };
+      sourceAgent: T;
       type: 'copy' | 'decorator';
     },
 ): T {
-  const invokeDependencies: AgentDependencies<S, T> = createAgentDependencies(
+  const invokeDependencies: AgentDependencies<S, T> = createAgentDependencies<S, T>(
     entry,
     store,
     env,
@@ -267,12 +244,9 @@ export function generateAgent<S, T extends OriginAgent<S>>(
     isAgent: true,
   };
 
-  const produceMethod = methodProducer(invokeDependencies, copyInfo);
+  const produceMethod = methodProducer<S, T>(invokeDependencies, copyInfo);
 
-  const proxy: T & {
-    [agentDependenciesKey]?: AgentDependencies<S, T>;
-    [agentIdentifyKey]?: true;
-  } = createProxy(entry, {
+  const proxy: T = createProxy(entry, {
     get(target: T, p: string & keyof T): any {
       const source = target[p];
       if (typeof source === 'function') {
@@ -294,7 +268,7 @@ export function generateAgent<S, T extends OriginAgent<S>>(
       if (p === agentDependenciesKey) {
         agentParams.invokeDependencies = value;
       } else if (p === agentIdentifyKey) {
-        agentParams.isAgent = true;
+        agentParams.isAgent = value;
       } else {
         entry[p] = value;
       }
@@ -337,7 +311,7 @@ function createLifecycleEnv(env:Env, rebuild:()=>any):Env {
 }
 
 function createLifecycleAgentBuilder<S, T extends OriginAgent<S>>(
-  agent: T & { [agentDependenciesKey]?: AgentDependencies<S, T> },
+  agent: T,
   mdw: MiddleWare | LifecycleMiddleWare,
   copyType: 'copy' | 'decorator',
 ) {
@@ -366,11 +340,11 @@ function createLifecycleAgentBuilder<S, T extends OriginAgent<S>>(
 }
 
 export function copyWithMiddleWare<S, T extends OriginAgent<S>>(
-  agent: T & { [agentDependenciesKey]?: AgentDependencies<S, T> },
+  agent: T,
   mdw: MiddleWare | LifecycleMiddleWare,
   copyType: 'copy' | 'decorator',
 ): T {
-  const buildAgent = createLifecycleAgentBuilder(agent, mdw, copyType);
+  const buildAgent = createLifecycleAgentBuilder<S, T>(agent, mdw, copyType);
 
   let agentCloned:T;
 
@@ -384,7 +358,7 @@ export function copyWithMiddleWare<S, T extends OriginAgent<S>>(
     set() {
       return false;
     },
-    get(target: T, p: string | number): any {
+    get(target: T, p: string): any {
       const source = agentCloned[p];
       if (typeof source === 'function') {
         return function replacedCall(...args: any[]) {
@@ -398,8 +372,8 @@ export function copyWithMiddleWare<S, T extends OriginAgent<S>>(
 }
 
 function decorateWithMiddleWare<S, T extends OriginAgent<S>>(
-  agent: T & { [agentDependenciesKey]?: AgentDependencies<S, T> },
+  agent: T,
   mdw: MiddleWare | LifecycleMiddleWare,
 ): T {
-  return copyWithMiddleWare(agent, mdw, 'decorator');
+  return copyWithMiddleWare<S, T>(agent, mdw, 'decorator');
 }

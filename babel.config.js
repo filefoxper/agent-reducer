@@ -3,6 +3,12 @@ module.exports = (api) => {
         plugins: [
             ["@babel/plugin-transform-runtime"],
             ['@babel/plugin-proposal-export-namespace-from'],
+            ["@babel/plugin-proposal-private-property-in-object", { "loose": true }],
+            ["@babel/plugin-proposal-private-methods", { "loose": true }],
+            [
+                '@babel/plugin-proposal-class-properties',
+                {loose: true},
+            ]
         ],
         presets: [
             [
@@ -18,6 +24,12 @@ module.exports = (api) => {
         plugins: [
             ["@babel/plugin-transform-runtime"],
             ['@babel/plugin-proposal-export-namespace-from'],
+            ["@babel/plugin-proposal-private-property-in-object", { "loose": true }],
+            ["@babel/plugin-proposal-private-methods", { "loose": true }],
+            [
+                '@babel/plugin-proposal-class-properties',
+                {loose: true},
+            ]
         ],
         presets: [
             [
@@ -25,7 +37,7 @@ module.exports = (api) => {
                 {
                     modules: false,
                     targets: {
-                        "browsers": ["last 2 versions", "ie >=9"]
+                        "browsers": ["last 2 versions", "ie >=11"]
                     },
                     useBuiltIns: "usage",
                     corejs: {version: 3, proposals: true}
