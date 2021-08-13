@@ -1,10 +1,10 @@
 /** main * */
 
-export { createAgentReducer, sharing, weakSharing } from './libs/reducer';
+export { create, connect } from './libs/reducer';
 
-export { useMiddleWare, middleWare } from './libs/useMiddleWare';
+export { sharing, weakSharing } from './libs/sharing';
 
-export { useMiddleActions, MiddleActions } from './libs/middleActions';
+export { withMiddleWare, middleWare } from './libs/withMiddleWare';
 
 /** middleWares * */
 
@@ -22,13 +22,6 @@ export { default as MiddleWarePresets } from './libs/middleWarePresets';
 /** global set and defines * */
 
 export {
-  globalConfig,
-  clearGlobalConfig,
   DefaultActionType,
-  getAgentNamespaceKey,
   isAgent,
 } from './libs/defines';
-
-/** legacy api * */
-
-export { branch, BranchResolvers } from './libs/branch';

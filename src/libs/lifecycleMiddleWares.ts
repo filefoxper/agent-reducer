@@ -22,7 +22,7 @@ export class LifecycleMiddleWares {
       return function takeLatestNextProcess(next: StateProcess): StateProcess {
         return function takeLatestStateProcess(result: any):any {
           const { env } = runtime;
-          const source = runtime.source as T&{[modelCacheKey]?:Record<string, unknown>};
+          const source = runtime.model as T&{[modelCacheKey]?:Record<string, unknown>};
           if (!source[modelCacheKey]) {
             source[modelCacheKey] = {};
           }

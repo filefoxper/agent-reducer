@@ -7,39 +7,17 @@ export interface OriginAgent<S = any> {
 export type Model<S = any> = OriginAgent<S>;
 
 export interface Env {
-    updateBy?: 'manual' | 'auto';
     expired?: boolean;
-    strict?: boolean;
-    legacy?: boolean;
-    nextExperience?: boolean;
 }
 
-export interface GlobalConfig {
-    env?: Env;
-    defaultMiddleWare?: MiddleWare;
-}
-
-declare type Caller = (...args: any[]) => any;
-
-declare type SourcePropertyMapper<T> = ((value: any, instance: T, runtime: Runtime<T>) => any);
-
-export declare type Runtime<T = any> = {
-    caller: Caller;
-    sourceCaller: Caller;
-    callerName: keyof T;
+export declare type Runtime<T extends Record<string, any>=any> = {
+    methodName: string|number;
     args?: any[];
-    target: T;
-    source: T;
+    agent: T;
+    model: T;
     env: Env;
-    cache: {
-        [key: string]: any;
-    };
-    rollbacks: {
-        [key in keyof T]?: T[key];
-    };
-    mapSourceProperty: (key: keyof T, caller: SourcePropertyMapper<T>) => Runtime<T>;
-    rollback: () => Runtime<T>;
-    tempCaller?: Caller;
+    cache: { [key: string]: any };
+    mapModel:(handler:ProxyHandler<T>)=>T;
 };
 
 export declare type StateProcess = <T = any>(result: any) => any;
@@ -63,10 +41,12 @@ export declare type LifecycleMiddleWare = (
     lifecycle: true;
 };
 
-interface StoreSlot<S = any> {
-    dispatch: Dispatch,
-    getState(): S,
-}
+export declare type Action = {
+    type: string;
+    state?: any;
+};
+
+type Dispatch = (action: Action) => any;
 
 export type Reducer<S, A> = (state: S, action: A) => S;
 
@@ -74,49 +54,19 @@ interface ReducerPadding<
     S = any,
     T extends OriginAgent<S> = OriginAgent<S>
     > {
-    initialState: S;
-    namespace?: string;
-    env: Env;
     agent: T;
-    update: (state?: S, dispatch?: Dispatch) => void;
-    useStoreSlot: (slot: StoreSlot) => void;
-    recordChanges: () => () => Array<Change<S>>;
-    reconnect:()=>void;
-    destroy:()=>void
+    connect: (dispatch?: Dispatch) => void;
+    disconnect:()=>void
 }
 
-// inner interface
-export declare type Action = {
-    type: string;
-    args?: any;
+type AgentRunner<T> = {
+    run:<R>(callback:(agent:T)=>any)=>R
 };
 
 export type AgentReducer<
     S = any,
     T extends OriginAgent<S> = any
     > = Reducer<S, Action> & ReducerPadding<S, T>;
-
-type Dispatch = (action: Action) => any;
-
-type Change<S = any> = {
-    type: string | number | symbol;
-    state: S;
-};
-
-/**
- * Create a reducer function for a standard reducer system.
- * This reducer only returns state which is passed in by dispatching action.
- *
- * @param entry an instance of OriginAgent
- *
- * @return a reducer function
- */
-declare function createReducer<S, T extends OriginAgent<S>>(entry: T): Reducer<S, Action>;
-
-export declare function sharing<
-    S,
-    T extends OriginAgent<S> = OriginAgent<S>
-    >(factory:Factory<S, T>): SharingRef<S, T>;
 
 declare type Factory<
     S,
@@ -125,130 +75,67 @@ declare type Factory<
 
 declare type SharingRef<
     S,
-    T extends OriginAgent<S>= OriginAgent<S>,
+    T extends Model<S>= Model<S>,
     > = {
     current:T,
     initial:Factory<S, T>
 };
 
+export declare function sharing<
+    S,
+    T extends Model<S> = Model<S>
+    >(factory:Factory<S, T>): SharingRef<S, T>;
+
 export declare function weakSharing<
     S,
-    T extends OriginAgent<S>=OriginAgent<S>
+    T extends Model<S>=Model<S>
     >(
     factory:Factory<S, T>,
 ):SharingRef<S, T>;
-export declare function createAgentReducer<S, T extends OriginAgent<S> = OriginAgent<S>>(
-    originAgent: T | { new (): T; },
-    middleWareOrEnv?: (MiddleWare & { lifecycle?: boolean; }) | Env, e?: Env
+
+export declare function create<
+    S,
+    T extends Model<S> = Model<S>
+    >(
+    model: T | { new (): T },
+    ...middleWares: (MiddleWare & { lifecycle?: boolean })[]
 ): AgentReducer<S, T>;
 
-declare const agentDependenciesKey = '@@agent-reducer-dependencies';
-declare const agentIdentifyKey = '@@agent-reducer-identify';
-declare const agentListenerKey = '@@agent-reducer-listeners';
-declare const agentModelResetKey = '@@agent-reducer-model-reset';
-declare const agentNamespaceKey = '@@agent-reducer-namespace';
-declare const agentGlobalScopeKey = '@@agent-reducer-global-scope';
-
-export declare const getAgentNamespaceKey: () => string;
+export declare function connect<
+    S,
+    T extends Model<S> = Model<S>
+    >(
+    model: T | { new (): T },
+    ...middleWares: (MiddleWare & { lifecycle?: boolean })[]
+):AgentRunner<T>
 
 export declare enum DefaultActionType {
-    DX_INITIAL_STATE = '@@AGENT_REDUCER_INITIAL_STATE',
     DX_MUTE_STATE = '@@AGENT_MUTE_STATE'
 }
 
-export declare function isAgent<T extends {
-    [key: string]: any;
-}>(data: T): boolean;
+export declare function isAgent<T extends Record<string, any>>(data: T): boolean;
 
-export declare const globalConfig: (config?: GlobalConfig | undefined) => GlobalConfig;
+declare type MiddleWareAbleFunction = (...args: any[]) => any;
 
-export declare const clearGlobalConfig: () => void;
+declare type MiddleWareAble<S, T extends OriginAgent<S>> =
+    MiddleWareAbleFunction | T | ({ new (): T });
 
-declare type MiddleWareAbleFunction = ((...args: any[]) => any) & {
-    middleWare?: MiddleWare;
-};
+declare type DecoratorCaller = (target: any, p: string)=>any;
 
-declare type AgentDependencies<S, T extends OriginAgent<S>> = {
-    entry: T;
-    store: StoreSlot<S>;
-    env: Env;
-    cache: {
-        [key: string]: Runtime<T>;
-    };
-    functionCache: any;
-    middleWare: MiddleWare;
-};
+export declare function withMiddleWare<S, T extends OriginAgent<S>>(
+    agent: T,
+    ...mdws: (MiddleWare | LifecycleMiddleWare)[]
+): T;
 
-export declare function useMiddleWare<S, T extends OriginAgent<S>>(agent: T & {
-    [agentDependenciesKey]?: AgentDependencies<S, T>;
-}, ...mdws: (MiddleWare | LifecycleMiddleWare)[]): T;
-
-export declare const middleWare: (
-    callOrMiddleWare: MiddleWare | MiddleWareAbleFunction,
-    mdw?: MiddleWare | MiddleWareAbleFunction | undefined
-) => MiddleWareAbleFunction;
-
-interface MiddleActionsInterface<T extends OriginAgent<S>, S> {
-    agent?: T & {
-        [agentDependenciesKey]?: AgentDependencies<S, T>;
-    };
-    [key: string]: any;
-}
-
-interface MiddleActionDependencies<T> {
-    agent?: T;
-    middleWare: MiddleWare | LifecycleMiddleWare;
-    agentEnv?: Env;
-}
-
-declare type AsyncRuntime<T = any> = {
-    caller: Caller;
-    sourceCaller: Caller;
-    callerName: string;
-    args?: any[];
-    target: T;
-    source: T;
-    env: Env;
-    cache: {
-        [key: string]: any;
-    };
-    rollbacks: {
-        [key in keyof T]?: T[key];
-    };
-    mapSourceProperty: (
-        key: keyof T,
-        callback: (value: any, instance: T, runtime: AsyncRuntime<T>) => any
-    ) => AsyncRuntime<T>;
-    rollback: () => AsyncRuntime<T>;
-    tempCaller?: Caller;
-};
-
-interface AsyncInvokeDependencies<T = any> {
-    cache: {
-        [key: string]: AsyncRuntime<T>;
-    };
-    functionCache: {
-        [key: string]: (...args: any[]) => any;
-    };
-}
-
-export declare function useMiddleActions<
-    T extends OriginAgent<S>,
-    P extends MiddleActionsInterface<T, S>,
-    S = any
-    >(middleActions: {
-    new (agent: T): P;
-} | P, ...middleWares: (T | MiddleWare | LifecycleMiddleWare)[]): P;
-
-export declare class MiddleActions<T extends OriginAgent<S>, S = any> {
-    agent: T;
-
-    constructor(agent: T);
-}
+export declare const middleWare: <
+    S,
+    T extends Model<S>
+    >(
+    callOrMiddleWare: MiddleWare | LifecycleMiddleWare | MiddleWareAble<S, T>,
+    ...mdw: (MiddleWare | LifecycleMiddleWare)[]
+) => DecoratorCaller;
 
 /** middleWares * */
-declare function composeCallArray(calls: ((p: any) => any)[]): (p: any) => any;
-
 export declare function defaultMiddleWare<T>(runtime: Runtime): NextProcess;
 
 export declare function applyMiddleWares(
@@ -266,66 +153,119 @@ export declare class LifecycleMiddleWares {
 }
 
 export class MiddleWares {
+  static takeNothing(): MiddleWare;
+
+  /**
+     * @deprecated
+     */
   static takeNone(): MiddleWare;
 
   static takePromiseResolve(): MiddleWare;
 
   static takeAssignable(): MiddleWare;
 
+  /**
+     * @deprecated
+     */
   static takeBlock(blockMs?: number): MiddleWare;
 
-  static takeLazy(waitMs: number): MiddleWare;
+  static takeUnstableBlock(blockMs?: number): MiddleWare;
 
+  /**
+   * @deprecated
+   * @param waitMs
+   */
   static takeThrottle(waitMs: number): MiddleWare;
 
+  static takeUnstableThrottle(waitMs: number): MiddleWare;
+
+  /**
+   * @deprecated
+   * @param waitMs
+   * @param opt
+   */
   static takeDebounce(waitMs: number, opt?: {
+        leading?: boolean;
+    }): MiddleWare;
+
+  static takeUnstableDebounce(waitMs: number, opt?: {
         leading?: boolean;
     }): MiddleWare;
 }
 
 export class MiddleWarePresets {
+  static takeNothing(): typeof MiddleWares.takeNothing;
+
+    /**
+     * @deprecated
+     */
+    static takeNone: typeof MiddleWares.takeNothing;
+
     static takeAssignable: typeof MiddleWares.takeAssignable;
 
     static takePromiseResolve: typeof MiddleWares.takePromiseResolve;
 
-    static takeLazy(ms: number): MiddleWare;
-
     static takeLatest(): MiddleWare;
 
+    /**
+     * @deprecated
+     * @param ms
+     */
     static takeBlock(ms?: number): MiddleWare;
 
+    static takeUnstableBlock(ms?: number):MiddleWare;
+
+    /**
+     * @deprecated
+     * @param wait
+     */
     static takeThrottle(wait: number): MiddleWare;
 
+    static takeUnstableThrottle(wait: number): MiddleWare;
+
+    /**
+     * @deprecated
+     * @param wait
+     * @param opt
+     */
     static takeDebounce(wait: number, opt?: {
+        leading?: boolean;
+    }): MiddleWare;
+
+    static takeUnstableDebounce(wait: number, opt?: {
         leading?: boolean;
     }): MiddleWare;
 
     static takePromiseResolveAssignable(): MiddleWare;
 
+    /**
+     * @deprecated
+     * @param ms
+     */
     static takeLazyAssignable(ms: number): MiddleWare;
 
     static takeLatestAssignable(): MiddleWare;
 
     static takeBlockAssignable(ms?: number): MiddleWare;
 
+    /**
+     * @deprecated
+     * @param wait
+     */
     static takeThrottleAssignable(wait: number): MiddleWare;
 
+    static takeUnstableThrottleAssignable(wait: number): MiddleWare;
+
+    /**
+     * @deprecated
+     * @param wait
+     * @param opt
+     */
     static takeDebounceAssignable(wait: number, opt?: {
         leading?: boolean;
     }): MiddleWare;
-}
-/** legacy api * */
-/**
- * @deprecated
- */
-export declare const branch: typeof useMiddleWare;
-/**
- * @deprecated
- */
-export declare class BranchResolvers {
-    static takeLatest: typeof LifecycleMiddleWares.takeLatest;
 
-    static takeBlock: typeof MiddleWares.takeBlock;
-
-    static takeLazy: typeof MiddleWares.takeLazy;
+    static takeUnstableDebounceAssignable(wait: number, opt?: {
+        leading?: boolean;
+    }): MiddleWare;
 }
