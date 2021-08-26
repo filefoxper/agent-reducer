@@ -58,6 +58,7 @@ export interface ReducerPadding<
   agent: T;
   update: (state?: S, dispatch?: Dispatch) => void;
   recordChanges: () => () => Array<Change<S>>;
+  reconnect:()=>void;
   destroy:()=>void
 }
 

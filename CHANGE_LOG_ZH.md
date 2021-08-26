@@ -91,3 +91,7 @@
 ## v3.7.1 2021-08-04
 
 * [design] weakSharing 的 current 初始化将发生在第一次重新使用它的时候。
+
+## v3.7.2 2021-08-26
+
+* [design] 在 reducer function 属性中添加 reconnect 方法，用于重连已经被 destroy 的 agent-reducer。

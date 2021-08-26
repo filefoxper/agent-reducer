@@ -32,18 +32,3 @@ export {
 /** legacy api * */
 
 export { branch, BranchResolvers } from './libs/branch';
-
-/** types * */
-
-export {
-  OriginAgent,
-  Env,
-  Runtime,
-  MiddleWare,
-  NextProcess,
-  StateProcess,
-  LifecycleRuntime,
-  LifecycleEnv,
-} from './libs/global.type';
-
-export { Reducer, Action, AgentReducer } from './libs/reducer.type';
