@@ -83,3 +83,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v3.7.1 2021-08-04
 
 * [design] the current property in weakSharing ref will be reset when first usage about it appears.
+
+## v3.7.2 2021-08-26
+
+* [design] add reconnect to reducer function property, that makes destroy can be reversed.

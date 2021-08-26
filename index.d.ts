@@ -81,6 +81,7 @@ interface ReducerPadding<
     update: (state?: S, dispatch?: Dispatch) => void;
     useStoreSlot: (slot: StoreSlot) => void;
     recordChanges: () => () => Array<Change<S>>;
+    reconnect:()=>void;
     destroy:()=>void
 }
 

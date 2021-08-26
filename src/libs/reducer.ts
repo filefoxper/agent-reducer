@@ -325,7 +325,7 @@ export function oldCreateAgentReducer<
     }
   });
 
-  const unsubscribe = modelConnector.subscribe(listener);
+  let unsubscribe:null|(()=>void) = modelConnector.subscribe(listener);
 
   const transition: ReducerPadding<S, T> = {
     initialState: entity.state,
@@ -368,9 +368,20 @@ export function oldCreateAgentReducer<
       }
       return changeStack.record();
     },
+    reconnect() {
+      env.expired = false;
+      if (unsubscribe) {
+        return;
+      }
+      unsubscribe = modelConnector.subscribe(listener);
+    },
     destroy() {
-      unsubscribe();
       env.expired = true;
+      if (!unsubscribe) {
+        return;
+      }
+      unsubscribe();
+      unsubscribe = null;
     },
   };
 
