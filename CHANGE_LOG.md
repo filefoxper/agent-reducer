@@ -87,3 +87,8 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v3.7.2 2021-08-26
 
 * [design] add reconnect to reducer function property, that makes destroy can be reversed.
+
+## v3.8.0 2021-09-24
+
+* [design] add `initial` function into api `sharing` returns.
+* [update] prepare for `agent-reducer@4.0.0`

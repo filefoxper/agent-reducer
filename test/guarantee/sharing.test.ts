@@ -1,4 +1,4 @@
-import {createAgentReducer, weakSharing} from "../../src";
+import {createAgentReducer, sharing, weakSharing} from "../../src";
 import {OriginAgent} from "../../index";
 
 type User = { id: number; name: string };
@@ -19,6 +19,8 @@ describe("修补reducer测试", () => {
     const ref = weakSharing((id:number)=>new ObjectAgent(id));
 
     const cleanRef = weakSharing(()=>new ObjectAgent(ref.current.state.id));
+
+    const hardRef = sharing((id:number)=>new ObjectAgent(id));
 
     test("简单传参", () => {
         const { agent } = createAgentReducer(new ObjectAgent(0));
@@ -49,5 +51,21 @@ describe("修补reducer测试", () => {
         expect(ag.state.name).toBe('');
         destroy();
         ds();
+    });
+
+    test("再利用传参 sharing", () => {
+        const { agent,destroy } = createAgentReducer(hardRef.initial(5));
+        const { agent:ag,destroy:ds } = createAgentReducer(hardRef.current);
+        agent.rename("name");
+        expect(agent.state.name).toBe("name");
+        expect(agent.state.id).toBe(5);
+        expect(ag.state.id).toBe(5);
+        expect(ag.state.name).toBe('name');
+        destroy();
+        ds();
+        expect(agent.state.name).toBe("name");
+        expect(agent.state.id).toBe(5);
+        expect(ag.state.id).toBe(5);
+        expect(ag.state.name).toBe('name');
     });
 });

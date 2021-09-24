@@ -1,6 +1,7 @@
 node_modules/
 /dist
 /es
+/esm
 /package-lock.json
 /.idea/
 /coverage/

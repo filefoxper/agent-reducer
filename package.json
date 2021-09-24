@@ -1,15 +1,18 @@
 {
   "name": "agent-reducer",
-  "version": "3.7.2",
+  "version": "3.8.0",
   "main": "./index.js",
+  "module": "./esm/index.js",
   "author": "Jimmy.Harding",
   "description": "the purpose of this project is using a class to replace a reducer",
   "scripts": {
-    "clear": "rm -rf ./dist & rm -rf ./libs & rm -rf ./es",
+    "clear": "rm -rf ./dist & rm -rf ./libs & rm -rf ./es & rm -rf ./esm",
     "base-build": "webpack --config ./webpack.config.js --env.mode=production",
     "es-build": "babel src --extensions '.ts' --no-comments --config-file ./babel.es.config.js --out-dir es",
+    "esm-build": "babel src --extensions '.ts' --no-comments --config-file ./babel.esm.config.js --out-dir esm",
     "es-d": "cp ./index.d.ts ./es/index.d.ts",
-    "build": "mkdir ./es & npm run es-d & npm run es-build & npm run base-build",
+    "esm-d": "cp ./index.d.ts ./esm/index.d.ts",
+    "build": "mkdir ./es & mkdir ./esm & npm run es-d & npm run esm-d & npm run es-build & npm run esm-build & npm run base-build",
     "test": "jest --coverage",
     "lint": "eslint src --fix --ext .ts ",
     "lint-d": "eslint . --fix --ext .d.ts ",
@@ -23,6 +26,7 @@
   "files": [
     "dist",
     "es",
+    "esm",
     "index.js",
     "index.d.ts"
   ],

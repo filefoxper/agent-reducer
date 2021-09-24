@@ -95,3 +95,8 @@
 ## v3.7.2 2021-08-26
 
 * [design] 在 reducer function 属性中添加 reconnect 方法，用于重连已经被 destroy 的 agent-reducer。
+
+## v3.8.0 2021-09-24
+
+* [design] 对 api `sharing` 返回对象添加 `initial` 方法。
+* [update] 准备 `agent-reducer@4.0.0`

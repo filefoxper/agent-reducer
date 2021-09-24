@@ -22,13 +22,15 @@ import {
   agentListenerKey,
   agentNamespaceKey,
   DefaultActionType,
-  globalConfig,
   agentSharingTypeKey,
   agentSharingMiddleWareKey,
+  innerGlobalConfig,
 } from './defines';
 import { defaultMiddleWare } from './applies';
 import { generateAgent } from './agent';
-import { createInstance, createProxy } from './util';
+import {
+  createInstance, createProxy, enableWarning, warning,
+} from './util';
 
 /**
  * Create a reducer function for a standard reducer system.
@@ -206,20 +208,52 @@ function createChangeStack<S>() {
   };
 }
 
+function createSharingModel<
+    S,
+    T extends OriginAgent<S>&{[agentSharingMiddleWareKey]?:Record<string, unknown>} = OriginAgent<S>
+    >(Model:T|{new ():T}):T {
+  const nextModel:T&{
+    [agentModelResetKey]?:()=>void,
+    [agentSharingTypeKey]?:SharingType,
+    [agentListenerKey]?:((s:S)=>any)[]
+  } = typeof Model === 'function' ? new Model() : Model;
+  nextModel[agentSharingTypeKey] = 'hard';
+  return nextModel;
+}
+
 export function sharing<
     S,
     T extends OriginAgent<S> = OriginAgent<S>
     >(
-  factory:()=>T|{new ():T},
-):{current:T} {
-  const Model = factory();
-  const current:T&{
-    [agentModelResetKey]?:()=>void,
-    [agentListenerKey]?:((s:S)=>any)[],
-    [agentSharingTypeKey]?:SharingType
-  } = typeof Model === 'function' ? new Model() : Model;
-  current[agentSharingTypeKey] = 'hard';
-  return { current };
+  factory:Factory<S, T>,
+):SharingRef<S, T> {
+  let initialed = false;
+  const ref:Ref<S, T> = {
+    current: null,
+  };
+  ref.initial = (...args:any[]):T => {
+    if (ref.current && initialed) {
+      return ref.current;
+    }
+    initialed = true;
+    const Model = factory(...args);
+    ref.current = createSharingModel(Model);
+    return ref.current as T;
+  };
+  return createProxy(ref, {
+    get(
+      target: Ref<S, T>,
+      p: keyof Ref<S, T>,
+    ): any {
+      const value = target[p];
+      if (p === 'current' && !value) {
+        const initialCurrent = createSharingModel(factory());
+        ref.current = initialCurrent;
+        return initialCurrent;
+      }
+      return value;
+    },
+  }) as SharingRef<S, T>;
 }
 
 function createWeakSharingModel<
@@ -400,7 +434,7 @@ export function createAgentReducer<
     S,
     T extends OriginAgent<S> = OriginAgent<S>
     >(...args:any[]): AgentReducer<S, T> {
-  const config = globalConfig() || {};
+  const config = innerGlobalConfig() || {};
   const dmw = config.defaultMiddleWare || defaultMiddleWare;
   if (args.length === 2) {
     const finishMiddleWare = typeof args[1] === 'function';
@@ -410,6 +444,9 @@ export function createAgentReducer<
   }
   if (args.length === 1) {
     return createAgentReducer(args[0], dmw, mergeEnv(config.env || {}));
+  }
+  if (args[2]) {
+    warning('Setting `Env` is not recommend, it will be abandoned from `agent-reducer@4.0.0`.');
   }
   return oldCreateAgentReducer(args[0], args[1] || dmw, mergeEnv(config.env || {}, args[2] || {}));
 }

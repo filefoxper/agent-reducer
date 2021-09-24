@@ -1,5 +1,5 @@
 import { GlobalConfig } from './global.type';
-import { getScope } from './util';
+import { getScope, warning } from './util';
 
 export const agentDependenciesKey = '@@agent-reducer-dependencies';
 
@@ -29,7 +29,7 @@ export function isAgent<T extends {[key:string]:any}>(data: T):boolean {
   return dataType === 'object' && data[agentIdentifyKey] === true;
 }
 
-export const globalConfig = (config?: GlobalConfig):GlobalConfig => {
+export const innerGlobalConfig = (config?: GlobalConfig):GlobalConfig => {
   const scope: any = getScope();
   if (!scope && !config) {
     return {};
@@ -49,7 +49,13 @@ export const globalConfig = (config?: GlobalConfig):GlobalConfig => {
   return scope[agentGlobalScopeKey];
 };
 
+export const globalConfig = (config?: GlobalConfig):GlobalConfig => {
+  warning('Not recommend, API `globalConfig` will not exist from `agent-reducer@4.0.0`');
+  return innerGlobalConfig(config);
+};
+
 export const clearGlobalConfig = ():void => {
+  warning('Not recommend, API `clearGlobalConfig` will not exist from `agent-reducer@4.0.0`');
   const scope: any = getScope();
   Object.defineProperty(scope, agentGlobalScopeKey, {
     value: undefined,

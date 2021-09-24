@@ -113,11 +113,10 @@ type Change<S = any> = {
  */
 declare function createReducer<S, T extends OriginAgent<S>>(entry: T): Reducer<S, Action>;
 
-export declare function sharing<S, T extends OriginAgent<S> = OriginAgent<S>>(factory: () => T | {
-    new (): T;
-}): {
-    current: T;
-};
+export declare function sharing<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    >(factory:Factory<S, T>): SharingRef<S, T>;
 
 declare type Factory<
     S,

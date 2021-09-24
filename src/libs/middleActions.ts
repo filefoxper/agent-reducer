@@ -14,7 +14,7 @@ import {
   AsyncInvokeDependencies,
   AsyncRuntime,
 } from './middleActions.type';
-import { createInstance, createProxy } from './util';
+import { createInstance, createProxy, warning } from './util';
 import { MiddleWareAbleFunction } from './useMiddleWare.type';
 import { generateAgent } from './agent';
 import { applyMiddleWares, defaultMiddleWare } from './applies';
@@ -108,6 +108,7 @@ export function useMiddleActions<
   middleActions: { new (agent: T): P } | P,
   ...middleWares: (T | MiddleWare | LifecycleMiddleWare)[]
 ): P {
+  warning('Not recommend, API `useMiddleActions` will not exist from `agent-reducer@4.0.0`');
   const [agent, ...rest] = middleWares;
   const ag = agent && typeof agent !== 'function' ? agent : undefined;
   const mdwStart = agent && typeof agent === 'function' ? [agent] : [];
