@@ -92,3 +92,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 
 * [design] add `initial` function into api `sharing` returns.
 * [update] prepare for `agent-reducer@4.0.0`
+
+## v3.8.1 2021-09-29
+
+* [bug] fix build problem about `module` in `package.json`, and roll back the building config.

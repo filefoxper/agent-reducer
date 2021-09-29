@@ -100,3 +100,7 @@
 
 * [design] 对 api `sharing` 返回对象添加 `initial` 方法。
 * [update] 准备 `agent-reducer@4.0.0`
+
+## v3.8.1 2021-09-29
+
+* [bug] 修复关于 package.json 中关于 `module` 的配置问题，最终决定在4.0.0中使用该属性。
