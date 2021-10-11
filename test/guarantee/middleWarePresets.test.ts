@@ -5,6 +5,7 @@ import {
   MiddleWarePresets,
 } from "../../src";
 import {OriginAgent} from "../../index";
+import {noop} from "../../src/libs/util";
 
 describe("补全MiddleWarePresets测试", () => {
   class ObjectAgent implements OriginAgent<{ id: number; name: string }> {
@@ -33,6 +34,12 @@ describe("补全MiddleWarePresets测试", () => {
       return { name };
     }
 
+    @middleWare(MiddleWarePresets.takeLatest())
+    async takeLatestNameWithError(name: string, tms: number) {
+      await new Promise((r,reject) => setTimeout(()=>reject('error'), tms * 100));
+      return { name };
+    }
+
     @middleWare(MiddleWarePresets.takeLatestAssignable())
     async takeLatestNameAssignable(name: string, tms: number) {
       await new Promise((r) => setTimeout(r, tms * 100));
@@ -45,6 +52,29 @@ describe("补全MiddleWarePresets测试", () => {
       return { name };
     }
   }
+
+  const handleRejection = jest.fn().mockImplementation(()=>{
+    console.log('error')
+    expect(1).toBe(2);
+  });
+
+  beforeAll(()=>{
+    process.on('unhandledRejection', handleRejection);
+  });
+
+  afterAll(()=>{
+    window.removeEventListener('unhandledrejection',handleRejection);
+  })
+
+  test('MiddleWarePresets.takeLatest两个rejection',async ()=>{
+    const { agent } = createAgentReducer(ObjectAgent);
+    try {
+      await agent.takeLatestNameWithError("rename",10);
+    }catch (e) {
+      expect(e).toBeDefined();
+    }
+    expect(handleRejection).not.toBeCalled();
+  });
 
   test("MiddleWarePresets.takeAssignable可以补全state信息", () => {
     const { agent } = createAgentReducer(ObjectAgent);

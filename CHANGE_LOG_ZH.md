@@ -104,3 +104,7 @@
 ## v3.8.1 2021-09-29
 
 * [bug] 修复关于 package.json 中关于 `module` 的配置问题，最终决定在4.0.0中使用该属性。
+
+## v3.8.2 2021-10-11
+
+* [bug] 修复关于 `MiddleWarePresets.takeLatest` 在遇见 Promise reject 时，产生两个 rejection 的问题

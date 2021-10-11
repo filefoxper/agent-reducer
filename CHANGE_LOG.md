@@ -96,3 +96,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v3.8.1 2021-09-29
 
 * [bug] fix build problem about `module` in `package.json`, and roll back the building config.
+
+## v3.8.2 2021-10-11
+
+* [bug] fix bug about `MiddleWarePresets.takeLatest`, when a promise result rejected, there are two rejections.

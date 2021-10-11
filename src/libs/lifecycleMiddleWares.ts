@@ -4,7 +4,7 @@ import {
   LifecycleMiddleWare,
   StateProcess,
 } from './global.type';
-import { isPromise } from './util';
+import {isPromise, noop} from './util';
 
 export const toLifecycleMiddleWare = (
   lifecycleMiddleWare: Omit<LifecycleMiddleWare, 'lifecycle'> & {
@@ -30,7 +30,7 @@ export class LifecycleMiddleWares {
           const version:number = (cache.version as undefined|number) || 0;
           cache.version = version + 1;
           const data = next(result);
-          Promise.resolve(data).finally(() => {
+          Promise.resolve(data).catch(noop).finally(() => {
             if (version + 1 === cache.version) {
               env.rebuild();
             }
