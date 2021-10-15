@@ -108,3 +108,7 @@
 ## v3.8.2 2021-10-11
 
 * [bug] 修复关于 `MiddleWarePresets.takeLatest` 在遇见 Promise reject 时，产生两个 rejection 的问题
+
+## v3.8.3 2021-10-15
+
+* [optimize] 优化掉关于 `warningSet`的代码。

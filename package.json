@@ -1,6 +1,6 @@
 {
   "name": "agent-reducer",
-  "version": "3.8.2",
+  "version": "3.8.3",
   "main": "./index.js",
   "author": "Jimmy.Harding",
   "description": "the purpose of this project is using a class to replace a reducer",
@@ -45,7 +45,7 @@
     "@babel/runtime": ">=7.3.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.13.16",
+    "@babel/cli": "7.13.16",
     "@babel/core": "7.2.2",
     "@babel/plugin-proposal-async-generator-functions": "7.2.0",
     "@babel/plugin-proposal-class-properties": "7.3.0",

@@ -100,3 +100,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v3.8.2 2021-10-11
 
 * [bug] fix bug about `MiddleWarePresets.takeLatest`, when a promise result rejected, there are two rejections.
+
+## v3.8.3 2021-10-15
+
+* [optimize] optimize the code about `warningSet`.
