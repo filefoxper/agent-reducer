@@ -29,7 +29,7 @@ import {
 import { defaultMiddleWare } from './applies';
 import { generateAgent } from './agent';
 import {
-  createInstance, createProxy, enableWarning, warning,
+  createInstance, createProxy, warning,
 } from './util';
 
 /**

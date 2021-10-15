@@ -93,11 +93,7 @@ export function noop():void {
   /* noop */
 }
 
-let warningSet:Set<string>|null = null;
-
-export function enableWarning():void {
-  warningSet = new Set<string>();
-}
+const warningSet:Record<string, string> = {};
 
 /**
  * Prints a warning in the console if it exists.
@@ -106,24 +102,12 @@ export function enableWarning():void {
  * @returns {void}
  */
 export function warning(message: string):void {
-  if (!warningSet) {
-    return;
-  }
-  if (warningSet.has(message)) {
+  if (warningSet[message]) {
     return;
   }
   /* eslint-disable no-console */
   if (typeof console !== 'undefined' && typeof console.error === 'function') {
     console.error(message);
   }
-  warningSet.add(message);
-  /* eslint-enable no-console */
-  try {
-    // This error was thrown as a convenience so that if you enable
-    // "break on all exceptions" in your console,
-    // it would pause the execution at this line.
-    throw new Error(message);
-    /* eslint-disable no-empty */
-  } catch (e) {}
-  /* eslint-enable no-empty */
+  warningSet[message] = message;
 }
