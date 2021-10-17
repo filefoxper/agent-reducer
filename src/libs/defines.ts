@@ -14,10 +14,6 @@ export const agentActionsKey = '@@agent-reducer-actions';
 
 export const agentModelResetKey = '@@agent-reducer-model-reset';
 
-export const agentEffectKey = '@@agent-reducer-effect';
-
-export const agentMethodEffectKey = '@@agent-reducer-method-effect';
-
 export const agentMethodName = '@@agent-method-name';
 
 export enum DefaultActionType {

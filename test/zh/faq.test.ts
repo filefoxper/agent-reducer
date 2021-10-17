@@ -1,11 +1,5 @@
-# FAQ
-
-#### 如果环境中无 `Proxy` 构造器能正常运行吗？
-
-是的，`Proxy` 是系统的优先选择，但不是唯一选择。
-
-```typescript
-import {create,Model} from 'agent-reducer';
+import {create} from '../../src';
+import {Action, Model} from "../../src/libs/global.type";
 
 describe('如果环境中无 `Proxy` 构造器能正常运行吗？',()=>{
 
@@ -47,14 +41,6 @@ describe('如果环境中无 `Proxy` 构造器能正常运行吗？',()=>{
     });
 
 });
-```
-
-#### 一个代理方法引起的 state 变更尚未处理完毕时，能同时处理另一个方法引起的 state 变更吗？
-
-如果是两个不同的 `模型实例` 是可以的，否则不行。
-
-```typescript
-import {create,Model,Action} from 'agent-reducer';
 
 describe('一个代理方法引起的 state 变更尚未处理完毕时，能同时处理另一个方法引起的 state 变更吗？',()=>{
 
@@ -95,4 +81,3 @@ describe('一个代理方法引起的 state 变更尚未处理完毕时，能同
     });
 
 });
-```

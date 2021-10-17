@@ -184,7 +184,7 @@ To check more [details](/guides?id=middleware-override)
 
 ## middleWare
 
-Makes a Model method or Model class run with MiddleWares you want to effect on.
+Presets MiddleWares onto Model class or Model methods.
 
 ```typescript
 const middleWare: <
@@ -567,21 +567,3 @@ type SharingRef<
 ```
 
 To check more [details](/feature?id=model-sharing).
-
-## addEffect
-
-Add a Effect callback for listening state change of a `Model instance` or a `Model method`.
-
-``` typescript
-function addEffect<S, T extends Model<S>>(
-    callback:EffectCaller<S, T>,
-    target:MethodCaller<T>|T,
-):(()=>void);
-```
-
-* callback - a callback receives a `prevState`, a `currentState` and a `methodName` as params.
-* target - a `Model instance` or a `Agent` object or a `Model method` or a `Agent method`.
-
-It returns a unsubscribe callback, when you need to destroy it, you can call this unsubscribe callback.
-
-To check more [details](/guides?id=effect).

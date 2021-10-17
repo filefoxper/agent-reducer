@@ -108,3 +108,15 @@
 ## v3.8.2 2021-10-11
 
 * [bug] 修复关于 `MiddleWarePresets.takeLatest` 在遇见 Promise reject 时，产生两个 rejection 的问题
+
+## v3.8.3 2021-10-15
+
+* [optimize] 优化掉关于 `warningSet`的代码。
+
+## v4.0.0 2021-10-30
+
+* [optimize] 优化 state 变更处理过程
+* [design] 去掉了 bad design
+* [design] 修改了部分接口命名
+* [design] 对部分接口进行了简化处理
+* [document] 采用了 docs 文档功能

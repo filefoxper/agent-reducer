@@ -8,19 +8,18 @@ import {
   Action,
   Store,
   SharingMiddleWareMethods,
-  MethodEffectOption, MethodCaller,
+  MethodCaller,
 } from './global.type';
 import {
   agentCallingMiddleWareKey,
   agentDependenciesKey,
-  agentIdentifyKey, agentMethodEffectKey,
+  agentIdentifyKey,
   agentSharingMiddleWareKey,
 } from './defines';
 import { createProxy } from './util';
 import { AgentDependencies } from './agent.type';
 
 import { applyMiddleWares, defaultMiddleWare } from './applies';
-import { addEffect } from './effect';
 
 /**
  *  use dependencies to create a dispatch callback

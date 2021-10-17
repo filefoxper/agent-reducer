@@ -6,7 +6,7 @@ import {
   Listener,
   Store,
   ConnectionFactory,
-  Model, MethodEffectOption,
+  Model,
 } from './global.type';
 import {
   AgentReducer,
@@ -17,14 +17,12 @@ import {
 import {
   DefaultActionType,
   agentCallingMiddleWareKey,
-  agentMethodEffectKey,
-  agentActionsKey, agentEffectKey,
+  agentActionsKey,
 } from './defines';
 import { createSharingModelConnector } from './connector';
 import { applyMiddleWares, defaultMiddleWare } from './applies';
 import { generateAgent } from './agent';
 import { createInstance, isPromise } from './util';
-import { addEffect } from './effect';
 
 /**
  * Create a reducer function for a standard reducer system.
@@ -149,34 +147,6 @@ function pickMiddleWare<
     return validateMiddleWare(insideMiddleWare);
   }
   return defaultMiddleWare;
-}
-
-/**
- * todo need redesign
- * @param entry
- * @param agent
- */
-function addModelEffects<
-    S,
-    T extends Model<S>= Model<S>
-    >(
-  entry: T,
-  agent: T,
-): T {
-  const proto = Object.getPrototypeOf(entry);
-  Object.getOwnPropertyNames(proto).forEach((key) => {
-    const val = entry[key];
-    const value = val as ((...a: any[]) => any)&{
-      [agentMethodEffectKey]?:MethodEffectOption<T>
-    };
-    if (typeof value !== 'function' || value[agentMethodEffectKey] === undefined) {
-      return;
-    }
-    const target = value[agentMethodEffectKey];
-    const callback = (value as ((...a: any[]) => any)).bind(agent);
-    // todo addEffect<S, T>(callback, target || entry);
-  });
-  return agent;
 }
 
 function useConnection<

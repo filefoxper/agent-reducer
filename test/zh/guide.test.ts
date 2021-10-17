@@ -1,7 +1,7 @@
 import {create, middleWare, MiddleWarePresets, withMiddleWare} from "../../src";
 import {Model} from "../../src/libs/global.type";
 
-describe('MiddleWare override priority', () => {
+describe('MiddleWare 覆盖优先级', () => {
 
     type User = {
         id: undefined | number
@@ -9,10 +9,12 @@ describe('MiddleWare override priority', () => {
         nick: string
     }
 
-    // this is a user model,
-    // we can fetch user from server.
-    // use class decorator to add MiddleWare,
-    // can make this MiddleWare effect on all methods in this class
+    // 这是一个 user 模型，
+    // 可以通过 fetchCurrentUser 从服务器获取当前 user 信息。
+    // 使用 class decorator 添加 MiddleWare，
+    // 可以让这个 MiddleWare 作用于所有模型方法，
+    // 这里我们添加了一个 takePromiseResolve 用来把异步获取数据转换成 state。
+    // 以 class decorator 的形式添加的 MiddleWare 优先级最低
     @middleWare(MiddleWarePresets.takePromiseResolve())
     class UserModel implements Model<User> {
 
@@ -41,103 +43,96 @@ describe('MiddleWare override priority', () => {
 
     }
 
-    test('The lowest priority by using class decorator', async () => {
+    test('使用 class decorator 添加的兜底用 MiddleWare，权限最低', async () => {
         const {agent, connect, disconnect} = create(UserModel);
         connect();
-        // the MiddleWare from class decorator effect on the promise returning.
+        // class decorator 添加的 takePromiseResolve 作用于 fetchCurrentUser
         await agent.fetchCurrentUser();
         expect(agent.state).toEqual({
             id: 0,
             name: 'name',
             nick: 'nick'
         });
-        // the MiddleWare from class decorator can not effect the object which is not a promise,
-        // this returning object is a part of state User type,
-        // so the next state will be incomplete.
-        // We need `MiddleWarePresets.takeAssignable` to merge it with this.state
+        // 当前方法返回值为部分 state 数据，
+        // 这会导致最新 state 数据不完整。
+        // 我们需要 `MiddleWarePresets.takeAssignable` 把模型实例的 state 与返回值合并成新 state 数据
         agent.rename('name1');
+        // 丢失了 id 属性
         expect(agent.state).not.toHaveProperty('id');
         disconnect();
     });
 
-    test('The MiddleWare added by api `create` can override the one added by using class decorator', async () => {
+    test('通过 API `create` 添加的 MiddleWare 可以覆盖 class decorator 添加的 MiddleWare', async () => {
         const {agent, connect, disconnect} = create(UserModel, MiddleWarePresets.takePromiseResolveAssignable());
         connect();
-        // The MiddleWare from class decorator is override by the MiddleWare from api `create`,
-        // and the MiddleWarePresets.takePromiseResolveAssignable() effect on the promise returning.
-        // MiddleWarePresets.takePromiseResolveAssignable() is chained by
-        // MiddleWares.takePromiseResolve() and MiddleWares.takeAssignable(),
-        // so it can resolve the promise returning.
+        // 通过 API `create` 添加的 MiddleWare 覆盖了 class decorator 添加的 MiddleWare，
+        // 所以作用于当前方法的是 takePromiseResolveAssignable。
+        // takePromiseResolveAssignable 同时具备 takePromiseResolve 和 takeAssignable 的能力。
         await agent.fetchCurrentUser();
         expect(agent.state).toEqual({
             id: 0,
             name: 'name',
             nick: 'nick'
         });
-        // The MiddleWare from class decorator is override by the MiddleWare from api `create`,
-        // this returning object is a part of state User type,
-        // MiddleWarePresets.takePromiseResolveAssignable() can effect on it,
-        // and merge it with this.state.
+        // 通过 API `create` 添加的 MiddleWare 覆盖了 class decorator 添加的 MiddleWare，
+        // 所以作用于当前方法的是 takePromiseResolveAssignable。
+        // takePromiseResolveAssignable 同时具备 takePromiseResolve 和 takeAssignable 的能力。
+        // 所以 rename 以后得到的是合并后的完整 state 数据
         agent.rename('name1');
         expect(agent.state).toHaveProperty('id');
         disconnect();
     });
 
-    test('The MiddleWare added by method decorator can override the two ways above', async () => {
+    test('通过 method decorator 添加的 MiddleWare 可以覆盖以上两种方式添加的 MiddleWare', async () => {
         const {agent, connect, disconnect} = create(UserModel, MiddleWarePresets.takePromiseResolveAssignable());
         connect();
-        // The MiddleWare from class decorator is override by the MiddleWare from api `create`,
-        // and the MiddleWarePresets.takePromiseResolveAssignable() effect on the promise returning.
-        // MiddleWarePresets.takePromiseResolveAssignable() is chained by
-        // MiddleWares.takePromiseResolve() and MiddleWares.takeAssignable(),
-        // so it can resolve the promise returning.
+        // 通过 API `create` 添加的 MiddleWare 覆盖了 class decorator 添加的 MiddleWare，
+        // 所以作用于当前方法的是 takePromiseResolveAssignable。
+        // takePromiseResolveAssignable 同时具备 takePromiseResolve 和 takeAssignable 的能力。
         await agent.fetchCurrentUser();
         expect(agent.state).toEqual({
             id: 0,
             name: 'name',
             nick: 'nick'
         });
-        // The MiddleWare from class decorator is override by the MiddleWare from api `create`,
-        // this returning object is a part of state User type,
-        // MiddleWarePresets.takePromiseResolveAssignable() can effect on it,
-        // and merge it with this.state.
+        // 通过 API `create` 添加的 MiddleWare 覆盖了 class decorator 添加的 MiddleWare，
+        // 所以作用于当前方法的是 takePromiseResolveAssignable。
+        // takePromiseResolveAssignable 同时具备 takePromiseResolve 和 takeAssignable 的能力。
+        // 所以 rename 以后得到的是合并后的完整 state 数据
         agent.rename('name1');
         expect(agent.state).toHaveProperty('id');
-        // The MiddleWare added by method decorator override the other MiddleWares,
-        // but it only effect on the method.
+        // 通过 method decorator 添加的 MiddleWare 覆盖了所有兜底 MiddleWare，
+        // 但它只作用于被使用的方法。
         agent.updateNick('nick1');
-        // `MiddleWarePresets.takeNothing()` abandons all the state changes,
-        // so state.nick is not change.
+        // `MiddleWarePresets.takeNothing()` 会放弃当前方法引起的 state 变更
         expect(agent.state.nick).not.toBe('nick1');
         disconnect();
     });
 
-    test('API `withMiddleWare` has a highest priority', async () => {
+    test('API `withMiddleWare` 拥有最高 MiddleWare 运行优先级', async () => {
         const {agent, connect, disconnect} = create(UserModel, MiddleWarePresets.takePromiseResolveAssignable());
         connect();
-        // The MiddleWare from class decorator is override by the MiddleWare from api `create`,
-        // and the MiddleWarePresets.takePromiseResolveAssignable() effect on the promise returning.
-        // MiddleWarePresets.takePromiseResolveAssignable() is chained by
-        // MiddleWares.takePromiseResolve() and MiddleWares.takeAssignable(),
-        // so it can resolve the promise returning.
+        // 通过 API `create` 添加的 MiddleWare 覆盖了 class decorator 添加的 MiddleWare，
+        // 所以作用于当前方法的是 takePromiseResolveAssignable。
+        // takePromiseResolveAssignable 同时具备 takePromiseResolve 和 takeAssignable 的能力。
         await agent.fetchCurrentUser();
         expect(agent.state).toEqual({
             id: 0,
             name: 'name',
             nick: 'nick'
         });
-        // The MiddleWare from class decorator is override by the MiddleWare from api `create`,
-        // this returning object is a part of state User type,
-        // MiddleWarePresets.takePromiseResolveAssignable() can effect on it,
-        // and merge it with this.state.
+        // 通过 API `create` 添加的 MiddleWare 覆盖了 class decorator 添加的 MiddleWare，
+        // 所以作用于当前方法的是 takePromiseResolveAssignable。
+        // takePromiseResolveAssignable 同时具备 takePromiseResolve 和 takeAssignable 的能力。
+        // 所以 rename 以后得到的是合并后的完整 state 数据
         agent.rename('name1');
         expect(agent.state).toHaveProperty('id');
 
+        // API `withMiddleWare` 复制出一个新的代理用于执行，
+        // 通过此接口添加的 MiddleWare 只作用于当前复制版的代理对象
         const {updateNick} = withMiddleWare(agent, MiddleWarePresets.takeAssignable());
-        // The MiddleWare added by method decorator is override by the one added from `withMiddleWare`,
-        // `withMiddleWare` copy a new agent for override.
+        // takeAssignable 覆盖了 takeNothing
         updateNick('nick1');
-        // `MiddleWarePresets.takeNothing()` is override by `MiddleWarePresets.takeAssignable()` temporarily
         expect(agent.state.nick).toBe('nick1');
         disconnect();
     });
@@ -161,16 +156,15 @@ describe('Lifecycle MiddleWare',()=>{
         {content: 'write docs', status: 'new'},
     ];
 
-    // This is a to-do list model,
-    // we can fetch list from server by page.
-    // We want the page data fetched by the order of method `fetch` trigger.
+    // 这是个 to-do list 模型，
+    // 我们可以按页码查询数据。
     @middleWare(MiddleWarePresets.takePromiseResolve())
     class TodoList implements Model<Array<Todo>> {
 
         state = [];
 
         fetch(page:number): (Promise<Array<Todo>>) {
-            // simulate a delay when page is 1
+            // 当 page 为 1 时，模拟一个延时
             if(page === 1){
                 return new Promise((resolve) => {
                     setTimeout(()=>{
@@ -185,51 +179,47 @@ describe('Lifecycle MiddleWare',()=>{
 
     }
 
-    test('without `MiddleWarePresets.takeLatest()`, page 1 may override the newest page 2',async ()=>{
+    test('不使用 `MiddleWarePresets.takeLatest()`, page 1 的数据会覆盖最新的 page 2 数据',async ()=>{
         const {agent,connect,disconnect} = create(TodoList);
         connect();
-        // We fetch page 1 data first, then fetch the page 2.
+        // 先触发获取第一页数据，接着立即触发获取第二页数据
         const fetchLoader1 = agent.fetch(1);
         const fetchLoader2 = agent.fetch(2);
         await Promise.all([fetchLoader1,fetchLoader2]);
-        // The data of page 1 is delayed,
-        // it overrides the newest data of page 2.
-        // The data of page 1 is not the result we want to see.
+        // 因为第一页数据由延时，
+        // 所以会覆盖先返回的第二页数据。
         expect(agent.state).toEqual(todoList1);
         disconnect();
     });
 
-    test('`MiddleWarePresets.takeLatest()` can make state change by order',async ()=>{
+    test('`MiddleWarePresets.takeLatest()` 可以保证始终采纳最新获取的数据',async ()=>{
         const {agent,connect,disconnect} = create(TodoList);
         connect();
-        // We copy an agent for lifecycle MiddleWare `takeLatest`
+        // 可以用 `withMiddleWare` API 为使用 `takeLatest` 创建一个复制代理
         const agentCopy = withMiddleWare(agent,MiddleWarePresets.takeLatest());
-        // We fetch page 1 data first, then fetch the page 2.
-        // Be careful, if we want `MiddleWarePresets.takeLatest()` be effective,
-        // we need to call the fetch method from the copy `Agent`.
+        // 先触发获取第一页数据，接着立即触发获取第二页数据。
+        // 注意我们需要使用复制版，以确保我们正在使用 `takeLatest`
         const fetchLoader1 = agentCopy.fetch(1);
         const fetchLoader2 = agentCopy.fetch(2);
         await Promise.all([fetchLoader1,fetchLoader2]);
-        // The data of page 1 is delayed,
-        // so `MiddleWarePresets.takeLatest()` accept the data from page 2 first,
-        // then `MiddleWarePresets.takeLatest()` kills the old `Agent`,
-        // which is waiting for the data of page 1.
-        // The newest data of page 2 keeps.
+        // 虽然第一页数据由延时，
+        // 但数据依然保持着最新一次触发获取的数据，即第二页数据
         expect(agent.state).toEqual(todoList2);
         disconnect();
     });
 
-    test('The decorator API `middleWare` always returns method from an `Agent` copy object',async ()=>{
+    test('method decorator 也可以添加 takeLatest MiddleWare',async ()=>{
 
         @middleWare(MiddleWarePresets.takePromiseResolve())
         class TodoList implements Model<Array<Todo>> {
 
             state = [];
 
-            // we can add `takeLatest` like this too
+            // 事实上，method decorator 可以复制当前正在调用方法所在的代理，
+            // 并运行复制代理上对应的方法
             @middleWare(MiddleWarePresets.takeLatest())
             fetch(page:number): (Promise<Array<Todo>>) {
-                // simulate a delay when page is 1
+                // 当 page 为 1 时，模拟一个延时
                 if(page === 1){
                     return new Promise((resolve) => {
                         setTimeout(()=>{
@@ -246,19 +236,17 @@ describe('Lifecycle MiddleWare',()=>{
 
         const {agent,connect,disconnect} = create(TodoList);
         connect();
-        // We fetch page 1 data first, then fetch the page 2.
+        // 先触发获取第一页数据，接着立即触发获取第二页数据。
         const fetchLoader1 = agent.fetch(1);
         const fetchLoader2 = agent.fetch(2);
         await Promise.all([fetchLoader1,fetchLoader2]);
-        // so `MiddleWarePresets.takeLatest()` accept the data from page 2 first,
-        // then `MiddleWarePresets.takeLatest()` kills the old `Agent`,
-        // which is waiting for the data of page 1.
-        // The newest data of page 2 keeps.
+        // 虽然第一页数据由延时，
+        // 但数据依然保持着最新一次触发获取的数据，即第二页数据
         expect(agent.state).toEqual(todoList2);
         disconnect();
     });
     
-    test('The `create` API can not accept a Lifecycle MiddleWare currently',()=>{
+    test('当前版本 `create` API 还不能直接使用 Lifecycle MiddleWare',()=>{
         expect(()=>{
             create(TodoList,MiddleWarePresets.takeLatest());
         }).toThrow('Can not use a lifecycle `MiddleWare` for creating, please use this `MiddleWare` with api `withMiddleWare` or `middleWare`.');

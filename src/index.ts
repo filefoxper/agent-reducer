@@ -15,8 +15,6 @@ export {
   toLifecycleMiddleWare,
 } from './libs/lifecycleMiddleWares';
 
-export { addEffect } from './libs/effect';
-
 export { default as MiddleWares } from './libs/middleWares';
 
 export { default as MiddleWarePresets } from './libs/middleWarePresets';

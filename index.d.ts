@@ -1,21 +1,8 @@
-declare type MethodCaller<T=any> = ((...args:any[])=>any)&{model?:T};
-
-declare type MethodEffectOption<T> = {
-    model?:T,
-    methods?:keyof T|MethodCaller|((keyof T|MethodCaller)[])
-}
-
 /** global * */
 export interface OriginAgent<S = any> {
     state: S;
     [key: string]: any;
 }
-
-declare type EffectCaller<S, T extends OriginAgent<S>> = (
-    prev:S,
-    next:S,
-    methodName?:keyof T
-) => (()=>void)|void;
 
 export type Model<S = any> = OriginAgent<S>;
 
@@ -56,7 +43,7 @@ export declare type LifecycleMiddleWare = (
 
 export declare type Action = {
     type: string;
-    args?: any;
+    state?: any;
 };
 
 type Dispatch = (action: Action) => any;
@@ -68,7 +55,7 @@ interface ReducerPadding<
     T extends OriginAgent<S> = OriginAgent<S>
     > {
     agent: T;
-    connect: (dispatch: Dispatch) => void;
+    connect: (dispatch?: Dispatch) => void;
     disconnect:()=>void
 }
 
@@ -147,11 +134,6 @@ export declare const middleWare: <
     callOrMiddleWare: MiddleWare | LifecycleMiddleWare | MiddleWareAble<S, T>,
     ...mdw: (MiddleWare | LifecycleMiddleWare)[]
 ) => DecoratorCaller;
-
-export declare function addEffect<S, T extends Model<S>>(
-    callback:EffectCaller<S, T>,
-    target:MethodCaller<T>|T,
-):(()=>void);
 
 /** middleWares * */
 export declare function defaultMiddleWare<T>(runtime: Runtime): NextProcess;

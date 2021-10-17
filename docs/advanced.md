@@ -270,7 +270,7 @@ In the `immerMiddleWare` we skipped calling the `next` callback, when there is n
 The `create` API returns an `reducer function`, which contains an `agent` object, an `connect` callback and a `disconnect` callback. 
 
 1. The `agent` is a Proxy which can change state for `Model instance`.
-2. The `connect` callback is for subscribing state changes, it accepts a dispatch callback, when the state changed, the dispatch callback can receive an `Action` object, which contains a `type` (method name) and `args` (changed state).
+2. The `connect` callback is for subscribing state changes, it accepts a dispatch callback, when the state changed, the dispatch callback can receive an `Action` object, which contains a `type` (method name) and `state` (changed state).
 3. The `disconnect` callback is for unsubscribing the state change.
 
 Take a look at the structure.
@@ -282,7 +282,7 @@ export declare type Action = {
     // the type is the method name which changed state yet
     type: string;
     // the args is the newest state.
-    args?: any;
+    state?: any;
 };
 
 // you can subscribe state changes by passing it into `connect`,

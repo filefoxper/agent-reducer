@@ -122,7 +122,7 @@ For resolving the problems above, we provide two API `sharing` and `weakSharing`
 // it is a callback returns a `Model class` or `Model instance`.
 declare type Factory<
     S,
-    T extends OriginAgent<S> = OriginAgent<S>
+    T extends Model<S> = Model<S>
     > = (...args:any[])=>T|{new ():T};
 
 // The returns type SharingRef.
@@ -130,7 +130,7 @@ declare type Factory<
 // We can initial a `Model instance` by calling initial.
 declare type SharingRef<
     S,
-    T extends OriginAgent<S>= OriginAgent<S>,
+    T extends Model<S>= Model<S>,
     > = {
     // Take the current `Model instance`.
     // If the current `Model instance` is not created,
@@ -148,7 +148,7 @@ API `sharing` create a `Model instance` which has a state persistent in memory. 
 ```typescript
 export declare function sharing<
     S,
-    T extends OriginAgent<S> = OriginAgent<S>
+    T extends Model<S> = Model<S>
     >(factory:Factory<S, T>): SharingRef<S, T>;
 ```
 
@@ -159,7 +159,7 @@ If you fetch the `current Model instance` from a unused (or destroyed) `weakShar
 ```typescript
 export declare function weakSharing<
     S,
-    T extends OriginAgent<S>=OriginAgent<S>
+    T extends Model<S>=Model<S>
     >(
     factory:Factory<S, T>,
 ):SharingRef<S, T>;
@@ -381,110 +381,6 @@ describe('use sharing.initial',()=>{
         agent.stepUp();
         expect(agent.state).toBe(2);
         disconnect();
-    });
-
-});
-```
-
-## The order of Agent dispatch
-
-When a method of `Agent` has changed the `Model state`, it always notifies the other `Agents` sharing the same `Model instance` to dispatch by the order of the `Agent subscription time` first, then it dispatch the state itself.
-
-Here is an example:
-
-```typescript
-import {
-    create,
-    middleWare,
-    MiddleWarePresets,
-    Action,
-    Model,
-    sharing,
-    weakSharing
-} from 'agent-reducer';
-
-describe('The order of Agent dispatch',()=>{
-
-    type User = {
-        id: undefined | number
-        name: string,
-        nick: string
-    }
-
-    const defaultUser = {
-        id: undefined,
-        name: 'guest',
-        nick: 'guest'
-    };
-
-    const remoteUser = {
-        id: 0,
-        name: 'name',
-        nick: 'nick'
-    };
-
-    const anotherRemoteUser = {
-        id: 1,
-        name: 'name1',
-        nick: 'nick1'
-    }
-
-    // this is a user model,
-    // we can fetch user from server.
-    class UserModel implements Model<User> {
-
-        state: User = defaultUser;
-
-        @middleWare(MiddleWarePresets.takeLatest())
-        login() {
-            return Promise.resolve(remoteUser);
-        }
-
-        @middleWare(MiddleWarePresets.takeLatest())
-        switchUser(){
-            return Promise.resolve(anotherRemoteUser);
-        }
-
-        @middleWare(MiddleWarePresets.takeLatest())
-        logout(){
-            return Promise.resolve(defaultUser);
-        }
-
-        rename(name: string) {
-            return {name, nick: name};
-        }
-
-        updateNick(nick: string) {
-            return {nick};
-        }
-
-    }
-
-    test('The running `Agent` notifies its sharing siblings to dispatch first',async ()=>{
-        // create a order stack to store the action type,
-        // and we can find the dispatch order from it.
-        const actionOrders:string[] = [];
-        // create the `Model instance`
-        const userModel = new UserModel();
-        // to test a Model Sharing, we need two `Agent` from a `Model instance`
-        const { agent,connect,disconnect } = create(userModel);
-        const { agent:another,connect:anotherConnect,disconnect:anotherDisConnect } = create(userModel);
-        // connect both `Agents`,
-        // and subscribe the state changes,
-        // when a state change comes,
-        // both listeners push the `action` to the `actionOrders`
-        connect((action)=>actionOrders.push(action.type));
-        anotherConnect((action)=>actionOrders.push(action.type));
-        // login user
-        await agent.login();
-        expect(agent.state).toEqual(remoteUser);
-        expect(another.state).toEqual(remoteUser);
-        // The `@@AGENT_MUTE_STATE` type is a notify action type,
-        // for notifying the siblings to dispatch.
-        // And we can find, the method dispatch happens at the final period
-        expect(actionOrders).toEqual(['@@AGENT_MUTE_STATE','login']);
-        disconnect();
-        anotherDisConnect();
     });
 
 });

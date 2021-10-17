@@ -12,16 +12,17 @@ const entryPath = pathBuilder.resolve('src', 'index.ts');
 
 const targetPath = pathBuilder.resolve('dist');
 
-function entry(env) {
+const esTargetPath = pathBuilder.resolve('es');
+
+function entry(env,name,output) {
     return {
         mode: 'production',
         devtool: false,
         entry: {
-            ['agent-reducer']: entryPath,
-            ['agent-reducer.min']: entryPath
+            [name]: entryPath,
         },
         output: {
-            path: targetPath,
+            path: output||targetPath,
             filename: '[name].js',
             library: 'agent-reducer',
             libraryTarget: 'umd'
@@ -51,7 +52,7 @@ function entry(env) {
                         {
                             loader: 'babel-loader',
                             options: {
-                                cacheDirectory: true
+                                cacheDirectory: true,
                             }
                         }
                     ]
@@ -68,6 +69,11 @@ function entry(env) {
     }
 }
 
-module.exports = function (env) {
-    return entry(env);
-};
+module.exports = [
+    function (env) {
+        return entry(env,'agent-reducer.mini');
+    },
+    function (env) {
+        return entry(env,'agent-reducer',esTargetPath,);
+    }
+];

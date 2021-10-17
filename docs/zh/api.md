@@ -1,8 +1,8 @@
-# API Reference
+# API 文档
 
 ## create
 
-Creates a `AgentReducer` function from `Model`. The `AgentReducer` function is a `reducer` function, it contains an `agent` object, a `connect` subscribe callback and a `disconnect` unsubscribe callback.
+根据 `模型` 创建一个带有可操作属性的 reducer function，该 function 带有一个 `agent` 代理对象，一个 `connect` 监听连接接口，一个 `disconnect` 销毁监听接口。具体参考连接第三方库中的[说明](/zh/advanced?id=连接其他第三方库)。
 
 ```typescript
 function create<
@@ -14,25 +14,25 @@ function create<
 ): AgentReducer<S, T>;
 ```
 
-* model - the model class or object.
-* middleWares - it is optional, you can put MiddleWares you need as default MiddleWares here, the system will make it as a MiddleWare chain.
+* model - class 或 object 模型。
+* middleWares - 可选项，MiddleWare，系统将自动将它们串联成一个 MiddleWare 。
 
-Be careful, `LifecycleMiddleWare` can not work with this api directly. If you want to use one like `LifecycleMiddleWares.takeLatest`, you'd better set it with api [withMiddleWare](/api?id=withmiddleware) or [middleWare](/api?id=middleware).
+注意，`LifecycleMiddleWare` 不能与该 API 方法联用。你需要使用 API [withMiddleWare](/zh/api?id=withmiddleware) 或 [middleWare](/zh/api?id=middleware) 。
 
-#### Example
+#### 例子
 
 ```typescript
 import {create,Model} from 'agent-reducer';
 
 describe('create',()=>{
 
-    // this is a counter model,
-    // we can increase or decrease its state
+    // 这时个计数器模型，
+    // 我们可以增加或减少 state 值
     class Counter implements Model<number> {
 
-        state = 0;  // initial state
+        state = 0;  // 初始化 state 值
 
-        // consider what the method returns as a next state for model
+        // 返回值将成为下一个 state
         stepUp = (): number => this.state + 1;
 
         stepDown = (): number => this.state - 1;
@@ -43,16 +43,15 @@ describe('create',()=>{
 
     }
 
-    test('use `create` API',()=>{
-        // use create api, you can create an `Agent` object from its `Model`
+    test('使用 `create` API',()=>{
+        // 使用 `create` API 为 `模型` 创建一个 `代理`
         const {agent,connect,disconnect} = create(Counter);
-        // before call the methods,
-        // you need to connect it first
+        // 开始前，你需要先进行模型到代理的连接
         connect();
-        // the result returned by method `agent.stepUp` will be next state
+        // `agent.stepUp` 的返回值将成为下一个 state
         agent.stepUp();
-        // if there is no more work for `Agent`,
-        // you should disconnect it.
+        // 如果代理和模型实例已经不再具备利用价值，
+        // 需要通过 disconnect 销毁链接
         disconnect();
         expect(agent.state).toBe(1);
     });
@@ -60,11 +59,11 @@ describe('create',()=>{
 });
 ```
 
-To check more [details](/advanced?id=connect-with-another-state-changeable-library)
+参考更多[细节](/zh/advanced?id=连接其他第三方库)
 
 ## connect
 
-Creates an `AgentRunner` from `Model`. It is a shortcut usage of [create](/api?id=create) API.
+[create](/zh/api?id=create) API 的快捷用法。
 
 ```typescript
 type AgentRunner<T> = {
@@ -79,25 +78,25 @@ function connect<
     ...middleWares: (MiddleWare & { lifecycle?: boolean })[]
 ):AgentRunner<T>
 ```
-* model - the model class or object.
-* middleWares - it is optional, you can put MiddleWares you need as default MiddleWares here, the system will make it as a MiddleWare chain.
+* model - class 或 object 模型。
+* middleWares - 可选项，MiddleWare，系统将自动将它们串联成一个 MiddleWare 。
 
-Be careful, `LifecycleMiddleWare` can not work with this api directly. If you want to use one like `LifecycleMiddleWares.takeLatest`, you'd better set it with api [withMiddleWare](/api?id=withmiddleware) or [middleWare](/api?id=middleware).
+注意，`LifecycleMiddleWare` 不能与该 API 方法联用。你需要使用 API [withMiddleWare](/zh/api?id=withmiddleware) 或 [middleWare](/zh/api?id=middleware) 。
 
-#### Example
+#### 例子
 
 ```typescript
 import {connect,Model} from 'agent-reducer';
 
-describe('use shortcut of API `create`',()=>{
+describe('API `create` 的快捷用法',()=>{
 
-    // this is a counter model,
-    // we can increase or decrease its state
+    // 这时个计数器模型，
+    // 我们可以增加或减少 state 值
     class Counter implements Model<number> {
 
-        state = 0;  // initial state
+        state = 0;  // 初始化 state 值
 
-        // consider what the method returns as a next state for model
+        // 返回值将成为下一个 state
         stepUp = (): number => this.state + 1;
 
         stepDown = (): number => this.state - 1;
@@ -108,7 +107,7 @@ describe('use shortcut of API `create`',()=>{
 
     }
 
-    test('use API `connect`',()=>{
+    test('使用 API `connect`',()=>{
         const {run} = connect(Counter);
         const state = run((agent)=>{
             agent.stepUp();
@@ -122,8 +121,7 @@ describe('use shortcut of API `create`',()=>{
 
 ## withMiddleWare
 
-Copys an `Agent` object, and makes methods from the copy version run with the MiddleWares you set in.
-
+复制一个 `代理`，该复制品方法上的 MiddleWare 可覆盖原代理上的 MiddleWare。
 
 ```typescript
 function withMiddleWare<S, T extends OriginAgent<S>>(
@@ -132,10 +130,10 @@ function withMiddleWare<S, T extends OriginAgent<S>>(
 ): T;
 ```
 
-* agent - `Agent` object, it is a property of `AgentReducer` function created by [create](/api?id=create).
-* mdws - `MiddleWares` you want to effect on the copy `Agent` methods.
+* agent - `代理`对象。
+* mdws - MiddleWare，系统将自动将它们串联成一个 MiddleWare。
 
-#### Example
+#### 例子
 
 ```typescript
 import {
@@ -147,32 +145,32 @@ import {
 
 describe('withMiddleWare',()=>{
 
-    // this is a counter model,
-    // we can increase or decrease its state
+    // 这时个计数器模型，
+    // 我们可以增加或减少 state 值
     class Counter implements Model<number> {
 
-        state = 0;  // initial state
+        state = 0;  // 初始化 state 值
 
-        // consider what the method returns as a next state for model
+        // 返回值将成为下一个 state
         stepUp = (): number => this.state + 1;
 
         stepDown = (): number => this.state - 1;
 
-        async step(isUp: boolean):Promise<number>{
+        step(isUp: boolean):number{
             return isUp ? this.stepUp() : this.stepDown();
         }
 
     }
 
-    test('use `withMiddleWare` API',()=>{
-        // use create api, you can create an `Agent` object from its `Model`
+    test('使用 `withMiddleWare` API',async ()=>{
+        // 使用 `create` API 为 `模型` 创建一个 `代理`
         const {agent,connect,disconnect} = create(Counter);
-        // before call the methods,
-        // you need to connect it first
+        // 开始前，你需要先进行模型到代理的连接
         connect();
-        // use `withMiddleWare` to copy an `Agent` use the passed MiddleWare
+        // 使用 `withMiddleWare` 复制 `代理`，
+        // 并传入 MiddleWare，覆盖原代理方法上的 MiddleWare
         const copy = withMiddleWare(agent,MiddleWarePresets.takePromiseResolve());
-        copy.step(true);
+        await copy.step(true);
         disconnect();
         expect(agent.state).toBe(1);
     });
@@ -180,11 +178,11 @@ describe('withMiddleWare',()=>{
 });
 ```
 
-To check more [details](/guides?id=middleware-override)
+查看更多[细节](/zh/guides?id=middleware-覆盖作用)
 
 ## middleWare
 
-Makes a Model method or Model class run with MiddleWares you want to effect on.
+为模型 class 或模型方法预加 MiddleWare。
 
 ```typescript
 const middleWare: <
@@ -196,14 +194,14 @@ const middleWare: <
 ) => DecoratorCaller;
 ```
 
-* callOrMiddleWare - Model instance, Model class, Model method or MiddleWare.
-* mdws - `MiddleWares` you want to effect on.
+* callOrMiddleWare - `模型实例`， `模型 class`， `模型方法` 或 MiddleWare。
+* mdws - MiddleWare
   
-It returns a function for ES6 decorator usage. 
+该API返回一个 ES6 decorator 定义 function。
 
-If the first argument is a Model instance, it effects the rest arguments as a chained MiddleWare on this instance; if the first argument is a Model class, it effects the MiddleWares on the Model class; if the first argument is a Model method, it effects the MiddleWares on the Model method; If the first argument is a MiddleWare too, it chains all arguments together as a MiddleWare, and prepare for effecting this MiddleWare on a Model class or Model method by using ES6 decorator.
+当第一个参数为 `模型实例` 时，剩余 MiddleWare 参数将被自行串联起来，并作用于当前 `模型实例` 对应的 `代理方法` 上；当第一个参数为 `模型 class` 时，剩余 MiddleWare 参数将被自行串联起来，作用于由该模型生成的 `代理方法` 上；当第一个参数为 `模型方法` 时，剩余 MiddleWare 参数将被自行串联起来，作用于由该模型方法对应的 `代理方法` 上。如所有参数都为 MiddleWare，则需要将返回 function 用与 decorator 修饰。
 
-#### Example
+#### 例子
 
 ```typescript
 import {
@@ -215,17 +213,15 @@ import {
 
 describe('middleWare',()=>{
 
-    // this is a counter model,
-    // we can increase or decrease its state
     class Counter implements Model<number> {
 
-        state = 0;  // initial state
+        state = 0;
 
-        // consider what the method returns as a next state for model
         stepUp = (): number => this.state + 1;
 
         stepDown = (): number => this.state - 1;
 
+        // decorator 用法
         @middleWare(MiddleWarePresets.takePromiseResolve())
         async step(isUp: boolean):Promise<number>{
             return isUp ? this.stepUp() : this.stepDown();
@@ -233,11 +229,8 @@ describe('middleWare',()=>{
 
     }
 
-    test('use `middleWare` API',async ()=>{
-        // use create api, you can create an `Agent` object from its `Model`
+    test('使用 `middleWare` API',async ()=>{
         const {agent,connect,disconnect} = create(Counter);
-        // before call the methods,
-        // you need to connect it first
         connect();
         await agent.step(true);
         disconnect();
@@ -247,11 +240,11 @@ describe('middleWare',()=>{
 });
 ```
 
-To check more [details](/guides?id=middleware-override)
+查看更多[细节](/zh/guides?id=middleware-覆盖作用)
 
 ## applyMiddleWares
 
-Chains MiddleWares together to be a final MiddleWare.
+用于将多个 MiddleWare 串联成一个包含所有项功能的 MiddleWare。
 
 ```typescript
 function applyMiddleWares(
@@ -259,13 +252,13 @@ function applyMiddleWares(
 ): MiddleWare
 ```
 
-* middleWares - MiddleWare callbacks.
+* middleWares - MiddleWare
 
-Returns a final MiddleWare.
+返回一个包含所有项功能的 MiddleWare。
 
 ## MiddleWares
 
-It is a set for storing official MiddleWares. These MiddleWares are atom MiddleWares, they have their own duties.
+官方 MiddleWare 的原子集合，包含了很多功能单一的常用 MiddleWare 。
 
 ```typescript
 class MiddleWares {
@@ -310,20 +303,20 @@ class MiddleWares {
 }
 ```
 
-* takeNothing - stop state change happening.
-* takePromiseResolve - take a promise resolve data to next.
-* takeAssignable - take a data merge with Model state to next. It uses `Object.assign` to merge the data with Model.state.
-* takeUnstableBlock - control a method running way. If the method has not finished, it can not run again, it is useful when the method is an `async method`. You can give it a block period as param, so if the block period is over, it still can be run again, no matter if this method has finished or not.
-* takeUnstableThrottle - control a method running way. Make method runs with a `Throttle` feature. You can give it a period as param, and from the method runs as beginning, in the period time you set, it won't run.
-* takeUnstableDebounce - control a method running way. Make method runs with a `Debounce` feature. You can give it a period as param, when the method is triggered, it will run delay after the period time, if there is another trigger during the period, it will redelay a period time. If you need a opposite feature about `Debounce`, set the `opt` param property `leading` to true.
-* ~~takeNone~~ - old version `takeNothing`
-* ~~takeBlock~~ - old version `takeUnstableBlock`
-* ~~takeThrottle~~ - old version `takeUnstableThrottle`
-* ~~takeDebounce~~ - old version `takeUnstableDebounce`
+* takeNothing - 禁止 state 变更。
+* takePromiseResolve - 将 promise 返回值 resolve 的数据传递给下一个 MiddleWare。
+* takeAssignable - 使用 `Object.assign` 将 object 返回值与模型实例 state 合并后传递给下一 MiddleWare。
+* takeUnstableBlock - 控制方法运行方式。如果方法没有结束就不能再次运行，这对异步方法非常有用。同时我们可以传入一个阻塞`时间`，如果超出阻塞时间，依然没有方法依然结束，方法重新进入可运行状态。参数 blockMs：阻塞`时间`
+* takeUnstableThrottle - 控制方法运行方式。以 `Throttle` 的方式运行当前方法，在第一次调用开始后，设定的`时间`内不再运行该方法。参数 waitMs：等待`时间`
+* takeUnstableDebounce - 控制方法运行方式。以 `Debounce` 模式运行当前方法，即防抖，默认为后防模式。后防模式指方法触发时并不马上运行，等待设定`时间`到来时才运行，若在等待`时间`内再次触发，则以当前触发点开始继续延时等待。前防模式则正好相反。参数 waitMs：等待`时间`，opt.leading：false 为后防模式，true 为前防模式。
+* ~~takeNone~~ - 老版本的 `takeNothing`
+* ~~takeBlock~~ - 老版本的 `takeUnstableBlock`
+* ~~takeThrottle~~ - 老版本的 `takeUnstableThrottle`
+* ~~takeDebounce~~ - 老版本的 `takeUnstableDebounce`
 
 ## LifecycleMiddleWares
 
-It is a set for storing official lifecycle MiddleWare.
+官方的 lifecycle MiddleWare 集合。
 
 ```typescript
 class LifecycleMiddleWares {
@@ -331,11 +324,11 @@ class LifecycleMiddleWares {
 }
 ```
 
-* takeLatest - control `Agent` lifecycle. Reject the expired state change from the expired `Agent`, and keep the state change order.
+* takeLatest - 控制`代理`复制版的生命周期. 当复制版`代理`过期时，将不再具备修改 state 的能力。
 
 ## MiddleWarePresets
 
-It is a set for storing official MiddleWare chains. These MiddleWares are often used.
+常用官方 MiddleWare 的串联集合。
 
 ```typescript
 class MiddleWarePresets {
@@ -436,7 +429,7 @@ class MiddleWarePresets {
 * ~~takeThrottleAssignable - MiddleWarePresets.takeUnstableThrottleAssignable~~
 * ~~takeDebounceAssignable - MiddleWarePresets.takeUnstableDebounceAssignable~~
 
-## Example
+## 例子
 
 ``` typescript
 import {
@@ -450,11 +443,9 @@ describe('MiddleWarePresets',()=>{
 
     const delay = (ms:number)=>new Promise((r)=>setTimeout(r,ms));
 
-    // this is a counter model,
-    // we can increase or decrease its state
     class Counter implements Model<number> {
 
-        state = 0;  // initial state
+        state = 0;
 
         @middleWare(MiddleWarePresets.takeUnstableDebounce(100))
         stepUp(): number{
@@ -474,10 +465,7 @@ describe('MiddleWarePresets',()=>{
     }
 
     test('use `middleWare` API',async ()=>{
-        // use create api, you can create an `Agent` object from its `Model`
         const {agent,connect,disconnect} = create(Counter);
-        // before call the methods,
-        // you need to connect it first
         connect();
         agent.stepUp();
         agent.stepUp();
@@ -496,7 +484,7 @@ describe('MiddleWarePresets',()=>{
 
 ## toLifecycleMiddleWare
 
-Change a MiddleWare to be a Lifecycle MiddleWare.
+将一个自定义 MiddleWare 转换成一个 LifecycleMiddleWare.
 
 ```typescript
 const toLifecycleMiddleWare: (lifecycleMiddleWare: MiddleWare) => LifecycleMiddleWare;
@@ -506,13 +494,13 @@ const toLifecycleMiddleWare: (lifecycleMiddleWare: MiddleWare) => LifecycleMiddl
 
 ## defaultMiddleWare
 
-The default MiddleWare in system.
+系统默认 MiddleWare ，即将方法返回值传递给下一个 MiddleWare，或 state 修改器。
 
 ## sharing
 
-Creates a sharable `Model instance` factory. It returns an object contains a `current` property for the current `Model instance`, and a `initial` callback for initialing the current `Model instance`.
+创建一个强共享的 `模型实例` 工厂。包含 `current` 属性，当前 `模型实例`；`initial` 属性，初始化回调函数。
 
-The `current` from this `sharing` api can only be initialized once, then when you get it again, it will be fetched directly from the memory.
+强共享 `模型实例` 工厂中的 `current` 只会被初始化一次，并常驻内存，不能自动销毁。
 
 ``` typescript
 function sharing<
@@ -521,9 +509,9 @@ function sharing<
     >(factory:Factory<S, T>): SharingRef<S, T>;
 ```
 
-* factory - a callback runs at the initial time for creating or recreating a Model instance.
+* factory - 用于创建 `模型实例` 的回调函数
 
-It returns a `SharingRef` object contains property named `current` and `initial`.
+返回一个 `SharingRef` 工厂对象
 
 ```typescript
 type SharingRef<
@@ -535,13 +523,13 @@ type SharingRef<
 };
 ```
 
-To check more [details](/feature?id=model-sharing).
+查看更多[细节](/zh/feature?id=模型共享)。
 
 ## weakSharing
 
-Creates a sharable `Model instance` factory. It returns an object contains a `current` property for the current `Model instance`, and a `initial` callback for initialing the current `Model instance`.
+创建一个弱共享的 `模型实例` 工厂。包含 `current` 属性，当前 `模型实例`；`initial` 属性，初始化回调函数。
 
-The `current` will be destroyed when every usage about it is destroyed. And it will be reinitialized when the usage happens again.
+弱共享中的 `current` 属性会在 `模型实例` 的 `代理` 全部销毁时被销毁。再次用于创建 `代理` 时，会重新初始化。
 
 ``` typescript
 function weakSharing<
@@ -552,9 +540,9 @@ function weakSharing<
 ):SharingRef<S, T>;
 ```
 
-* factory - a callback runs at the initial time for creating or recreating a Model instance.
+* factory - 用于创建 `模型实例` 的回调函数
 
-It returns a `SharingRef` object contains property named `current` and `initial`.
+返回一个 `SharingRef` 工厂对象
 
 ```typescript
 type SharingRef<
@@ -566,22 +554,4 @@ type SharingRef<
 };
 ```
 
-To check more [details](/feature?id=model-sharing).
-
-## addEffect
-
-Add a Effect callback for listening state change of a `Model instance` or a `Model method`.
-
-``` typescript
-function addEffect<S, T extends Model<S>>(
-    callback:EffectCaller<S, T>,
-    target:MethodCaller<T>|T,
-):(()=>void);
-```
-
-* callback - a callback receives a `prevState`, a `currentState` and a `methodName` as params.
-* target - a `Model instance` or a `Agent` object or a `Model method` or a `Agent method`.
-
-It returns a unsubscribe callback, when you need to destroy it, you can call this unsubscribe callback.
-
-To check more [details](/guides?id=effect).
+查看更多[细节](/zh/feature?id=模型共享)。

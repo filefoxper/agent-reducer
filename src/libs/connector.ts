@@ -1,9 +1,8 @@
 import {
-  Action, EffectRunner, OriginAgent,
+  Action, OriginAgent,
 } from './global.type';
 import {
   agentActionsKey,
-  agentEffectKey,
   agentListenerKey,
   agentMethodName,
   agentModelResetKey,
@@ -11,14 +10,12 @@ import {
   agentSharingTypeKey, DefaultActionType,
 } from './defines';
 import { ModelConnector } from './sharing.type';
-import { effectsRunner } from './effect';
 
 export function resetModel<
     S,
     T extends OriginAgent<S>=OriginAgent<S>
     >(entity:T):void {
   entity[agentSharingMiddleWareKey] = undefined;
-  entity[agentEffectKey] = undefined;
   entity[agentActionsKey] = undefined;
 }
 
@@ -44,14 +41,6 @@ function subscribe<
       reset();
     }
   };
-}
-
-function onlyCurrentListener<
-    S,
-    T extends OriginAgent<S> = OriginAgent<S>
-    >(modelInstance: T&{[agentListenerKey]?:((s:S)=>any)[]}, listener:(s:S)=>any) {
-  const listeners = modelInstance[agentListenerKey] || [];
-  return listeners.length === 1 && listeners[0] === listener;
 }
 
 function mountMethod<
@@ -93,9 +82,6 @@ function initialModel<
       resetModel<S, T>(instance);
     };
   }
-  if (!instance[agentEffectKey]) {
-    instance[agentEffectKey] = [];
-  }
   if (!instance[agentActionsKey]) {
     instance[agentActionsKey] = [];
   }
@@ -105,7 +91,7 @@ function initialModel<
 function notification<
     S,
     T extends OriginAgent<S> = OriginAgent<S>
-    >(modelInstance:T, runEffects:EffectRunner<S>, listener:null|((s:S)=>any)) {
+    >(modelInstance:T, listener:null|((s:S)=>any)) {
   return function notify(nextState:S, action:Action, dispatch:(ac:Action)=>void):void {
     const active = isConnecting(modelInstance) || modelInstance[agentSharingTypeKey] === 'hard';
     const prevState:S = modelInstance.state;
@@ -127,13 +113,6 @@ function notification<
       });
     }
     dispatch(action);
-    if (
-      needUpdate
-        && active
-        && action.type !== DefaultActionType.DX_MUTE_STATE
-    ) {
-      runEffects.update(prevState, modelInstance.state, action);
-    }
   };
 }
 
@@ -143,7 +122,6 @@ export function createSharingModelConnector<
     >(modelInstance: T&{[agentListenerKey]?:((s:S)=>any)[]}):ModelConnector<S, T> {
   let listener:null|((s:S)=>any) = null;
   let unsubscribe:null|(()=>any) = null;
-  const runEffects = effectsRunner<S, T>(modelInstance);
   return {
     connect(l:(s:S)=>any) {
       if (unsubscribe || listener) {
@@ -154,28 +132,16 @@ export function createSharingModelConnector<
       unsubscribe = subscribe(modelInstance, l);
     },
     notify(nextState:S, action:Action, dispatch:(ac:Action)=>void) {
-      const notify = notification(modelInstance, runEffects, listener);
+      const notify = notification(modelInstance, listener);
       notify(nextState, action, dispatch);
     },
     disconnect() {
       if (unsubscribe === null || listener === null) {
         throw new Error('The `unsubscribe` function is `null`, please deploy `connect` function before use `disconnect`');
       }
-      let effectError:Error|null = null;
-      const isOnlyListener = onlyCurrentListener(modelInstance, listener);
-      if (isOnlyListener) {
-        try {
-          runEffects.disconnect();
-        } catch (e) {
-          effectError = e;
-        }
-      }
       unsubscribe();
       unsubscribe = null;
       listener = null;
-      if (effectError !== null) {
-        throw effectError;
-      }
     },
   };
 }

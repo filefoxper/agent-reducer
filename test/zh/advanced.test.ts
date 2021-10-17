@@ -1,77 +1,7 @@
-# 高级用法
-
-## 自定义 MiddleWare
-
-官方提供的 MiddleWare 集合已经可以满足大部分开放需求了，但在某些特殊场景下，学习并自定义 MiddleWare 依然是十分必要的。
-
-如果不清楚什么是 [MiddleWare](/zh/guides?id=中间件-middleware)，建议回到引导中进行复习。我们再来看看 MiddleWare 的方法结构。
-
-MiddleWare 的结构定义要求如下:
-
-```typescript
-/ `MiddleWare` 是一个 function，
-// 在方法准备开始调用时，会预先运行最终作用于方法的 `MiddleWare`。
-// 参数 `Runtime` 是一个非常有用的 API 对象，
-// 它包含了 `代理`，`模型实例`，`运行方法名`，`运行方法缓存数据`等信息
-function middleWareLike(runtime: Runtime):NextProcess|void {
-
-    // `MiddleWare` 可以返回一个 `nextProcess` 回调函数，
-    // 该函数可用于接入串行下一 `MiddleWare` 的数据再加工执行函数 `stateProcess`。
-    // `nextProcess` 函数会在方法结束时立即调用。
-    // 如果你不希望运行当前 MiddleWare 所作用的方法，
-    // 可选择返回 void 来代替 `nextProcess` ，并阻止方法执行。
-    return function nextProcess(next: StateProcess): StateProcess {
-
-        // `stateProcess` 用于再加工上一 MiddleWare 传入的 state（或方法返回值），
-        // 通过调用 `next` 函数，我们可以把当前加工结果传递给下一 MiddleWare 处理。
-        return function stateProcess(state: any) {
-            // `next` 函数是下一 MiddleWare 的 `stateProcess`，
-            // 如果想要阻止 state 发生变化，
-            // 可直接返回加工结果，而不调用 `next` 函数
-            return next(doSomething(state));
-        };
-    };
-}
-```
-
-`Runtime`的结构:
-
-```typescript
-// Runtime 是一个方法执行时 API 对象
-export type Runtime<T extends Record<string, any>=any> = {
-    // 正在执行方法的方法名
-    methodName: string|number;
-    // 正在执行方法的入参
-    args?: any[];
-    // 正在执行方法所在的代理对象
-    agent: T;
-    // 正在执行方法所在的代理对象对应的模型实例
-    model: T;
-    // 代理运行环境变量，仅仅包含一个 expired 是否过期判断属性，
-    // 如果 expired 为 true，代理将失去修改 state 的能力
-    env: Env;
-    // MiddleWare 缓存对象，
-    // 可用来做 MiddleWare 数据缓存
-    cache: { [key: string]: any };
-    // 可为正在执行方生成一个的临时模型实例，
-    // 此时方法访问的关键词 this 指向这个临时模型实例
-    mapModel:(handler:ProxyHandler<T>)=>T;
-};
-```
-
-Now, we will use the knowledge above to create a customized MiddleWare to integrate the [immer.js](https://www.npmjs.com/package/immer) into our method.
-
-```typescript
-import {
-    create, 
-    middleWare, 
-    MiddleWarePresets,
-    Model, 
-    NextProcess, 
-    Runtime, 
-    StateProcess
-} from "agent-reducer";
+import {Model, NextProcess, Runtime, StateProcess} from "../../src/libs/global.type";
 import {createDraft, finishDraft} from "immer";
+import {create, middleWare, MiddleWarePresets} from "../../src";
+import {createStore} from "redux";
 
 describe('自定义 MiddleWare', () => {
 
@@ -252,71 +182,6 @@ describe('自定义 MiddleWare', () => {
     });
 
 });
-```
-
-查看单元测试代码 [advanced.test.ts](https://github.com/filefoxper/agent-reducer/blob/master/test/zh/advanced.test.ts)。
-
-自定义 `immerMiddleWare` 利用 `runtime.mapModel` API 创建了一个 `模型实例` 的 Proxy 对象，并在该 Proxy 的 get 拦截中把 state 替换成了它的 immer draft 对象。在相应的方法中，`this.state` 变成了 immer draft 对象，这样我们就可以用 immer 的形式来编写我们的代码，并实时进行 state 变更。
-
-在 `immerMiddleWare` 中，我们通过弃用 `next` 阻止了方法的 return 对象被作为下一个 state 传递出去，这个技巧在官方的 `MiddleWarePresets.takeNothing()` 中也有使用。
-
-## 连接其他第三方库
-
-`create` API 返回了一个 `reducer function`，与普通 function 不同，它带有三个特殊属性：
-
-1. `agent`: `模型实例`的`代理`
-2. `connect`: 用于连接`模型实例`与`代理`的链接函数，通过传入一个 dispatch 监听函数，我们可以实时监听 state 变更。dispatch 函数可在 state 变更时接收到一个 `Action` 对象，它包含了一个 `type`（触发变更的方法名）和一个 `state`（当前变更的 state 对象）。
-3. `disconnect`: 断开监听，销毁代理的回调函数。
-
-结构如下
-
-```typescript
-// 当 state 变更时，一个 Action 对象会被传入 dispatch 监听函数
-export declare type Action = {
-    // type 为引起本次变更的方法名
-    type: string;
-    // state 为本次变更的最新 state 值
-    state?: any;
-};
-
-// 监听 state 变更的监听函数，
-// 可通过 connect 生效
-type Dispatch = (action: Action) => any;
-
-export type Reducer<S, A> = (state: S, action: A) => S;
-
-// reducer function 的属性
-interface ReducerPadding<
-    S = any,
-    T extends OriginAgent<S> = OriginAgent<S>
-    > {
-    // `模型实例`的`代理`，
-    // 可引起 state 变更
-    agent: T;
-    // 用于连接 `代理` 与 `模型实例`，
-    // 监听 state 变更
-    connect: (dispatch: Dispatch) => void;
-    // 断开监听，销毁代理的回调函数
-    disconnect:()=>void
-}
-
-// 包含 ReducerPadding 属性的 reducer function
-export type AgentReducer<
-    S = any,
-    T extends OriginAgent<S> = any
-    > = Reducer<S, Action> & ReducerPadding<S, T>;
-```
-
-我们将用 `AgentReducer` 创建一个与 [redux](https://redux.js.org) 的连接器，如果你对如何连接一个可视化三方库更有兴趣，可以直接查看 `use-agent-reducer` 的[源码](https://github.com/filefoxper/use-agent-reducer/blob/master/src/index.ts)。
-
-```typescript
-import {
-    create, 
-    middleWare, 
-    MiddleWarePresets,
-    Model,
-} from "agent-reducer";
-import {createStore} from "redux";
 
 describe('连接 redux',()=>{
 
@@ -392,6 +257,3 @@ describe('连接 redux',()=>{
     });
 
 })
-```
-
-下一节，我们将全量预览系统 [API](/zh/api?id=api-文档)。
