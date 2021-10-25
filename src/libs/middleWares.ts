@@ -9,7 +9,7 @@ import { isObject, isPromise } from './util';
 import { isAgent } from './defines';
 
 export default class MiddleWares {
-  static takeNone():MiddleWare {
+  static takeNothing():MiddleWare {
     return function noneMiddleWare() {
       return function nextProcess():StateProcess {
         return function stateProcess(result:any) {
@@ -17,6 +17,13 @@ export default class MiddleWares {
         };
       };
     };
+  }
+
+  /**
+   * @deprecated
+   */
+  static takeNone():MiddleWare {
+    return MiddleWares.takeNothing();
   }
 
   static takePromiseResolve(): MiddleWare {
@@ -34,11 +41,11 @@ export default class MiddleWares {
 
   static takeAssignable(): MiddleWare {
     return function assignableMiddleWare(runtime: Runtime) {
-      const { target } = runtime;
-      const { state } = target as OriginAgent;
+      const { agent } = runtime;
+      const { state } = agent as OriginAgent;
       return function nextProcess(next: StateProcess): StateProcess {
         return function stateProcess(result: any) {
-          if (!isAgent(target) || !isObject(result) || !isObject(state)) {
+          if (!isAgent(agent) || !isObject(result) || !isObject(state)) {
             return next(result);
           }
           const copy = Object.create(
@@ -51,13 +58,13 @@ export default class MiddleWares {
     };
   }
 
-  static takeBlock(blockMs?: number): MiddleWare {
+  static takeUnstableBlock(blockMs?: number): MiddleWare {
     return function blockMiddleWare <T>(runtime: Runtime<T>): NextProcess | void {
       const { cache } = runtime;
       const now = new Date().getTime();
       if (
         cache.running
-        && (blockMs === undefined || now - cache.running < blockMs)
+          && (blockMs === undefined || now - cache.running < blockMs)
       ) {
         return undefined;
       }
@@ -78,11 +85,15 @@ export default class MiddleWares {
     };
   }
 
-  static takeLazy(waitMs: number): MiddleWare {
-    return MiddleWares.takeDebounce(waitMs);
+  /**
+   * @deprecated
+   * @param blockMs
+   */
+  static takeBlock(blockMs?: number): MiddleWare {
+    return MiddleWares.takeUnstableBlock(blockMs);
   }
 
-  static takeThrottle(waitMs: number): MiddleWare {
+  static takeUnstableThrottle(waitMs: number): MiddleWare {
     return function throttleMiddleWare<T>(runtime: Runtime<T>): NextProcess | void {
       function timeout(lastCallerInfo: {
         caller: (...args: any[]) => any;
@@ -97,11 +108,12 @@ export default class MiddleWares {
       }
 
       const {
-        cache, caller, args, target,
+        cache, args, agent, methodName,
       } = runtime;
       const { lastTime } = cache;
       if (lastTime !== undefined) {
-        cache.lastCallerInfo = { caller, args, target };
+        const method = (agent as Record<string, any>)[methodName] as ((...a: any[]) => any);
+        cache.lastCallerInfo = { caller: method, args, target: (agent as T) };
         return undefined;
       }
       cache.lastTime = new Date().getTime();
@@ -118,14 +130,23 @@ export default class MiddleWares {
     };
   }
 
-  static takeDebounce(waitMs: number, opt?: { leading?: boolean }): MiddleWare {
+  /**
+   * @deprecated
+   * @param waitMs
+   */
+  static takeThrottle(waitMs: number): MiddleWare {
+    return MiddleWares.takeUnstableThrottle(waitMs);
+  }
+
+  static takeUnstableDebounce(waitMs: number, opt?: { leading?: boolean }): MiddleWare {
     const { leading } = opt || {};
 
     return leading
       ? function leadingDebounceMiddleWare <T>(runtime: Runtime<T>): NextProcess | void {
         const {
-          caller, args, target, cache,
+          methodName, args, agent, cache,
         } = runtime;
+        const method = (agent as Record<string, any>)[methodName];
         const now = new Date().getTime();
         const { last } = cache;
         if (last === undefined) {
@@ -140,17 +161,18 @@ export default class MiddleWares {
           cache.last = now;
         } else {
           cache.last = undefined;
-          caller.apply(target, args || []);
+          method.apply(agent, args || []);
         }
         return undefined;
       }
       : function debounceMiddleWare <T>(runtime: Runtime<T>): NextProcess | void {
         function call(rt: Runtime<T>) {
           const {
-            caller, target, args, cache,
+            methodName, agent, args, cache,
           } = rt;
+          const method = (agent as Record<string, any>)[methodName];
           cache.debtimeout = null;
-          caller.apply(target, args || []);
+          method.apply(agent, args || []);
         }
 
         const { cache } = runtime;
@@ -167,5 +189,14 @@ export default class MiddleWares {
           };
         };
       };
+  }
+
+  /**
+   * @deprecated
+   * @param waitMs
+   * @param opt
+   */
+  static takeDebounce(waitMs: number, opt?: { leading?: boolean }): MiddleWare {
+    return MiddleWares.takeUnstableDebounce(waitMs, opt);
   }
 }

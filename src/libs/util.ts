@@ -1,14 +1,3 @@
-export const getScope = ():any|undefined => ((typeof process !== 'undefined'
-    && {}.toString.call(process) === '[object process]')
-    || (typeof navigator !== 'undefined' && navigator.product === 'ReactNative')
-  ? global
-  : self); // eslint-disable-line
-
-const noProxy = ():boolean => {
-  const scope = getScope();
-  return scope ? !scope.Proxy : !!Proxy;
-};
-
 function getDescriptors(
   target: any,
   receiver: any,
@@ -61,7 +50,7 @@ export const createProxy = <T extends Record<string, any>>(
   target: T,
   handler: ProxyHandler<T>,
 ): T => {
-  if (noProxy()) {
+  if (typeof Proxy !== 'function') {
     return useSimpleProxy(target, handler);
   }
   return new Proxy(target, handler);

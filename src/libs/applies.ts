@@ -6,7 +6,7 @@ import {
   LifecycleRuntime,
   ComposeCaller,
 } from './global.type';
-import { createProxy, isPromise } from './util';
+import { createProxy } from './util';
 
 export function composeCallArray(calls: ComposeCaller[]):ComposeCaller {
   const callList = [...calls].reverse();
@@ -18,18 +18,7 @@ export function composeCallArray(calls: ComposeCaller[]):ComposeCaller {
   };
 }
 
-export function defaultMiddleWare<T>(runtime: Runtime):NextProcess {
-  // 支持1.+.+版本
-  if (runtime.env && runtime.env.legacy) {
-    return function nextResolver(next: ComposeCaller) {
-      return function stateResolver(result: any) {
-        if (isPromise(result) || result === undefined) {
-          return result;
-        }
-        return next(result);
-      };
-    };
-  }
+export function defaultMiddleWare<T>():NextProcess {
   return function nextProcess(next: ComposeCaller) {
     return function stateProcess(result: any) {
       return next(result);
@@ -66,7 +55,7 @@ export function applyMiddleWares(
       .map((middleWare, i) => {
         const middleWareCache = runtime.cache.middleWareCaches[i];
         const middleWareRuntime = createProxy(runtime, {
-          get(target: Runtime<T>, p: keyof Runtime<T>, receiver: any): any {
+          get(target: Runtime<T>, p: keyof Runtime<T>): any {
             if (p === 'cache') {
               return middleWareCache;
             }
