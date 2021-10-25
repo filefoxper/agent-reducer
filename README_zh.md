@@ -231,4 +231,4 @@ describe('同步共享 state 更新',()=>{
 
 ## 文档
 
-如果你对`agent-reducer`感兴趣，想要更深入的了解和使用它，请移步至[document](https://github.com/filefoxper/agent-reducer/blob/master/documents/zh/index.md)。
+如果你对`agent-reducer`感兴趣，想要更深入的了解和使用它，请移步至[document](https://filefoxper.github.io/agent-reducer/#/zh/)。

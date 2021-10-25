@@ -65,7 +65,7 @@ class CountAgent implements Model<number> {
 
 `模型` 用来描述我们希望维护的行为方法和状态结构，而 `代理` 则根据 `模型` 定义，为我们提供所需的数据更改能力。我们可以在 `模型` 中找到被调用 `代理` 方法的原始映射，并通过观察原始映射方法的返回值预测出即将变更的 state 数据状态。`代理` 方法的这一特性与 reducer 取返回值作最新值的行为规范非常相似，但稍有差别，之后会在介绍 `MiddleWare` (中间件) 的过程中提及。
 
-通过使用 API `create` 我们可以为 `模型` 创建一个可链接的 `代理` 对象。以上例中的计数器模型为基础：
+通过使用 API [create](/zh/api?id=create) 我们可以为 `模型` 创建一个可链接的 `代理` 对象。以上例中的计数器模型为基础：
 
 ```typescript
 import {Model,create} from 'agent-reducer';
@@ -272,7 +272,7 @@ describe('使用 `MiddleWare`', () => {
 
 单元测试源码 [introduce.test.ts](https://github.com/filefoxper/agent-reducer/blob/master/test/zh/introduce.test.ts)。
 
-我们通过 `create` API 为代理的所有方法添加了同一个 `MiddleWare`。但如果我们只希望为特定的方法添加 `MiddleWare` ，或为不同的方法添加不同的 `MiddleWare`，那我们就需要使用另一个 API `middleWare` 了。
+我们通过 `create` API 为代理的所有方法添加了同一个 `MiddleWare`。但如果我们只希望为特定的方法添加 `MiddleWare` ，或为不同的方法添加不同的 `MiddleWare`，那我们就需要使用另一个 API [middleWare](/zh/api?id=middleware) 了。
 
 `ES6 decorator` 配合 `middleWare` 会是个不错的选择。
 

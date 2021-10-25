@@ -1,1 +1,1 @@
-module.exports = require("./dist/agent-reducer.min.js");
+module.exports = require("./dist/agent-reducer.mini.js");

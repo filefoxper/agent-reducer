@@ -105,7 +105,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 
 * [optimize] optimize the code about `warningSet`.
 
-## v4.0.0 2021-10-30
+## v4.0.0 2021-10-25
 
 * [optimize] optimize the code about state change processing
 * [design] remove the bad designs

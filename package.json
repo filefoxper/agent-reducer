@@ -1,14 +1,16 @@
 {
   "name": "agent-reducer",
-  "version": "4.0.0-alpha",
+  "version": "4.0.0",
   "main": "dist/agent-reducer.mini.js",
-  "module": "es/agent-reducer.js",
+  "module": "esm/agent-reducer.js",
   "typings": "index.d.ts",
   "author": "Jimmy.Harding",
   "description": "the purpose of this project is using a class to replace a reducer",
   "scripts": {
-    "clear": "rm -rf ./dist & rm -rf ./libs & rm -rf ./es",
-    "build": "webpack --config ./webpack.config.js --env.mode=production",
+    "clear": "rm -rf ./dist & rm -rf ./libs & rm -rf ./es & rm -rf ./esm",
+    "base-build": "webpack --config ./webpack.config.js --env.mode=production",
+    "es-build": "babel src --extensions '.ts' --no-comments --config-file ./babel.es.config.js --out-dir es",
+    "build": "mkdir ./es & npm run es-build & npm run base-build",
     "test": "jest --coverage",
     "lint": "eslint src --fix --ext .ts ",
     "lint-d": "eslint . --fix --ext .d.ts ",
@@ -20,9 +22,11 @@
     "type": "git",
     "url": "https://github.com/filefoxper/agent-reducer"
   },
+  "homepage": "https://filefoxper.github.io/agent-reducer/#/",
   "files": [
     "dist",
     "es",
+    "esm",
     "index.js",
     "index.d.ts"
   ],
@@ -86,8 +90,5 @@
     "webpack": "4.35.3",
     "webpack-bundle-analyzer": "^3.7.0",
     "webpack-cli": "3.3.5"
-  },
-  "engines": {
-    "node": ">=16.0.0"
   }
 }

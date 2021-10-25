@@ -200,7 +200,7 @@ We recommend to create a model with class pattern. In ES6 class, we can use  `de
 
 As we know the `Agent` always takes its method returning as a new state, and no matter what it is. This default state taking feature is simple and helpful, when every method returns synchronously. But if we want to take a promise resolve data as a new state, it can not work expectedly, the new state of `Model` only can be changed to be a promise object, if we do nothing. To solve this problem, we need `MiddleWare`.
 
-The code below shows how to use the MiddleWare `MiddleWarePresets.takePromiseResolve` to take a promise resolve data as new state.
+The code below shows how to use the MiddleWare [MiddleWarePresets.takePromiseResolve](/api?id=takepromiseresolve) to take a promise resolve data as new state.
 
 ``` typescript
 import {create, middleWare, MiddleWarePresets, Model} from "agent-reducer";

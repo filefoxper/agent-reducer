@@ -245,7 +245,7 @@ export function connect<
   const reducer = create<S, T>(model, ...middleWares);
   const { agent, disconnect } = reducer;
   return {
-    run(callback:(ag:T)=>any) {
+    run<R>(callback:(ag:T)=>any):R {
       reducer.connect();
       const result = callback(agent);
       if (isPromise(result)) {

@@ -310,16 +310,54 @@ class MiddleWares {
 }
 ```
 
-* takeNothing - stop state change happening.
-* takePromiseResolve - take a promise resolve data to next.
-* takeAssignable - take a data merge with Model state to next. It uses `Object.assign` to merge the data with Model.state.
-* takeUnstableBlock - control a method running way. If the method has not finished, it can not run again, it is useful when the method is an `async method`. You can give it a block period as param, so if the block period is over, it still can be run again, no matter if this method has finished or not.
-* takeUnstableThrottle - control a method running way. Make method runs with a `Throttle` feature. You can give it a period as param, and from the method runs as beginning, in the period time you set, it won't run.
-* takeUnstableDebounce - control a method running way. Make method runs with a `Debounce` feature. You can give it a period as param, when the method is triggered, it will run delay after the period time, if there is another trigger during the period, it will redelay a period time. If you need a opposite feature about `Debounce`, set the `opt` param property `leading` to true.
-* ~~takeNone~~ - old version `takeNothing`
-* ~~takeBlock~~ - old version `takeUnstableBlock`
-* ~~takeThrottle~~ - old version `takeUnstableThrottle`
-* ~~takeDebounce~~ - old version `takeUnstableDebounce`
+#### takeNothing
+
+Stop state change happening. If you don't want any state change happens after the method finished, you can use this MiddleWare.
+
+#### takePromiseResolve
+
+Take a promise resolve data to next MiddleWare. If the method returns a promise, it always waits, and pass the promise resolve data to next MiddleWare. If not, this MiddleWare passes the data to next MiddleWare directly.
+
+#### takeAssignable
+
+It merges returning data with `this.state` to be a new data, then pass it to next one. If the method returns a primary data like `string`, `number` or `function`, it passes this data to next directly.
+
+#### takeUnstableBlock
+
+* blockMs - Setting the block time (millisecond), it is a optional param.
+
+Control method running way, make the method runs blockly. If the nethod calling is not finished, it can not be started again, this is useful for controlling an async method calling.
+
+If you have set a block time for it, this MiddleWare will enabled after this time period, no matter if last calling about this method is finished.
+
+#### takeUnstableThrottle
+
+* waitMs - Setting the throttle time (millisecond).
+
+Control method running way, make the method runs with a `Throttle` feature that only invokes method at most once per every wait milliseconds. 
+
+#### takeUnstableDebounce
+
+* waitMs - Setting the debounce time (millisecond).
+* opt - Optional config, if `opt.leading` is true, the method invokes on the leading edge of the wait timeout.
+
+Control method running way, make the method runs with a `Debounce` feature  that delays invoking method until after wait milliseconds have elapsed since the last time the debounced method was invoked. Provide options to indicate whether func should be invoked on the leading or trailing edge of the wait timeout.
+
+#### ~~takeNone~~
+
+old version of `takeNothing`.
+
+#### ~~takeBlock~~
+
+old version of `takeUnstableBlock`.
+
+#### ~~takeThrottle~~
+
+old version of `takeUnstableThrottle`.
+
+#### ~~takeDebounce~~
+
+old version of `takeUnstableDebounce`.
 
 ## LifecycleMiddleWares
 
@@ -331,7 +369,9 @@ class LifecycleMiddleWares {
 }
 ```
 
-* takeLatest - control `Agent` lifecycle. Reject the expired state change from the expired `Agent`, and keep the state change order.
+#### takeLatest
+
+control `Agent` lifecycle. Reject the expired state change from the expired `Agent`, and keep the state change order.
 
 ## MiddleWarePresets
 
@@ -436,7 +476,7 @@ class MiddleWarePresets {
 * ~~takeThrottleAssignable - MiddleWarePresets.takeUnstableThrottleAssignable~~
 * ~~takeDebounceAssignable - MiddleWarePresets.takeUnstableDebounceAssignable~~
 
-## Example
+#### Example
 
 ``` typescript
 import {

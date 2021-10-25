@@ -12,7 +12,7 @@ const entryPath = pathBuilder.resolve('src', 'index.ts');
 
 const targetPath = pathBuilder.resolve('dist');
 
-const esTargetPath = pathBuilder.resolve('es');
+const esTargetPath = pathBuilder.resolve('esm');
 
 function entry(env,name,output) {
     return {
@@ -32,7 +32,7 @@ function entry(env,name,output) {
             minimize: true,
             minimizer: [
                 new UglifyJsPlugin({
-                    include: /\.min\.js$/
+                    include: /\.mini\.js$/
                 }),
             ],
             namedChunks: true

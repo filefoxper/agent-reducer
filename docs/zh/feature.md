@@ -104,7 +104,7 @@ describe('同步共享 state 更新',()=>{
 });
 ```
 
-上述例子或许并不能直观显示它的好处，但如果我们把这一特性运用在渲染平台中，如在不同的 React 组件中，我们就可以绕开 `props` 或 `context` 进行数据同步更新渲染了。如果您是 React 用户，可以使用 [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer) 自动把 `agent-reducer` 集成到 React 中去。如果您是支付宝小程序用户，建议使用[支付宝小程序原生hook](https://github.com/shensai06/mini-hook) 中集成的 `useAgentReducer`。
+上述例子或许并不能直观显示它的好处，但如果我们把这一特性运用在渲染平台中，如在不同的 React 组件中，我们就可以绕开 `props` 或 `context` 进行数据同步更新渲染了。如果您是 React 用户，可以使用 [use-agent-reducer](https://filefoxper.github.io/use-agent-reducer/#/zh/) 自动把 `agent-reducer` 集成到 React 中去。如果您是支付宝小程序用户，建议使用[支付宝小程序原生hook](https://github.com/shensai06/mini-hook) 中集成的 `useAgentReducer`。
 
 作为默认用法，上述例子中的模型共享受到了一些制约：
 
@@ -144,7 +144,7 @@ declare type SharingRef<
 
 #### 强共享
 
-通过 API `sharing` 创建的 `模型实例` 可在内存中持续维护 state 状态，且不会自动重置。
+通过 API [sharing](/zh/api?id=sharing) 创建的 `模型实例` 可在内存中持续维护 state 状态，且不会自动重置。
 
 ```typescript
 export declare function sharing<
@@ -155,7 +155,7 @@ export declare function sharing<
 
 #### 弱共享
 
-通过 API `weakSharing` 创建的 `模型实例` 会在其 `代理` 全部销毁时，自动销毁，当再次访问 `current` 属性时，重置成一个新 `实例` 。
+通过 API [weakSharing](/zh/api?id=weaksharing) 创建的 `模型实例` 会在其 `代理` 全部销毁时，自动销毁，当再次访问 `current` 属性时，重置成一个新 `实例` 。
 
 ```typescript
 export declare function weakSharing<
@@ -378,4 +378,4 @@ describe('使用 initial',()=>{
 });
 ```
 
-至此，我们已经了解了 `agent-reducer` 中几乎所有的功能特性，如果想要了解更深入的高级用法，请[继续](/zh/advanced?id=高级用法)一下内容。如果希望直接预览 [API](/zh/api?id=api-文档)，可直接进入 API 章节进行预览，如果希望进一步学习普通用法，建议使用 [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer)教程。
+至此，我们已经了解了 `agent-reducer` 中几乎所有的功能特性，如果想要了解更深入的高级用法，请[继续](/zh/advanced?id=高级用法)一下内容。如果希望直接预览 [API](/zh/api?id=api-文档)，可直接进入 API 章节进行预览，如果希望进一步学习普通用法，建议使用 [use-agent-reducer](https://filefoxper.github.io/use-agent-reducer/#/zh/tutorial)教程。

@@ -60,7 +60,7 @@ interface ReducerPadding<
 }
 
 type AgentRunner<T> = {
-    run:(callback:(agent:T)=>any)=>any
+    run:<R>(callback:(agent:T)=>any)=>R
 };
 
 export type AgentReducer<

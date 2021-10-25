@@ -2,7 +2,7 @@
 
 ## MiddleWare
 
-MiddleWare is designed for reproducing state before state change happens. It is a function returns a connector function to the next one. So, the MiddleWares can be used individually, or be chained together. A MiddleWares chain is still a MiddleWare, and you can use api `applyMiddleWares` to make it happen.
+MiddleWare is designed for reproducing state before state change happens. It is a function returns a connector function to the next one. So, the MiddleWares can be used individually, or be chained together. A MiddleWares chain is still a MiddleWare, and you can use API [applyMiddleWares](/api?id=applymiddlewares) to make it happen.
 
 A MiddleWare structure should look like:
 
@@ -63,7 +63,7 @@ Every MiddleWare has a particular ability, if you want to compose some MiddleWar
 
 There is a rule about how to chain MiddleWares, that the prev one provides state for next one. A next MiddleWare should process the state more closer to the final state than the prev one.
 
-We can learn how to chain them from the official api `MiddleWarePresets`. This api provides some useful MiddleWare chains, and we can use these chains directly. But before use them, we should know they are not the origin atom MiddleWare, the official atom MiddleWare set is stored in api `MiddleWares`, and the MiddleWares in api `MiddleWarePresets` are the chaining from the atom MiddleWares.
+We can learn how to chain them from the official api [MiddleWarePresets](/api?id=middlewarepresets). This api provides some useful MiddleWare chains, and we can use these chains directly. But before use them, we should know they are not the origin atom MiddleWare, the official atom MiddleWare set is stored in api [MiddleWares](/api?id=middlewares), and the MiddleWares in api `MiddleWarePresets` are the chaining from the atom MiddleWares.
 
 Let's take a look at `MiddleWarePresets.takePromiseResolveAssignable()`.
 
@@ -84,7 +84,7 @@ static takePromiseResolveAssignable():MiddleWare {
   }
 ```
 
-This MiddleWare is chained by `MiddleWares.takePromiseResolve()` and `MiddleWares.takeAssignable()`. The first MiddleWare take the promise resolve data and pass it into the second one, then the second can use this data merge with `Model state`, and generate a final new state for `Model`.
+This MiddleWare is chained by [MiddleWares.takePromiseResolve()](/api?id=takepromiseresolve) and [MiddleWares.takeAssignable()](/api?id=takeassignable). The first MiddleWare take the promise resolve data and pass it into the second one, then the second can use this data merge with `Model state`, and generate a final new state for `Model`.
 
 ## MiddleWare override
 
@@ -255,13 +255,13 @@ From the example above, we can know that the MiddleWare priority is:
 class decorator < create api < method decorator < withMiddleWare api
 ```
 
-As we know the API `withMiddleWare` can use a highest priority MiddleWare on a `Agent` copy object. Why we have to base this `MiddleWare` on a `Agent` copy object? The primary reason is we do not want to make effect to the origin `Agent` usage, the secondary is about `Lifecycle MiddleWare`. In next section, we will introduce what is a `Lifecycle MiddleWare`.
+As we know the API [withMiddleWare](/api?id=withmiddleware) can use a highest priority MiddleWare on a `Agent` copy object. Why we have to base this `MiddleWare` on a `Agent` copy object? The primary reason is we do not want to make effect to the origin `Agent` usage, the secondary is about `Lifecycle MiddleWare`. In next section, we will introduce what is a `Lifecycle MiddleWare`.
 
 ## Lifecycle MiddleWare
 
 Lifecycle MiddleWare is a special kind of MiddleWare which can control the state change ability of `Agent`. When an `Agent` is disabled by it, the `Agent` can not change state anyway. 
 
-The official Lifecycle MiddleWare is `LifecycleMiddleWares.takeLatest()`. When it makes a state change finish, it disables the current `Agent`, and rebuild one to replace the old one, so the old one can not change state again, the next state change only can be happened in the new `Agent`. In simple terms, every `Agent` can change state once, and the state change happens with an order, one by one. This Lifecycle MiddleWare is often used with `takePromiseResolve()`, and we have chained to be a new MiddleWare `MiddleWarePresets.takeLatest()` for normal usage.
+The official Lifecycle MiddleWare is [LifecycleMiddleWares.takeLatest()](/api?id=takelatest). When it makes a state change finish, it disables the current `Agent`, and rebuild one to replace the old one, so the old one can not change state again, the next state change only can be happened in the new `Agent`. In simple terms, every `Agent` can change state once, and the state change happens with an order, one by one. This Lifecycle MiddleWare is often used with `takePromiseResolve()`, and we have chained to be a new MiddleWare `MiddleWarePresets.takeLatest()` for normal usage.
 
 Here is a example about fetch to-do list by page change. And we can know what `MiddleWarePresets.takeLatest()` can do after read it.
 
@@ -420,7 +420,7 @@ export type LifecycleMiddleWare = (<T>(
 
 We can use `LifecycleRuntime.env.expire` to disable the current `Agent`, or use `LifecycleRuntime.env.rebuild` to disable the current `Agent`, and create a new one to replace it.
 
-If we want to use the Lifecycle feature to our customized MiddleWare, we should use API `toLifecycleMiddleWare` to mark it, then `agent-reducer` system can recognize it as a real Lifecycle MiddleWare.
+If we want to use the Lifecycle feature to our customized MiddleWare, we should use API [toLifecycleMiddleWare](/api?id=tolifecyclemiddleware) to mark it, then `agent-reducer` system can recognize it as a real Lifecycle MiddleWare.
 
 In `agent-reducer`, there are some useful official MiddleWares, if you are interest in them, please read how to use them in API `MiddleWarePresets`.
 

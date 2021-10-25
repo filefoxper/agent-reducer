@@ -37,7 +37,7 @@ module.exports = (api) => {
                 {
                     modules: false,
                     targets: {
-                        "browsers": ["last 2 versions", "ie >=11"]
+                        "browsers": ["ie >=11"]
                     },
                     useBuiltIns: "usage",
                     corejs: {version: 3, proposals: true}

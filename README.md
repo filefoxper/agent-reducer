@@ -253,4 +253,4 @@ The previous example may not easy for understanding, but consider if we use this
 
 ## Document
 
-If you want to learn more, you can go into our [document](https://github.com/filefoxper/agent-reducer/blob/master/documents/en/index.md) for more details.
+If you want to learn more, you can go into our [document](https://filefoxper.github.io/agent-reducer/#/) for more details.

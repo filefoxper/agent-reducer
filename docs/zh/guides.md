@@ -2,7 +2,7 @@
 
 ## 中间件 MiddleWare
 
-MiddleWare 是一种特殊的 function ，它可以用作修改系统默认的 state 变更策略（取返回值为最新的 state 值），也可用来控制方法的运行特征（如添加防抖 debounce 特征）。它可以被单独使用，也可以跟其他 MiddleWare 串行使用。如果需要组合使用多个不同的 MiddleWare 特性，我们可以使用 API `applyMiddleWares` 进行串联。
+MiddleWare 是一种特殊的 function ，它可以用作修改系统默认的 state 变更策略（取返回值为最新的 state 值），也可用来控制方法的运行特征（如添加防抖 debounce 特征）。它可以被单独使用，也可以跟其他 MiddleWare 串行使用。如果需要组合使用多个不同的 MiddleWare 特性，我们可以使用 API [applyMiddleWares](/zh/api?id=applymiddlewares) 进行串联。
 
 MiddleWare 的结构如下:
 
@@ -63,7 +63,7 @@ export type Runtime<T extends Record<string, any>=any> = {
 
 我们需要根据每个 MiddleWare 的用途进行串联操作，使得每个 MiddleWare 的 state 处理结果刚好可以被下一个 MiddleWare 处理。越靠后的 MiddleWare 越晚执行 state 处理，因此它的处理结果也应该越接近最终期望的 state 数据。
 
-为了说明如何串联 MiddleWare ，我们以官方 API `MiddleWarePresets` 中的 `MiddleWarePresets.takePromiseResolveAssignable()` 为例进行分析。 takePromiseResolveAssignable 是由多个原子性 MiddleWare 串联而来的，这些原子性 MiddleWare 来源于官方 API `MiddleWares`。
+为了说明如何串联 MiddleWare ，我们以官方 API [MiddleWarePresets](/zh/api?id=middlewarepresets) 中的 `MiddleWarePresets.takePromiseResolveAssignable()` 为例进行分析。 takePromiseResolveAssignable 是由多个原子性 MiddleWare 串联而来的，这些原子性 MiddleWare 来源于官方 API `MiddleWares`。
 
 ```typescript
 static takePromiseResolveAssignable():MiddleWare {
@@ -86,7 +86,7 @@ static takePromiseResolveAssignable():MiddleWare {
   }
 ```
 
-这个 MiddleWare 由 `MiddleWares.takePromiseResolve()` 和 `MiddleWares.takeAssignable()` 组成。第一个 MiddleWare 负责处理 promise 对象，并将 resolve 值传给下一个 MiddleWare ，而作为它下一个 MiddleWare ，负责把接收到的数据和现存模型实例的 state 数据合成一个新 state ，并发送给系统的 state 修改器，从而修改模型实例的 state 数据。
+这个 MiddleWare 由 [MiddleWares.takePromiseResolve()](/zh/api?id=takepromiseresolve) 和 [MiddleWares.takeAssignable()](/zh/api?id=takeassignable) 组成。第一个 MiddleWare 负责处理 promise 对象，并将 resolve 值传给下一个 MiddleWare ，而作为它下一个 MiddleWare ，负责把接收到的数据和现存模型实例的 state 数据合成一个新 state ，并发送给系统的 state 修改器，从而修改模型实例的 state 数据。
 
 ## MiddleWare 覆盖作用
 
@@ -250,13 +250,13 @@ MiddleWare 的覆盖优先级总结如下:
 class decorator < create api < method decorator < withMiddleWare api
 ```
 
-API `withMiddleWare` 可以复制一个 `代理` ，并让通过该接口添加的 MiddleWare 覆盖掉复制品中所有的 MiddleWare。如此设计的原因，其一，是不希望直接修改原 `代理` 导致原 `代理方法` 的 MiddleWare 特性被变更，进而影响原功能；其二，就是因为接下来要介绍的 `Lifecycle MiddleWare` 。
+API [withMiddleWare](/zh/api?id=withmiddleware) 可以复制一个 `代理` ，并让通过该接口添加的 MiddleWare 覆盖掉复制品中所有的 MiddleWare。如此设计的原因，其一，是不希望直接修改原 `代理` 导致原 `代理方法` 的 MiddleWare 特性被变更，进而影响原功能；其二，就是因为接下来要介绍的 `Lifecycle MiddleWare` 。
 
 ## Lifecycle MiddleWare
 
 Lifecycle MiddleWare 是一种可停止、恢复、重建`代理`的 MiddleWare ，它只能作用于一个被系统复制出来的 `代理`（若在方法上通过 method decorator 添加，访问的`代理方法`会被链接到一个隐藏`代理复制品方法`上）。
 
-官方的 Lifecycle MiddleWare 只有 `LifecycleMiddleWares.takeLatest()` 。这个 MiddleWare 可用于保证当前方法每次调用产生的 state 变更不会因为异步原因导致顺序混乱，即 state 永远获取最新值。举个例子，比如有个翻页查询功能，每次翻页去服务器获取当前页对应的数据，因为服务器返回时间受数据查询速度，网络返回速度影响，所以并不能保证前一页请求的数据比当前页的数据先返回，这就导致当前页数据可能被后返回的前一页数据覆盖。而这个 MiddleWare 就是为了解决类似这种问题而存在的。
+官方的 Lifecycle MiddleWare 只有 [LifecycleMiddleWares.takeLatest()](/zh/api?id=takelatest) 。这个 MiddleWare 可用于保证当前方法每次调用产生的 state 变更不会因为异步原因导致顺序混乱，即 state 永远获取最新值。举个例子，比如有个翻页查询功能，每次翻页去服务器获取当前页对应的数据，因为服务器返回时间受数据查询速度，网络返回速度影响，所以并不能保证前一页请求的数据比当前页的数据先返回，这就导致当前页数据可能被后返回的前一页数据覆盖。而这个 MiddleWare 就是为了解决类似这种问题而存在的。
 
 `LifecycleMiddleWares.takeLatest()` 通常用于不稳定的异步数据修改过程，所以大部分情况下，需要与 `MiddleWares.takePromiseResolve()` 串联使用，官方给出了已串联好的 MiddleWare 以便快速使用 `MiddleWarePresets.takeLatest()` 。
 
@@ -408,7 +408,7 @@ export type LifecycleMiddleWare = (<T>(
 
 在上述结构中，我们可以看到在 `LifecycleRuntime.env` 中有一个 expire 属性方法和一个 rebuild 属性方法。通过调用 expire 方法，我们可以停止复制版代理的 state 变更能力，而调用 rebuild 方法则可以重建整个代理复制品。
 
-Lifecycle MiddleWare 的定制方式与普通 MiddleWare 的定制方式类似，只需要使用API `toLifecycleMiddleWare` 使其生效即可。
+Lifecycle MiddleWare 的定制方式与普通 MiddleWare 的定制方式类似，只需要使用API [toLifecycleMiddleWare](/zh/api?id=tolifecyclemiddleware) 使其生效即可。
 
 `agent-reducer` 已经串联了很多常用的 MiddleWare。如果需要，可以在 `MiddleWarePresets` API 中找到它们。
 

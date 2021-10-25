@@ -303,16 +303,52 @@ class MiddleWares {
 }
 ```
 
-* takeNothing - 禁止 state 变更。
-* takePromiseResolve - 将 promise 返回值 resolve 的数据传递给下一个 MiddleWare。
-* takeAssignable - 使用 `Object.assign` 将 object 返回值与模型实例 state 合并后传递给下一 MiddleWare。
-* takeUnstableBlock - 控制方法运行方式。如果方法没有结束就不能再次运行，这对异步方法非常有用。同时我们可以传入一个阻塞`时间`，如果超出阻塞时间，依然没有方法依然结束，方法重新进入可运行状态。参数 blockMs：阻塞`时间`
-* takeUnstableThrottle - 控制方法运行方式。以 `Throttle` 的方式运行当前方法，在第一次调用开始后，设定的`时间`内不再运行该方法。参数 waitMs：等待`时间`
-* takeUnstableDebounce - 控制方法运行方式。以 `Debounce` 模式运行当前方法，即防抖，默认为后防模式。后防模式指方法触发时并不马上运行，等待设定`时间`到来时才运行，若在等待`时间`内再次触发，则以当前触发点开始继续延时等待。前防模式则正好相反。参数 waitMs：等待`时间`，opt.leading：false 为后防模式，true 为前防模式。
-* ~~takeNone~~ - 老版本的 `takeNothing`
-* ~~takeBlock~~ - 老版本的 `takeUnstableBlock`
-* ~~takeThrottle~~ - 老版本的 `takeUnstableThrottle`
-* ~~takeDebounce~~ - 老版本的 `takeUnstableDebounce`
+#### takeNothing
+
+阻断 MiddleWare 传递 state 数据。通常用在不希望发生 state 变更的方法上。
+
+#### takePromiseResolve
+
+将 promise 返回值 resolve 的数据传递给下一个 MiddleWare。如果返回值非 promise 对象，则直接传递给下一个 MiddleWare。
+
+#### takeAssignable
+
+将 object 返回值与模型实例 state 合并成一个新数据，并传递给下一个 MiddleWare（使用 Object.assign({},currentState,data)）。如果被加工数据为基本类型，如 `number` 、 `string` 等，则直接不进行加工，直接传递给下一个 MiddleWare。
+
+#### takeUnstableBlock
+
+* blockMs - 阻塞时间（毫秒），可选参数
+
+控制方法运行方式。如果方法没有结束就不能再次运行，这对异步方法非常有用。同时我们可以传入一个阻塞`时间`，如果超出阻塞时间，依然没有方法依然结束，方法重新进入可运行状态。
+
+#### takeUnstableThrottle
+
+* waitMs - 等待`时间`
+
+控制方法运行方式。以 `Throttle` 的方式运行当前方法，自上次调用时开始，设定的`时间`内不能再运行该方法。
+
+#### takeUnstableDebounce
+
+* waitMs - 等待`时间`
+* opt - 可选参数，`opt.leading` 为 true 时为前防模式，否则为后防模式
+
+控制方法运行方式。以 `Debounce` 模式运行当前方法，即防抖，默认为后防模式。后防模式指方法触发时并不马上运行，等待设定`时间`到来时才运行，若在等待`时间`内再次触发，则以当前触发点开始继续延时等待。前防模式则正好相反。
+
+#### ~~takeNone~~
+
+老版本的 `takeNothing`
+
+#### ~~takeBlock~~
+
+老版本的 `takeUnstableBlock`
+
+#### ~~takeThrottle~~
+
+老版本的 `takeUnstableThrottle`
+
+#### ~~takeDebounce~~
+
+老版本的 `takeUnstableDebounce`
 
 ## LifecycleMiddleWares
 
@@ -324,7 +360,9 @@ class LifecycleMiddleWares {
 }
 ```
 
-* takeLatest - 控制`代理`复制版的生命周期. 当复制版`代理`过期时，将不再具备修改 state 的能力。
+#### takeLatest
+
+控制`代理`复制版的生命周期. 当复制版`代理`过期时，将不再具备修改 state 的能力。
 
 ## MiddleWarePresets
 
@@ -429,7 +467,7 @@ class MiddleWarePresets {
 * ~~takeThrottleAssignable - MiddleWarePresets.takeUnstableThrottleAssignable~~
 * ~~takeDebounceAssignable - MiddleWarePresets.takeUnstableDebounceAssignable~~
 
-## 例子
+#### 例子
 
 ``` typescript
 import {

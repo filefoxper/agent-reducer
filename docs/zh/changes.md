@@ -113,7 +113,7 @@
 
 * [optimize] 优化掉关于 `warningSet`的代码。
 
-## v4.0.0 2021-10-30
+## v4.0.0 2021-10-25
 
 * [optimize] 优化 state 变更处理过程
 * [design] 去掉了 bad design

@@ -111,11 +111,11 @@ describe('update by observing another agent',()=>{
 
 ```
 
-The previous example may not be easy for understanding, but consider if we use this feature in a view library like React, we can update state synchronously between different components without `props` or `context`， and these components will rerender synchronously. You can use this feature easily with its React connnector [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer).
+The previous example may not be easy for understanding, but consider if we use this feature in a view library like React, we can update state synchronously between different components without `props` or `context`， and these components will rerender synchronously. You can use this feature easily with its React connnector [use-agent-reducer](https://filefoxper.github.io/use-agent-reducer/#/).
 
 The basic usage example of Model sharing has some problems. First, the model state is persistent in memory, if we want to reset it, when the usages are all destroyed, we have to code this every where. Second, if the agent which prepares to change model state is disconnected, the state change will be abandoned.
 
-For resolving the problems above, we provide two API `sharing` and `weakSharing`. The both APIs have the same param and returns type.
+For resolving the problems above, we provide two API [sharing](/api?id=sharing) and [weakSharing](/api?id=weaksharing). The both APIs have the same param and returns type.
 
 ```typescript
 // The param type Factory for creating or reseting a `Model instance`,
@@ -386,4 +386,4 @@ describe('use sharing.initial',()=>{
 });
 ```
 
-You have known enough about `agent-reducer`, if you just want to use it for developing, but if you want to do some thing for enhancing your develop environment with `agent-reducer` please go [next](/advanced?id=advanced-usage). If you want use it in react now, we recommend you to take a look at [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer), in that document, you can learn how to use this tools more actually by taking a using turorial.
+You have known enough about `agent-reducer`, if you just want to use it for developing, but if you want to do some thing for enhancing your develop environment with `agent-reducer` please go [next](/advanced?id=advanced-usage). If you want use it in react now, we recommend you to take a look at [use-agent-reducer](https://filefoxper.github.io/use-agent-reducer/#/tutorial), in that document, you can learn how to use this tools more actually by taking a using turorial.
