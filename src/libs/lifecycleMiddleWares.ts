@@ -4,7 +4,7 @@ import {
   LifecycleMiddleWare,
   StateProcess,
 } from './global.type';
-import {isPromise, noop} from './util';
+import { isPromise, noop } from './util';
 
 export const toLifecycleMiddleWare = (
   lifecycleMiddleWare: Omit<LifecycleMiddleWare, 'lifecycle'> & {
@@ -26,15 +26,17 @@ export class LifecycleMiddleWares {
           if (!source[modelCacheKey]) {
             source[modelCacheKey] = {};
           }
-          const cache = source[modelCacheKey] || {};
-          const version:number = (cache.version as undefined|number) || 0;
-          cache.version = version + 1;
           const data = next(result);
-          Promise.resolve(data).catch(noop).finally(() => {
-            if (version + 1 === cache.version) {
-              env.rebuild();
-            }
-          });
+          if (isPromise(data)) {
+            const cache = source[modelCacheKey] || {};
+            const version:number = (cache.version as undefined|number) || 0;
+            cache.version = version + 1;
+            data.then(noop, noop).then(() => {
+              if (version + 1 === cache.version) {
+                env.rebuild();
+              }
+            });
+          }
           return data;
         };
       };

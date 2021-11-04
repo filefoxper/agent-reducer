@@ -104,3 +104,16 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v3.8.3 2021-10-15
 
 * [optimize] optimize the code about `warningSet`.
+
+## v4.0.0 2021-10-25
+
+* [optimize] optimize the code about state change processing
+* [design] remove the bad designs
+* [design] rename some API functions
+* [design] simplify some API functions
+* [document] use github docs
+
+## v4.0.1 2021-11-04
+
+* [optimize] optimize the code building structure, and now the size optimization can be used into a windows system too, you can get this info from [installion](/introduction?id=installation).
+* [optimize] The promise process in MiddleWare has not dependenced to `ES6 Promise` API.

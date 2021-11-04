@@ -112,3 +112,16 @@
 ## v3.8.3 2021-10-15
 
 * [optimize] 优化掉关于 `warningSet`的代码。
+
+## v4.0.0 2021-10-25
+
+* [optimize] 优化 state 变更处理过程
+* [design] 去掉了 bad design
+* [design] 修改了部分接口命名
+* [design] 对部分接口进行了简化处理
+* [document] 采用了 docs 文档功能
+
+## v4.0.1 2021-11-04
+
+* [optimize] 优化了编译结构，使得 windows 系统也可以安全使用优化编译方式，减小手动编译体积。具体操作可参阅[安装](/zh/introduction?id=安装) 。
+* [optimize] MiddleWare 中 promise 相关处理不再依赖 `ES6 Promise` API。 
