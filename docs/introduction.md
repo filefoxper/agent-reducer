@@ -97,6 +97,46 @@ The `agent-reducer` package lives in [npm](https://www.npmjs.com/get-npm). To in
 npm i agent-reducer
 ```
 
+If you consider the package size of `agent-reducer` is still too large for you, you can take the `optimization` below into your `webpack.config.js` file.
+
+```javascript
+module.exports = {
+    ...... ,
+    resolve: {
+      ...... ,
+      // re-import `agent-reducer` package to `agent-reducer/es`,
+      // this can change the code like `import {...} from "agent-reducer"`
+      // to be `import {...} from "agent-reducer/es"`,
+      // we have provided a no polyfill version in this package.
+      alias: {
+        'agent-reducer': 'agent-reducer/es',
+        ...... ,
+      }
+    },
+    module: {
+        rules:[
+            // tell `webpack` to compile the replaced package, 
+            // when the compiling is started.
+            // then `babel` can add polyfills by your browser supports.
+            {
+                test: /\.js$|\.ts$|\.tsx$/,
+                include:/(node_modules\/agent-reducer\/es)/,
+                use: [
+                    {
+                        loader: 'babel-loader',
+                        options: {
+                            cacheDirectory: true
+                        }
+                    }
+                ]
+            },
+            ......,
+        ]
+    }
+    ...... ,
+}
+```
+
 ## Getting started
 
 This section describes how to create `Agent` from `Model`, and how to call `agent-reducer` API for help. After reading this section, you can master the basic usage of `agent-reducer`. 

@@ -103,6 +103,50 @@ const { agent } = create(Counter);
 npm i agent-reducer
 ```
 
+`agent-reducer` 当前版本已小于 `100 kb` ，如果你还是觉得它太占空间，可通过编译类源码的方式减小体积，我们为此提供了一个 `agent-reducer/es` 包。您可以参考我们提供的 webpack 优化方案来使用该包。
+
+```javascript
+module.exports = {
+    ...... ,
+    resolve: {
+      ...... ,
+      // 通过别名系统重定向引用，将 `agent-reducer` 指向 `agent-reducer/es`,
+      // 编译期间 webpack 会将代码 `import {...} from "agent-reducer"`
+      // 转换成 `import {...} from "agent-reducer/es"`，
+      // 这样我们就可以让引用指向类源码包了，类源码包因没有使用 polyfill ，
+      // 故体积很小。
+      alias: {
+        'agent-reducer': 'agent-reducer/es',
+        ...... ,
+      }
+    },
+    module: {
+        rules:[
+            // 告诉 `webpack` 编译通过别名系统重定向的包，
+            // 这样在编译开始后，`babel` 会使用项目中的 `babel.config`
+            // 进行转码，并提供配置指定的浏览器版本所需的 polyfill 支持，
+            // 这大大减小了 `agent-reducer` 支持 IE11 引入的 polyfill 代码，
+            // 同时还可以享受 `webpack` 的 `tree shaking` 功能，
+            // 去除大量没有使用到的 API 代码。
+            {
+                test: /\.js$|\.ts$|\.tsx$/,
+                include:/(node_modules\/agent-reducer\/es)/,
+                use: [
+                    {
+                        loader: 'babel-loader',
+                        options: {
+                            cacheDirectory: true
+                        }
+                    }
+                ]
+            },
+            ......,
+        ]
+    }
+    ...... ,
+}
+```
+
 ## 入门
 
 本节主要介绍如何为 `模型` 创建 `代理`，以及如何使用 `agent-reducer` API 中的辅助功能。通过学习以下内容，您将掌握 `agent-reducer` 的基本用法。
