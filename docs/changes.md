@@ -117,3 +117,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 
 * [optimize] optimize the code building structure, and now the size optimization can be used into a windows system too, you can get this info from [installion](/introduction?id=installation).
 * [optimize] The promise process in MiddleWare has not dependenced to `ES6 Promise` API.
+
+## v4.0.2 2021-11-04
+
+* [bug] repair bug from compile optimization in `4.0.1`, which makes the modules can not be found.

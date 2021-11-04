@@ -12,8 +12,6 @@ const entryPath = pathBuilder.resolve('src', 'index.ts');
 
 const targetPath = pathBuilder.resolve('dist');
 
-const esTargetPath = pathBuilder.resolve('es');
-
 const esmTargetPath = pathBuilder.resolve('esm');
 
 function entry(env,{name,output,configFile}) {
@@ -75,9 +73,6 @@ function entry(env,{name,output,configFile}) {
 module.exports = [
     function (env) {
         return entry(env,{name:'agent-reducer.mini'});
-    },
-    function (env) {
-        return entry(env,{name:'index', output: esTargetPath,configFile:pathBuilder.resolve('babel.es.config.js')});
     },
     function (env) {
         return entry(env,{name:'index', output: esmTargetPath,});
