@@ -125,3 +125,7 @@
 
 * [optimize] 优化了编译结构，使得 windows 系统也可以安全使用优化编译方式，减小手动编译体积。具体操作可参阅[安装](/zh/introduction?id=安装) 。
 * [optimize] MiddleWare 中 promise 相关处理不再依赖 `ES6 Promise` API。 
+
+## v4.0.2 2021-11-04
+
+* [bug] 修复 4.0.1 编译优化导致模块无法找到的 bug 。
