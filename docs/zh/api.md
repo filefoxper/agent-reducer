@@ -593,3 +593,18 @@ type SharingRef<
 ```
 
 查看更多[细节](/zh/feature?id=模型共享)。
+
+## getSharingType
+
+获取模型实例上的共享类型。
+
+```typescript
+export declare function getSharingType<
+    S,
+    T extends Model<S>=Model<S>
+    >(model:T):undefined|SharingType;
+```
+
+* model - 模型实例
+
+返回 'weak', 'hard' or undefined.

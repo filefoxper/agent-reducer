@@ -1,3 +1,5 @@
+export type SharingType = 'hard'|'weak';
+
 /** global * */
 export interface OriginAgent<S = any> {
     state: S;
@@ -68,12 +70,12 @@ export type AgentReducer<
     T extends OriginAgent<S> = any
     > = Reducer<S, Action> & ReducerPadding<S, T>;
 
-declare type Factory<
+export declare type Factory<
     S,
     T extends OriginAgent<S> = OriginAgent<S>
     > = (...args:any[])=>T|{new ():T};
 
-declare type SharingRef<
+export declare type SharingRef<
     S,
     T extends Model<S>= Model<S>,
     > = {
@@ -114,6 +116,11 @@ export declare enum DefaultActionType {
 }
 
 export declare function isAgent<T extends Record<string, any>>(data: T): boolean;
+
+export declare function getSharingType<
+    S,
+    T extends Model<S>=Model<S>
+    >(model:T):undefined|SharingType;
 
 declare type MiddleWareAbleFunction = (...args: any[]) => any;
 

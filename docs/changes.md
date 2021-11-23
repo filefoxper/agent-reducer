@@ -121,3 +121,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v4.0.2 2021-11-04
 
 * [bug] repair bug from compile optimization in `4.0.1`, which makes the modules can not be found.
+
+## v4.0.3 2021-11-23
+
+* [design] add API [getSharingType](/api?id=getsharingtype).
