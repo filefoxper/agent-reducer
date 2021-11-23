@@ -2,7 +2,7 @@
 
 export { create, connect } from './libs/reducer';
 
-export { sharing, weakSharing } from './libs/sharing';
+export { sharing, weakSharing, getSharingType } from './libs/sharing';
 
 export { withMiddleWare, middleWare } from './libs/withMiddleWare';
 

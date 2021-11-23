@@ -129,3 +129,7 @@
 ## v4.0.2 2021-11-04
 
 * [bug] 修复 4.0.1 编译优化导致模块无法找到的 bug 。
+
+## v4.0.3 2021-11-23
+
+* [design] 添加 API [getSharingType](/zh/api?id=getsharingtype)。

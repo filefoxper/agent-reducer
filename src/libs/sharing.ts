@@ -1,4 +1,4 @@
-import { OriginAgent, SharingType } from './global.type';
+import { Model, OriginAgent, SharingType } from './global.type';
 import {
   agentListenerKey, agentModelResetKey, agentSharingTypeKey,
 } from './defines';
@@ -11,13 +11,20 @@ import { resetModel } from './connector';
 function createSharingModel<
     S,
     T extends OriginAgent<S> = OriginAgent<S>
-    >(Model:T|{new ():T}):T {
+    >(ModelLike:T|{new ():T}):T {
   const nextModel:T&{
     [agentSharingTypeKey]?:SharingType,
     [agentListenerKey]?:((s:S)=>any)[]
-  } = typeof Model === 'function' ? new Model() : Model;
+  } = typeof ModelLike === 'function' ? new ModelLike() : ModelLike;
   nextModel[agentSharingTypeKey] = 'hard';
   return nextModel;
+}
+
+export function getSharingType<
+    S,
+    T extends Model<S>=Model<S>
+    >(model:T):undefined|SharingType {
+  return model[agentSharingTypeKey];
 }
 
 export function sharing<
@@ -35,8 +42,8 @@ export function sharing<
       return ref.current;
     }
     initialed = true;
-    const Model = factory(...args);
-    ref.current = createSharingModel<S, T>(Model);
+    const ModelLike = factory(...args);
+    ref.current = createSharingModel<S, T>(ModelLike);
     return ref.current as T;
   };
   return createProxy(ref, {
@@ -58,12 +65,12 @@ export function sharing<
 function createWeakSharingModel<
     S,
     T extends OriginAgent<S> = OriginAgent<S>
-    >(Model:T|{new ():T}, reset:()=>void):T {
+    >(ModelLike:T|{new ():T}, reset:()=>void):T {
   const nextModel:T&{
         [agentModelResetKey]?:()=>void,
         [agentSharingTypeKey]?:SharingType,
         [agentListenerKey]?:((s:S)=>any)[]
-    } = typeof Model === 'function' ? new Model() : Model;
+    } = typeof ModelLike === 'function' ? new ModelLike() : ModelLike;
   nextModel[agentModelResetKey] = reset;
   nextModel[agentSharingTypeKey] = 'weak';
   return nextModel;
@@ -90,8 +97,8 @@ export function weakSharing<
       return ref.current;
     }
     initialed = true;
-    const Model = factory(...args);
-    ref.current = createWeakSharingModel<S, T>(Model, reset);
+    const ModelLike = factory(...args);
+    ref.current = createWeakSharingModel<S, T>(ModelLike, reset);
     return ref.current as T;
   };
   return createProxy(ref, {

@@ -607,3 +607,18 @@ type SharingRef<
 ```
 
 To check more [details](/feature?id=model-sharing).
+
+## getSharingType
+
+Get the sharing type from a model instance, it should be 'weak', 'hard' or undefined.
+
+```typescript
+export declare function getSharingType<
+    S,
+    T extends Model<S>=Model<S>
+    >(model:T):undefined|SharingType;
+```
+
+* model - model instance
+
+returns 'weak', 'hard' or undefined.
