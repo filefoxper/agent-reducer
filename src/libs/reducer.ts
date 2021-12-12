@@ -19,7 +19,7 @@ import {
   agentCallingMiddleWareKey,
   agentActionsKey,
 } from './defines';
-import { createSharingModelConnector } from './connector';
+import { createSharingModelConnector, stateUpdatable } from './connector';
 import { applyMiddleWares, defaultMiddleWare } from './applies';
 import { generateAgent } from './agent';
 import { createInstance, isPromise } from './util';
@@ -77,12 +77,21 @@ function createStoreSlot<S, T extends Model<S>>(
     if (!listener) {
       return;
     }
-    listener(nextState, action);
+    const currentAction:Action = { ...action, state: nextState };
+    listener(currentAction);
   };
-  const dispatch = function dispatch(action: Action) {
+  const dispatch = function dispatch(sourceAction: Action) {
+    const prevState = entity.state;
+    const action = { ...sourceAction, prevState };
     if (action.type === DefaultActionType.DX_MUTE_STATE) {
       reduce(action);
       return;
+    }
+    if (
+      entity.state !== action.state
+        && stateUpdatable<S, T>(entity)
+    ) {
+      entity.state = action.state;
     }
     const actions = entity[agentActionsKey] || [];
     if (actions.length) {
@@ -180,8 +189,8 @@ function useConnection<
 
     let outerSubscriber:Dispatch|null = null;
 
-    storeSlot.subscribe((nextState:S, action:Action) => {
-      modelConnector.notify(nextState, action, (ac:Action) => {
+    storeSlot.subscribe((action:Action) => {
+      modelConnector.notify(action, (ac:Action) => {
         if (
           outerSubscriber !== null
             && !env.expired

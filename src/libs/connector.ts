@@ -88,21 +88,20 @@ function initialModel<
   mountMethod<S, T>(instance);
 }
 
+export function stateUpdatable<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    >(modelInstance:T):boolean {
+  return isConnecting(modelInstance) || modelInstance[agentSharingTypeKey] === 'hard';
+}
+
 function notification<
     S,
     T extends OriginAgent<S> = OriginAgent<S>
     >(modelInstance:T, listener:null|((s:S)=>any)) {
-  return function notify(nextState:S, action:Action, dispatch:(ac:Action)=>void):void {
-    const active = isConnecting(modelInstance) || modelInstance[agentSharingTypeKey] === 'hard';
-    const prevState:S = modelInstance.state;
+  return function notify(action:Action, dispatch:(ac:Action)=>void):void {
+    const { state: nextState, prevState } = action;
     const needUpdate = nextState !== prevState;
-    if (
-      needUpdate
-        && active
-        && action.type !== DefaultActionType.DX_MUTE_STATE
-    ) {
-      modelInstance.state = nextState;
-    }
     if (needUpdate && action.type !== DefaultActionType.DX_MUTE_STATE) {
       const ls = modelInstance[agentListenerKey] || [];
       ls.forEach((l) => {
@@ -131,9 +130,9 @@ export function createSharingModelConnector<
       listener = l;
       unsubscribe = subscribe(modelInstance, l);
     },
-    notify(nextState:S, action:Action, dispatch:(ac:Action)=>void) {
+    notify(action:Action, dispatch:(ac:Action)=>void) {
       const notify = notification(modelInstance, listener);
-      notify(nextState, action, dispatch);
+      notify(action, dispatch);
     },
     disconnect() {
       if (unsubscribe === null || listener === null) {
