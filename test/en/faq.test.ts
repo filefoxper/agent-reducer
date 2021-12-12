@@ -68,22 +68,32 @@ describe('If there is an action still alive, can we start another one?',()=>{
 
     }
 
-    test('If the two actions are for the same `Model instances`, the actions are waiting each other',()=>{
+    test('the state changes immediately, but the notify about this change always waits for the prev action notify',()=>{
         const {agent, connect, disconnect} = create(Counter);
+        const actionRecords:([string,'start'|'end'])[] = [];
         const dispatch = ({type,state}:Action)=>{
+            actionRecords.push([type,'start']);
             if(state>=0){
+                actionRecords.push([type,'end']);
                 return;
             }
             // Action `stepDown` is not finished,
-            // so, the action `reset` is waiting.
+            // so, the notify from action `reset` is waiting.
             agent.reset();
-            // The state change from `reset` is waiting.
-            expect(agent.state).toBe(state);
+            // The state change from `reset` changes immediately.
+            expect(agent.state).toBe(0);
+            actionRecords.push([type,'end']);
         }
         connect(dispatch);
         agent.stepDown();
         disconnect();
         expect(agent.state).toBe(0);
+        expect(actionRecords).toEqual([
+            ['stepDown','start'],
+            ['stepDown','end'],
+            ['reset','start'],
+            ['reset','end']
+        ]);
     });
 
 });

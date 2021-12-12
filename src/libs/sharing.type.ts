@@ -26,6 +26,6 @@ export type ModelConnector<
     T extends OriginAgent<S> = OriginAgent<S>
     > = {
     connect:(l:(s:S)=>any)=>void,
-    notify:(nextState:S, action:Action, dispatch:(ac:Action)=>void)=>void,
+    notify:(action:Action, dispatch:(ac:Action)=>void)=>void,
     disconnect:()=>void,
 }

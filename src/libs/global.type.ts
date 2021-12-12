@@ -15,13 +15,14 @@ export type SharingType = 'hard'|'weak';
 export type Action = {
   type: string;
   state?: any;
+  prevState?:any;
 };
 
 export type MethodCaller<T=any> = ((...args:any[])=>any)&{[agentMethodName]?:string, model?:T};
 
 export type Dispatch = (action: Action) => any;
 
-export type Listener<S> = (nextState:S, action:Action)=>void;
+export type Listener<S> = (action:Action)=>void;
 
 export interface Store<S = any> {
   dispatch: Dispatch,
@@ -95,7 +96,7 @@ export type LifecycleMiddleWare = (<T>(
 
 export type Connection<S> = {
   connect:(...args:any[])=>void,
-  notify:(nextState:S, action:Action, dispatch:(ac:Action)=>void)=>void,
+  notify:(action:Action, dispatch:(ac:Action)=>void)=>void,
   disconnect:()=>void
 }
 

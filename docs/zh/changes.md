@@ -133,3 +133,7 @@
 ## v4.0.3 2021-11-23
 
 * [design] 添加 API [getSharingType](/zh/api?id=getsharingtype)。
+
+## v4.0.4 2021-12-12
+
+* [optimize] 让 state 变化立即发生，而 state 变化通知则互相排队等待。

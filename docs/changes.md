@@ -125,3 +125,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v4.0.3 2021-11-23
 
 * [design] add API [getSharingType](/api?id=getsharingtype).
+
+## v4.0.4 2021-12-12
+
+* [optimize] make the state change happens immediately after method runs, but the notify of state change always waits for each other.
