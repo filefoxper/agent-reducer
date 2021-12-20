@@ -129,3 +129,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 ## v4.0.4 2021-12-12
 
 * [optimize] make the state change happens immediately after method runs, but the notify of state change always waits for each other.
+
+# v4.0.5 2021-12-18
+
+* [bug] repair the problem about notify ignore and the problem about repeat state update.

@@ -1,6 +1,6 @@
 {
   "name": "agent-reducer",
-  "version": "4.0.4",
+  "version": "4.0.5",
   "main": "dist/agent-reducer.mini.js",
   "typings": "index.d.ts",
   "author": "Jimmy.Harding",
@@ -89,5 +89,6 @@
     "webpack": "5.61.0",
     "webpack-bundle-analyzer": "4.4.2",
     "webpack-cli": "4.9.1"
-  }
+  },
+  "dependencies": {}
 }

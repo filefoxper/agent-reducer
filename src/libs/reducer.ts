@@ -80,6 +80,25 @@ function createStoreSlot<S, T extends Model<S>>(
     const currentAction:Action = { ...action, state: nextState };
     listener(currentAction);
   };
+  function consumeAction(action:Action) {
+    const actions = entity[agentActionsKey] || [];
+    entity[agentActionsKey] = [...actions, action];
+    if (actions.length) {
+      return;
+    }
+    let errorWrap: { error:any }|null = null;
+    try {
+      reduce(action);
+    } catch (e) {
+      errorWrap = { error: e };
+    }
+    const acs = (entity[agentActionsKey] || []).filter((ac) => ac !== action);
+    entity[agentActionsKey] = [];
+    acs.forEach(consumeAction);
+    if (errorWrap) {
+      throw errorWrap.error;
+    }
+  }
   const dispatch = function dispatch(sourceAction: Action) {
     const prevState = entity.state;
     const action = { ...sourceAction, prevState };
@@ -93,25 +112,7 @@ function createStoreSlot<S, T extends Model<S>>(
     ) {
       entity.state = action.state;
     }
-    const actions = entity[agentActionsKey] || [];
-    if (actions.length) {
-      actions.push(action);
-      return;
-    }
-    actions.push(action);
-    let errorWrap: { error:any }|null = null;
-    try {
-      reduce(action);
-    } catch (e) {
-      errorWrap = { error: e };
-    }
-    const currents = entity[agentActionsKey] || [];
-    const acs = currents.filter((ac) => ac !== action);
-    entity[agentActionsKey] = [];
-    acs.forEach(dispatch);
-    if (errorWrap) {
-      throw errorWrap.error;
-    }
+    consumeAction(action);
   };
   return {
     getState() {
