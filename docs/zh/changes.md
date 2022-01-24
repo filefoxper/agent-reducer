@@ -141,3 +141,7 @@
 # v4.0.5 2021-12-18
 
 * [bug] 修复 action 排队逻辑引入的重复更新 state 以及漏发更新通知问题。
+
+# v4.0.6 2021-01-24
+
+* [bug] 修复 `middleWare` class decorator 的 typescript 报错问题。

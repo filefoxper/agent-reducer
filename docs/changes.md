@@ -133,3 +133,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # v4.0.5 2021-12-18
 
 * [bug] repair the problem about notify ignore and the problem about repeat state update.
+
+# v4.0.6 2021-01-24
+
+* [bug] resolve the problem about `middleWare` class decorator error.

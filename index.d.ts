@@ -127,7 +127,7 @@ declare type MiddleWareAbleFunction = (...args: any[]) => any;
 declare type MiddleWareAble<S, T extends OriginAgent<S>> =
     MiddleWareAbleFunction | T | ({ new (): T });
 
-declare type DecoratorCaller = (target: any, p: string)=>any;
+declare type DecoratorCaller = (target: any, p?: string)=>any;
 
 export declare function withMiddleWare<S, T extends OriginAgent<S>>(
     agent: T,
