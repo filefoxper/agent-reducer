@@ -153,3 +153,7 @@
 # 4.0.8 2022-02-10
 
 * [reverse] 将 4.0.7 回滚至 4.0.6, 并标记为 4.0.8。
+
+# 4.0.9 2022-03-10
+
+* [bug] 修复关于 `MiddleWarePresets.takeNothing`, `MiddleWarePresets.takeNone`, `MiddleWarePresets.takeAssignable` 的 typescript 问题。
