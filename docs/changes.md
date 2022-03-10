@@ -145,3 +145,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.0.8 2022-02-10
 
 * [reverse] reverse 4.0.7 to 4.0.6, and mark as 4.0.8.
+
+# 4.0.9 2022-03-10
+
+* [bug] resolve typescript problem about `MiddleWarePresets.takeNothing`, `MiddleWarePresets.takeNone`, `MiddleWarePresets.takeAssignable`

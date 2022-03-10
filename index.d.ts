@@ -201,78 +201,78 @@ export class MiddleWares {
 }
 
 export class MiddleWarePresets {
-  static takeNothing(): typeof MiddleWares.takeNothing;
+  static takeNothing(): MiddleWare;
 
-    /**
+  /**
      * @deprecated
      */
-    static takeNone: typeof MiddleWares.takeNothing;
+  static takeNone(): MiddleWare;
 
-    static takeAssignable: typeof MiddleWares.takeAssignable;
+  static takeAssignable(): MiddleWare;
 
-    static takePromiseResolve: typeof MiddleWares.takePromiseResolve;
+  static takePromiseResolve(): MiddleWare;
 
-    static takeLatest(): MiddleWare;
+  static takeLatest(): MiddleWare;
 
-    /**
+  /**
      * @deprecated
      * @param ms
      */
-    static takeBlock(ms?: number): MiddleWare;
+  static takeBlock(ms?: number): MiddleWare;
 
-    static takeUnstableBlock(ms?: number):MiddleWare;
+  static takeUnstableBlock(ms?: number):MiddleWare;
 
-    /**
+  /**
      * @deprecated
      * @param wait
      */
-    static takeThrottle(wait: number): MiddleWare;
+  static takeThrottle(wait: number): MiddleWare;
 
-    static takeUnstableThrottle(wait: number): MiddleWare;
+  static takeUnstableThrottle(wait: number): MiddleWare;
 
-    /**
+  /**
      * @deprecated
      * @param wait
      * @param opt
      */
-    static takeDebounce(wait: number, opt?: {
+  static takeDebounce(wait: number, opt?: {
         leading?: boolean;
     }): MiddleWare;
 
-    static takeUnstableDebounce(wait: number, opt?: {
+  static takeUnstableDebounce(wait: number, opt?: {
         leading?: boolean;
     }): MiddleWare;
 
-    static takePromiseResolveAssignable(): MiddleWare;
+  static takePromiseResolveAssignable(): MiddleWare;
 
-    /**
+  /**
      * @deprecated
      * @param ms
      */
-    static takeLazyAssignable(ms: number): MiddleWare;
+  static takeLazyAssignable(ms: number): MiddleWare;
 
-    static takeLatestAssignable(): MiddleWare;
+  static takeLatestAssignable(): MiddleWare;
 
-    static takeBlockAssignable(ms?: number): MiddleWare;
+  static takeBlockAssignable(ms?: number): MiddleWare;
 
-    /**
+  /**
      * @deprecated
      * @param wait
      */
-    static takeThrottleAssignable(wait: number): MiddleWare;
+  static takeThrottleAssignable(wait: number): MiddleWare;
 
-    static takeUnstableThrottleAssignable(wait: number): MiddleWare;
+  static takeUnstableThrottleAssignable(wait: number): MiddleWare;
 
-    /**
+  /**
      * @deprecated
      * @param wait
      * @param opt
      */
-    static takeDebounceAssignable(wait: number, opt?: {
+  static takeDebounceAssignable(wait: number, opt?: {
         leading?: boolean;
     }): MiddleWare;
 
-    static takeUnstableDebounceAssignable(wait: number, opt?: {
+  static takeUnstableDebounceAssignable(wait: number, opt?: {
         leading?: boolean;
     }): MiddleWare;
 }
