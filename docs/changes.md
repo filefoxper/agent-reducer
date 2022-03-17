@@ -155,3 +155,8 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 * [optimize] use linked list to control the action consuming
 * [api] add new API [addEffect](/zh/api?id=addeffect)
 * [api] add new API [effect](/zh/api?id=effect)
+
+# 4.2.1 2022-03-17
+
+* [design] modify effect decorator param pattern, use as `()=>Class.prototype.method`.
+* [design] effect decorator has support multi target methods to one `effect method` .

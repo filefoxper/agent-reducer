@@ -177,7 +177,7 @@ export declare function addEffect<S=any, T extends Model<S> = Model>(
 ):EffectWrap<S, T>;
 
 export declare function effect<S=any, T extends Model<S>=Model>(
-    method?:(...args:any[])=>any,
+    method?:()=>(...args:any[])=>any,
 ):MethodDecoratorCaller
 
 export class MiddleWares {

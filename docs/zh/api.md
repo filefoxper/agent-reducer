@@ -631,14 +631,14 @@ export declare function addEffect<S=any, T extends Model<S> = Model>(
 
 ## effect
 
-[addEffect](/zh/api?id=addeffect) API 的 `ES6 decorator` 模式。添加该 decorator 装饰器的模型方法会被当作`副作用回调函数`，监听目标默认为当前模型实例，而 `effect` 入参`模型方法`将被当作被监听的目标方法。
+[addEffect](/zh/api?id=addeffect) API 的 `ES6 decorator` 模式。添加该 decorator 装饰器的模型方法会被当作`副作用回调函数`，监听目标默认为当前模型实例，而 `effect` 入参函数返回的`模型方法`将被当作被监听的目标方法。
 
 ```typescript
 export declare function effect<S=any, T extends Model<S>=Model>(
-    method?:(...args:any[])=>any,
+    method?:()=>(...args:any[])=>any,
 ):MethodDecoratorCaller
 ```
 
-* method - 可选，被监听的目标方法，必须为当前模型方法。
+* method - 可选，返回被监听的目标方法的回调函数，必须为当前模型方法。
 
 查看更多[细节](/zh/guides?id=副作用-decorator-装饰器用法)。

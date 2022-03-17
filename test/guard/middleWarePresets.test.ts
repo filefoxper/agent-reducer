@@ -45,12 +45,12 @@ describe('guard middleWarePresets', () => {
             }, lazyTime));
         }
 
-        @effect(UserModel.prototype.login)
+        @effect(()=>UserModel.prototype.login)
         loginEffect() {
             this.fetchUser();
         }
 
-        @effect(UserModel.prototype.logout)
+        @effect(()=>UserModel.prototype.logout)
         logoutEffect(){
             this.cleanUser();
         }

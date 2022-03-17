@@ -192,7 +192,7 @@ describe("使用 effect decorator API",()=>{
 
         // 当 effect 入参为当前 class 的方法时，
         // 监听目标为当前入参方法
-        @effect(InnerCountModel.prototype.increase)
+        @effect(()=>InnerCountModel.prototype.increase)
         ltFiveEffect(prevState:number, state:number){
             if(state>4){
                 this.reset(4);

@@ -645,14 +645,14 @@ To check more [details](/guides?id=effect).
 
 ## effect
 
-The `ES6 decorator` usage of [addEffect](/api?id=addeffect). It makes the working instance of current class as effect target. If you want to listen to the state changes from a specific method, you can give it a method as param.
+The `ES6 decorator` usage of [addEffect](/api?id=addeffect). It makes the working instance of current class as effect target. If you want to listen to the state changes from a specific method, you can give it a callback which returns method as param.
 
 ```typescript
 export declare function effect<S=any, T extends Model<S>=Model>(
-    method?:(...args:any[])=>any,
+    method?:()=>(...args:any[])=>any,
 ):MethodDecoratorCaller
 ```
 
-* method - optional, it should come from the current model class: `Class.prototype.method`.
+* method - optional, a callback which returns `Class.prototype.method` as the target method for state change listening.
 
 To check more [details](/guides?id=effect-decorator).
