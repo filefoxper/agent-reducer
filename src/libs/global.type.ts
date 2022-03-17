@@ -1,5 +1,4 @@
 import {
-  agentActionsKey,
   agentCallingMiddleWareKey,
   agentDependenciesKey,
   agentIdentifyKey,
@@ -8,6 +7,11 @@ import {
   agentModelResetKey,
   agentSharingMiddleWareKey,
   agentSharingTypeKey,
+  agentEffectsKey,
+  agentModelWorking,
+  agentRunningEffectsKey,
+  agentActionKey,
+  agentCallingEffectTargetKey,
 } from './defines';
 
 export type SharingType = 'hard'|'weak';
@@ -18,7 +22,13 @@ export type Action = {
   prevState?:any;
 };
 
-export type MethodCaller<T=any> = ((...args:any[])=>any)&{[agentMethodName]?:string, model?:T};
+export type ActionWrap={
+  current:Action,
+  next?:ActionWrap,
+  last?:ActionWrap
+}
+
+export type MethodCaller<T=any> = ((...args:any[])=>any)&{[agentMethodName]?:string};
 
 export type Dispatch = (action: Action) => any;
 
@@ -41,6 +51,32 @@ export type AgentDependencies<S, T extends OriginAgent<S> = OriginAgent<S>> = {
 
 export type SharingMiddleWareMethods = Record<string, (...args: any[]) => any>;
 
+export type ModelInstanceMethod<S=any, T extends Model<S>=Model> = ((...args:any[])=>any)&
+    {[agentMethodName]?:string};
+
+export type EffectCallback<S=any, T extends Model<S>=Model> = (
+    prevState:S,
+    state:S,
+    methodName:string|null,
+)=>void|(()=>void);
+
+export type EffectTarget<S=any, T extends Model<S>=Model> = (ModelInstanceMethod<S, T>)|T;
+
+export type Effect<S=any, T extends Model<S>=Model> = {
+  callback: EffectCallback<S>,
+  destroy:null|(()=>void)
+  mount:()=>void,
+  unmount:()=>void,
+  update:(nextCallback:EffectCallback<S>)=>void,
+  methodName:string|null,
+  initialed:boolean
+};
+
+export type EffectWrap<S=any, T extends Model<S>=Model> = {
+  unmount:()=>void,
+  update:(nextCallback:EffectCallback<S>)=>void,
+}
+
 export interface OriginAgent<S = any> {
   state: S;
   [key: string]: any;
@@ -49,12 +85,25 @@ export interface OriginAgent<S = any> {
   [agentListenerKey]?:((s:S)=>any)[];
   [agentSharingMiddleWareKey]?:SharingMiddleWareMethods;
   [agentSharingTypeKey]?:SharingType;
-  [agentActionsKey]?:Action[];
+  [agentActionKey]?:ActionWrap;
   [agentModelResetKey]?:()=>void;
   [agentCallingMiddleWareKey]?:MiddleWare;
+  [agentEffectsKey]?: Effect[],
+  [agentRunningEffectsKey]?:Effect[],
+  [agentModelWorking]?:boolean
 }
 
 export type DecoratorCaller = (target: any, p?: string)=>any;
+
+export type MethodDecoratorCaller = (target: any, p: string)=>any;
+
+export type EffectDecoratorCallback<S=any, T extends Model<S>=Model> = (
+    (...args:any[])=>any
+    )&{
+  [agentCallingEffectTargetKey]?:(EffectCallback<S, T>)|string
+};
+
+export type EffectMethod<S=any, T extends Model<S>=Model> = EffectDecoratorCallback<S, T>;
 
 export type Model<S=any> = OriginAgent<S>;
 

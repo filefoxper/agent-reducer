@@ -25,3 +25,7 @@ export {
   DefaultActionType,
   isAgent,
 } from './libs/defines';
+
+/** effect * */
+
+export { addEffect, effectDecorator as effect } from './libs/effect';

@@ -82,21 +82,22 @@ export function noop():void {
   /* noop */
 }
 
-const warningSet:Record<string, string> = {};
-
-/**
- * Prints a warning in the console if it exists.
- *
- * @param {String} message The warning message.
- * @returns {void}
- */
-export function warning(message: string):void {
-  if (warningSet[message]) {
+export function validate(check: boolean, errorMessage:string):void {
+  if (check) {
     return;
   }
-  /* eslint-disable no-console */
+  throw new Error(errorMessage);
+}
+
+export function warn(error:Error):void {
   if (typeof console !== 'undefined' && typeof console.error === 'function') {
-    console.error(message);
+    console.error(error);
   }
-  warningSet[message] = message;
+  /* eslint-enable no-console */
+  try {
+    // This error was thrown as a convenience so that if you enable
+    // "break on all exceptions" in your console,
+    // it would pause the execution at this line.
+    throw error;
+  } catch (e) {} // eslint-disable-line no-empty
 }

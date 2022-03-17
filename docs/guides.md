@@ -424,5 +424,527 @@ If we want to use the Lifecycle feature to our customized MiddleWare, we should 
 
 In `agent-reducer`, there are some useful official MiddleWares, if you are interest in them, please read how to use them in API `MiddleWarePresets`.
 
+## Effect
+
+From `agent-reducer@4.2.0` we add some new APIs: [addEffect](/api?id=addeffect), [effect](/api?id=effect). These APIs are created for listening the state change of a model instance, and do some addition work for completing the whole mission.
+
+```typescript
+addEffect((prevState, currentState, methodName)=>{
+    // `prevState` is the model state before this change.
+    // `currentState` is the model state right now.
+    // `methodName` is the name of model or agent method
+    // which leads this change.
+    // If this effect is caused by effect mount,
+    // param `methodName` is `null`.
+    ......
+},modelOrMethod);
+```
+
+### Model effect
+
+If you want to listen to all the state changes of model, you can add a effect `callback` and a model instance (or an agent) as params into API [addEffect](/api?id=addeffect) like: `addEffect(callback, model)`, the `callback` will be triggered as soon as there is no running mission for model instance, and then everytime when the state change of model happens, it can be triggered again, until the effect is unmounted manually or automatically by model destroying.
+
+Listen to all the state changes of model (model effect):
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+class CountModel implements Model<number> {
+
+    state = 0;
+
+    increase() {
+        return this.state + 1;
+    }
+
+    decrease() {
+        return this.state - 1;
+    }
+
+    reset() {
+        return 0;
+    }
+
+}
+
+describe('the basic usage about effect', () => {
+
+    test('use model effect', () => {
+        const model = new CountModel();
+        const {agent, connect, disconnect} = create(model);
+        connect();
+
+        // effect callback accepts params: prevState, state, methodName
+        const effectCallback: EffectCallback<number> = jest.fn((prev,state) => {
+            if (state < 0) {
+                // time: 3
+                // if the state is lt 0,
+                // use `agent.reset` method to set state to 0,
+                // reset makes state change happen,
+                // so it triggers this effect callback too.
+                agent.reset();
+            }
+        });
+        // time: 1
+        // add effect callback to listen the model state change,
+        // the callback is called immediately,
+        // and the current state is a initial state 0,
+        // so, it will not call `agent.reset`.
+        addEffect(effectCallback, model);
+
+        // time: 2
+        // decrease method make the state to be -1,
+        // but the effect callback is triggered,
+        // then the `agent.reset` method reset state to 0
+        agent.decrease();
+        expect(agent.state).toBe(0);
+
+        // time: 4
+        // increase method make the state to be 1,
+        // and the effect callback is triggered,
+        // but the current state can not make `agent.reset` start.
+        agent.increase();
+        expect(agent.state).toBe(1);
+        // watch the time mark
+        expect(effectCallback).toBeCalledTimes(4);
+        disconnect();
+    });
+
+});
+```
+
+### Method effect
+
+If you want to listen to state changes leaded by specific `method`, you can add `callback`, `model`, `method` as params into API `addEffect`, like: `addEffect(callback, model, method)`. Then only the state changes leaded by this specific `method` can trigger `effect callback`.
+
+Listen on the state changes leaded by this specific `method` (method effect):
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+class CountModel implements Model<number> {
+
+    state = 0;
+
+    increase() {
+        return this.state + 1;
+    }
+
+    decrease() {
+        return this.state - 1;
+    }
+
+    reset() {
+        return 0;
+    }
+
+}
+
+describe('the basic usage about effect', () => {
+
+    test('use method effect', () => {
+        const model = new CountModel();
+        const {agent, connect, disconnect} = create(model);
+        connect();
+
+        const effectCallback: EffectCallback<number> = jest.fn((prev,state) => {
+            if (state < 0) {
+                // if the state is lt 0,
+                // use `agent.reset` method to set state to 0
+                agent.reset();
+            }
+        });
+
+        // add effect on the `decrease` method,
+        // and filter the state changes from `decrease` method.
+        // It only triggered by the method `decrease` state change.
+        addEffect(effectCallback, model, model.decrease);
+
+        // `decrease` state to -1 lead to `reset`
+        agent.decrease();
+        expect(agent.state).toBe(0);
+        agent.increase();
+        expect(agent.state).toBe(1);
+        // the `increase` above can not trigger effect callback,
+        // which only filter the state change from `decrease` method.
+        expect(effectCallback).toBeCalledTimes(1);
+        disconnect();
+    });
+
+});
+```
+
+Listen on a agent or a agent method:
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+class CountModel implements Model<number> {
+
+    state = 0;
+
+    increase() {
+        return this.state + 1;
+    }
+
+    decrease() {
+        return this.state - 1;
+    }
+
+    reset() {
+        return 0;
+    }
+
+}
+
+describe('the basic usage about effect', () => {
+
+    test('we can add effect onto a agent or method from agent too', () => {
+        const model = new CountModel();
+        const {agent, connect, disconnect} = create(model);
+        connect();
+
+        const effectCallback: EffectCallback<number> = jest.fn();
+
+        const decreaseEffectCallback: EffectCallback<number> = jest.fn((prev,state) => {
+            if (state < 0) {
+                agent.reset();
+            }
+        });
+
+        // add effect onto a agent is same as add it onto the model
+        addEffect(effectCallback, agent);
+
+        // add effect onto a agent method is same as add it onto the model method
+        addEffect(decreaseEffectCallback, agent, agent.decrease);
+
+        agent.decrease();
+        expect(agent.state).toBe(0);
+        agent.increase();
+        expect(agent.state).toBe(1);
+        expect(effectCallback).toBeCalledTimes(4);
+        expect(decreaseEffectCallback).toBeCalledTimes(1);
+        disconnect();
+    });
+
+});
+```
+
+### Effect decorator
+
+If you want to add effect inside model, and start it after this model is connected, you can use api [effect](/api?id=effect) to decorate a model method to be a effect callback. If you pass nothing into [effect](/api?id=effect) decorator, it will take current model instance as the listening target. If you pass a method of current model into [effect](/api?id=effect) decorator as a param, it will only listen to the state changes leaded by this specific `method`.
+
+The method decorated by [effect](/api?id=effect) is bind on an `agent` which is created temporary from current `model instance`. So, if deploy the method from keyword `this` in a effect callback, it will change the model state.
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+describe("use decorator effect",()=>{
+
+    class InnerCountModel implements Model<number> {
+
+        state = 0;
+
+        increase() {
+            return this.state + 1;
+        }
+
+        decrease() {
+            return this.state - 1;
+        }
+
+        reset(to?:number) {
+            return to||0;
+        }
+
+        // effect decorator can create and mount a effect
+        // by using the decorated method as a effect callback,
+        // and if there is no param for this decorator,
+        // the effect will pick the model instance of this class as target
+        // for listening.
+        // In a decorator effect callback,
+        // the keyword `this` is a temporary `agent` from model,
+        // created for by model system.
+        // So, you can deploy methods to change state in these effect callbacks.
+        @effect()
+        gtZeroEffect(prevState:number, state:number){
+            if(state<0){
+                // the keyword `this` is a temporary `agent` from model
+                this.reset();
+            }
+        }
+
+        // give a method as effect param,
+        // the decorated method will only be triggered by the param method state changes.
+        @effect(InnerCountModel.prototype.increase)
+        ltFiveEffect(prevState:number, state:number){
+            if(state>4){
+                // the keyword `this` is a temporary `agent` from model
+                this.reset(4);
+            }
+        }
+
+    }
+
+    test('use effect decorator',()=>{
+        const model = new InnerCountModel();
+        const {agent,connect,disconnect} = create(model);
+        connect();
+        agent.decrease();
+        // the state should be -1,
+        // but it is reset by default effect: `gtZeroEffect`
+        expect(agent.state).toBe(0);
+        for(let i=0;i<5;i++){
+            agent.increase();
+        }
+        // the state should be 5,
+        // but it is reset by default effect: `ltFiveEffect`
+        expect(agent.state).toBe(4);
+        disconnect();
+    });
+
+});
+```
+
+### Effect destroy
+
+If the effect callback returns a `function`, this `function` is also called destroy function, and it is always called before its effect callback be triggered again. Also, it will be called when the effect is unmounted from model instance.
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+class CountModel implements Model<number> {
+
+    state = 0;
+
+    increase() {
+        return this.state + 1;
+    }
+
+    decrease() {
+        return this.state - 1;
+    }
+
+    reset() {
+        return 0;
+    }
+
+}
+
+describe("use effect destroy callback",()=>{
+
+    test('use destroy callback returned from effect callback',()=>{
+        const model = new CountModel();
+        const {agent, connect, disconnect} = create(model);
+        connect();
+
+        const destroy = jest.fn();
+
+        const effectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
+            if(state<0){
+                agent.reset();
+            }
+            // if the effect callback returns a destroy callback,
+            // the destroy callback will be invoked every time before effect callback
+            // running again.
+            // It will also be invoked when the disconnect method has destroyed all agent connections on model
+            return destroy;
+        });
+
+        addEffect(effectCallback, model, model.decrease);
+
+        // first time to trigger effect, so the destroy callback will not be invoked.
+        agent.decrease();
+        expect(agent.state).toBe(0);
+
+        expect(effectCallback).toBeCalledTimes(1);
+        expect(destroy).toBeCalledTimes(0);
+
+        // trigger effect again, before the effect callback running,
+        // the destroy callback is invoked.
+        agent.decrease();
+        expect(agent.state).toBe(0);
+
+        expect(effectCallback).toBeCalledTimes(2);
+        expect(destroy).toBeCalledTimes(1);
+
+        // disconnect make destroy work last time.
+        disconnect();
+        expect(destroy).toBeCalledTimes(2);
+    });
+
+});
+```
+
+### Effect update and unmount
+
+When all the model connections are destroyed, the effects on model or model methods are often unmounted automatically. But, if you want to unmount effect manually, you can try the `unmount` method from a `addEffect` API callback returns.
+
+How to use unmount:
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+class CountModel implements Model<number> {
+
+    state = 0;
+
+    increase() {
+        return this.state + 1;
+    }
+
+    decrease() {
+        return this.state - 1;
+    }
+
+    reset() {
+        return 0;
+    }
+
+}
+
+describe("use other abilities of effect",()=>{
+
+    test('unmount effect manually',()=>{
+        const model = new CountModel();
+        const {agent, connect, disconnect} = create(model);
+        connect();
+
+        const destroy = jest.fn();
+
+        const effectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
+            if(state<0){
+                agent.reset();
+            }
+            return destroy;
+        });
+
+        const {unmount} = addEffect(effectCallback, model,'decrease');
+
+        agent.decrease();
+        expect(agent.state).toBe(0);
+
+        expect(effectCallback).toBeCalledTimes(1);
+        // unmount here
+        unmount();
+        // when the effect is unmounted, the destroy callback runs.
+        expect(destroy).toBeCalledTimes(1);
+
+        // there is no effect for decrease method now,
+        // so, the state is decreased to -1
+        agent.decrease();
+        expect(agent.state).toBe(-1);
+
+        expect(effectCallback).toBeCalledTimes(1);
+        // there is no effect for decrease method now,
+        // so, the destroy callback will not be invoked.
+        expect(destroy).toBeCalledTimes(1);
+
+        disconnect();
+        expect(destroy).toBeCalledTimes(1);
+    });
+
+});
+```
+
+Sometimes we need to update the effect callback manually, so, `update` method from `addEffect` API returns is a good choice.
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+class CountModel implements Model<number> {
+
+    state = 0;
+
+    increase() {
+        return this.state + 1;
+    }
+
+    decrease() {
+        return this.state - 1;
+    }
+
+    reset() {
+        return 0;
+    }
+
+}
+
+describe("use other abilities of effect",()=>{
+
+    test('use update method for updating the effect callback',()=>{
+        const model = new CountModel();
+        const {agent, connect, disconnect} = create(model);
+        connect();
+
+        const effectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
+            if(state<0){
+                agent.reset();
+            }
+        });
+
+        const effect = addEffect(effectCallback, model, 'decrease');
+
+        agent.decrease();
+        expect(agent.state).toBe(0);
+
+        // update effect callback to another callback
+        effect.update(jest.fn());
+
+        agent.decrease();
+        // the new effect callback is a mock function,
+        // it can not reset state.
+        expect(agent.state).toBe(-1);
+
+        expect(effectCallback).toBeCalledTimes(1);
+
+        disconnect();
+    });
+
+});
+```
+
 In next page we introduces some useful features, please do not miss that. Go [next](/feature?id=feature) for learning the most popular features in `agent-reducer`.
 

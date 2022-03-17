@@ -33,7 +33,7 @@ export const middleWare = <
     ? applyMiddleWares(...mdw)
     : undefined;
   return function callerWithMiddleWare(target: T, p?: string) {
-    const call: MiddleWareAble<S, T> = p
+    const call: MiddleWareAble<S, T> = p != null
       ? target[p]
       : (target as unknown as MiddleWareAble<S, T>);
     call[agentCallingMiddleWareKey] = applyMiddleWares(callOrMiddleWare as MiddleWare, ...mdw);

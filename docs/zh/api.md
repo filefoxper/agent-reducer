@@ -608,3 +608,37 @@ export declare function getSharingType<
 * model - 模型实例
 
 返回 'weak', 'hard' or undefined.
+
+## addEffect
+
+用于监听模型 state 变化，并处理相应的副作用。
+
+```typescript
+export declare function addEffect<S=any, T extends Model<S> = Model>(
+    effectCallback:EffectCallback<S>,
+    target:T,
+    method?:keyof T|((...args:any[])=>any),
+):EffectWrap<S, T>;
+```
+
+* effectCallback - 副作用回调函数，可返回一个销毁函数，用于承接副作用回调函数中加入需要销毁的功能。销毁函数会在副作用回调函数再次调用前被调用。
+* model - 副作用目标，可以是模型实例，也可以是模型代理（等效于加在模型实例上）。
+* method - 可选，副作用目标方法，可以是模型实例方法，也可以是模型代理方法（等效于加在模型实例方法上）。
+
+返回一个`副作用对象`，该对象包含了`update`（更新副作用回调函数）方法和`unmount`（手动卸载副作用）方法。
+
+查看更多[细节](/zh/guides?id=effect)。
+
+## effect
+
+[addEffect](/zh/api?id=addeffect) API 的 `ES6 decorator` 模式。添加该 decorator 装饰器的模型方法会被当作`副作用回调函数`，监听目标默认为当前模型实例，而 `effect` 入参`模型方法`将被当作被监听的目标方法。
+
+```typescript
+export declare function effect<S=any, T extends Model<S>=Model>(
+    method?:(...args:any[])=>any,
+):MethodDecoratorCaller
+```
+
+* method - 可选，被监听的目标方法，必须为当前模型方法。
+
+查看更多[细节](/zh/guides?id=副作用-decorator-装饰器用法)。

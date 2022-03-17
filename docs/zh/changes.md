@@ -157,3 +157,9 @@
 # 4.0.9 2022-03-10
 
 * [bug] 修复关于 `MiddleWarePresets.takeNothing`, `MiddleWarePresets.takeNone`, `MiddleWarePresets.takeAssignable` 的 typescript 问题。
+
+# 4.2.0 2022-03-17
+
+* [optimize] 使用链表形式控制 action 的非重叠运行过程。
+* [api] 新增 [addEffect](/zh/api?id=addeffect) API
+* [api] 新增 [effect](/zh/api?id=effect) API

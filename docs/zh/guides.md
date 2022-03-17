@@ -412,5 +412,514 @@ Lifecycle MiddleWare 的定制方式与普通 MiddleWare 的定制方式类似�
 
 `agent-reducer` 已经串联了很多常用的 MiddleWare。如果需要，可以在 `MiddleWarePresets` API 中找到它们。
 
+## Effect
+
+自 `agent-reducer@4.2.0` 开始，我们新增了两个副作用相关的 API：[addEffect](/zh/api?id=addeffect) 和 [effect](/zh/api?id=effect) 。所谓的副作用是指当模型 state 发生改变时，做出的相关反应，通俗的说就是监听 state 变化，然后处理一些额外的业务逻辑。
+
+基本用法如下：
+
+```typescript
+addEffect((prevState, currentState, methodName)=>{
+    // `prevState` 当前 state 变更之前的模型 state
+    // `currentState` 当前模型 state
+    // `methodName` 引起本次变化的方法名，
+    // 在直接监听模型 state 变更时，当前 callback 函数
+    // 会在模型空闲时立即执行一次，这时因为并没有方法引起 state 变更，
+    // 所以 `methodName` 为 null
+    ......
+},modelOrMethod);
+```
+
+### 模型副作用
+
+如果想要监听指定模型实例的 state 变更，可使用 `addEffect(callback, model)` 形式，对模型实例添加副作用。副作用回调函数会在添加后模型事务空闲时立即执行。（可简单理解为加入副作用的时机不在 state 变更过程中）第一次载入执行时，参数 `methodName` 为 `null`，之后每当模型 state 发生变更时都会再次触发该回调函数，直至副作用被卸载为止。
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+class CountModel implements Model<number> {
+
+    state = 0;
+
+    increase() {
+        return this.state + 1;
+    }
+
+    decrease() {
+        return this.state - 1;
+    }
+
+    reset() {
+        return 0;
+    }
+
+}
+
+describe('effect 基本用法', () => {
+
+    test('监听模型实例', () => {
+        const model = new CountModel();
+        const {agent, connect, disconnect} = create(model);
+        connect();
+
+        // 副作用回调函数可接收 prevState, state, methodName 三个参数
+        const effectCallback: EffectCallback<number> = jest.fn((prev,state) => {
+            if (state < 0) {
+                // time: 3
+                // 如果 state 为 0，
+                // 调用 `agent.reset` 方法，将 state 重置为 0，
+                // 而 `agent.reset` 同样改变了 state，
+                // 它将再次触发当前副作用回调函数
+                agent.reset();
+            }
+        });
+        // time: 1
+        // 添加副作用回调函数监听模型实例 state 变化，
+        // 该回调会在添加后 agent-reducer 空闲时立即调用一次，
+        // 之后每当模型 state 变化都会再次调用，
+        // 直到副作用被卸载为止。
+        addEffect(effectCallback, model);
+
+        // time: 2
+        // decrease 方法将 state 修改为 -1，
+        // 然后触发了副作用回调中的 `agent.reset`，
+        // state 值被重置为 0
+        agent.decrease();
+        expect(agent.state).toBe(0);
+
+        // time: 4
+        // increase 方法将 state 更改为 1，
+        // 同样触发了副作用，但因为回调函数中条件不符，
+        // 故无法调动 `agent.reset` 方法
+        agent.increase();
+        expect(agent.state).toBe(1);
+        // 观察 time
+        expect(effectCallback).toBeCalledTimes(4);
+        disconnect();
+    });
+
+});
+```
+
+### 方法副作用
+
+如果想要监听单个代理方法产生的 state 变更副作用，可以使用 `addEffect(callback, model, method)` 。这时，副作用为方法副作用，当且仅当该方法被调用，并引起了 state 变更才会触发当前副作用回调函数。
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+class CountModel implements Model<number> {
+
+    state = 0;
+
+    increase() {
+        return this.state + 1;
+    }
+
+    decrease() {
+        return this.state - 1;
+    }
+
+    reset() {
+        return 0;
+    }
+
+}
+
+describe('effect 基本用法', () => {
+
+    test('监听方法做出的 state 变更', () => {
+        const model = new CountModel();
+        const {agent, connect, disconnect} = create(model);
+        connect();
+
+        const effectCallback: EffectCallback<number> = jest.fn((prev,state) => {
+            if (state < 0) {
+                // 如果 state 变更值小于 0，
+                // 调用 `agent.reset` 方法将其重置为 0
+                agent.reset();
+            }
+        });
+
+        // 对 `decrease` 方法添加副作用回调监听函数，
+        // 当且仅当 `decrease` 方法被调用，并产生 state 变化时触发回调函数。
+        addEffect(effectCallback, model, model.decrease);
+
+        // `decrease` 将 state 变为 -1 导致 `reset` 被调用
+        agent.decrease();
+        expect(agent.state).toBe(0);
+        agent.increase();
+        expect(agent.state).toBe(1);
+        // `increase` 方法并不能触发当前副作用，
+        // 所以副作用回调函数被调用次数仍为 1
+        expect(effectCallback).toBeCalledTimes(1);
+        disconnect();
+    });
+
+});
+```
+
+### 监听代理副作用
+
+为了方便使用，我们允许使用 agent 代理代替模型 model ，代理方法代替模型方法作为副作用目标。这与添加至模型 model 及方法上是等效的。
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+class CountModel implements Model<number> {
+
+    state = 0;
+
+    increase() {
+        return this.state + 1;
+    }
+
+    decrease() {
+        return this.state - 1;
+    }
+
+    reset() {
+        return 0;
+    }
+
+}
+
+describe('effect 基本用法', () => {
+
+    test('我们也可以对 agent 对象，或它的方法添加副作用', () => {
+        const model = new CountModel();
+        const {agent, connect, disconnect} = create(model);
+        connect();
+
+        const effectCallback: EffectCallback<number> = jest.fn();
+
+        const decreaseEffectCallback: EffectCallback<number> = jest.fn((prev,state) => {
+            if (state < 0) {
+                agent.reset();
+            }
+        });
+
+        // 对 agent 代理添加副作用，效果等同与对它的模型添加副作用
+        addEffect(effectCallback, agent);
+
+        // 对 agent 代理方法添加副作用，效果等同与对它的模型方法添加副作用
+        addEffect(decreaseEffectCallback, agent, agent.decrease);
+
+        agent.decrease();
+        expect(agent.state).toBe(0);
+        agent.increase();
+        expect(agent.state).toBe(1);
+        expect(effectCallback).toBeCalledTimes(4);
+        expect(decreaseEffectCallback).toBeCalledTimes(1);
+        disconnect();
+    });
+
+});
+```
+
+### 副作用 decorator 装饰器用法
+
+添加副作用的 decorator API 为 [effect](/zh/api?id=effect)。被该 decorator 函数修饰的方法将被作为副作用回调来使用，而副作用监听目标默认为当前模型实例：`effect()`，如传入当前模型方法，则监听该目标下的指定方法：`effect(Model.prototype.method)`。
+
+装饰器副作用回调方法会在触发时被绑定到一个临时创建的当前模型代理 agent 对象上。所以该方法中的关键词 `this` 是个代理对象。这方便使用者在回调方法中调用其他方法，从而修改 state 数据。
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+describe("使用 effect decorator API",()=>{
+
+    class InnerCountModel implements Model<number> {
+
+        state = 0;
+
+        increase() {
+            return this.state + 1;
+        }
+
+        decrease() {
+            return this.state - 1;
+        }
+
+        reset(to?:number) {
+            return to||0;
+        }
+
+        // effect decorator 函数无入参，
+        // 这相当于监听当前模型实例 state 变更，
+        // 而被 decorate 的当前方法即为副作用回调方法
+        @effect()
+        gtZeroEffect(prevState:number, state:number){
+            if(state<0){
+                // effect decorator 函数会将当前函数绑定在一个临时代理对象上，
+                // 这时通过关键词 `this` 调用的方法可直接修改数据
+                this.reset();
+            }
+            // effect 回调函数本身不具备修改 state 的能力，所以不需要返回 state 数据，
+            // 但如果有需求可以返回 destroy 销毁函数
+        }
+
+        // 当 effect 入参为当前 class 的方法时，
+        // 监听目标为当前入参方法
+        @effect(InnerCountModel.prototype.increase)
+        ltFiveEffect(prevState:number, state:number){
+            if(state>4){
+                this.reset(4);
+            }
+        }
+
+    }
+
+    test('use effect decorator',()=>{
+        const model = new InnerCountModel();
+        const {agent,connect,disconnect} = create(model);
+        connect();
+        // state 变成 -1，触发 `gtZeroEffect` 副作用回调函数，将 state 重置为 0
+        agent.decrease();
+        expect(agent.state).toBe(0);
+        for(let i=0;i<5;i++){
+            agent.increase();
+        }
+        // state 变为5，触发 `ltFiveEffect` 副作用回调函数，state 降为 4
+        expect(agent.state).toBe(4);
+        disconnect();
+    });
+
+});
+```
+
+### 副作用销毁函数
+
+如果在副作用回调函数中返回一个函数，该函数会在副作用再次被触发前调用，以便清理上次副作用处理中产生的内存占用等副效果。我们通常叫这种函数为销毁函数。
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+class CountModel implements Model<number> {
+
+    state = 0;
+
+    increase() {
+        return this.state + 1;
+    }
+
+    decrease() {
+        return this.state - 1;
+    }
+
+    reset() {
+        return 0;
+    }
+
+}
+
+describe('effect 基本用法', () => {
+
+    test('副作用回调函数可返回一个销毁函数，该销毁函数会在副作用回调函数再次被调用前或副作用被卸载时被调用',()=>{
+        const model = new CountModel();
+        const {agent, connect, disconnect} = create(model);
+        connect();
+
+        const destroy = jest.fn();
+
+        const effectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
+            if(state<0){
+                agent.reset();
+            }
+            // 副作用回调函数返回一个销毁函数,
+            // t该销毁函数会在副作用回调函数再次被调用前或副作用被卸载时被调用
+            return destroy;
+        });
+
+        addEffect(effectCallback, model, model.decrease);
+
+        // 第一次触发副作用时并不会运行销毁函数
+        agent.decrease();
+        expect(agent.state).toBe(0);
+
+        expect(effectCallback).toBeCalledTimes(1);
+        expect(destroy).toBeCalledTimes(0);
+
+        // 再次触发副作用前，运行销毁函数
+        agent.decrease();
+        expect(agent.state).toBe(0);
+
+        expect(effectCallback).toBeCalledTimes(2);
+        expect(destroy).toBeCalledTimes(1);
+
+        // 当前 disconnect 导致模型的所有代理链接全被销毁，
+        // 这时系统会强行卸载当前模型的所有副作用，并再次触发销毁函数
+        disconnect();
+        expect(destroy).toBeCalledTimes(2);
+    });
+
+});
+```
+
+### 手动更新副作用回调函数
+
+`addEffect` API 本身能返回一个 `effect` 对象，该对象拥有 `update` 和 `unmount` 方法。其中 `update` 方法可用于更新当前的副作用回调函数。
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+class CountModel implements Model<number> {
+
+    state = 0;
+
+    increase() {
+        return this.state + 1;
+    }
+
+    decrease() {
+        return this.state - 1;
+    }
+
+    reset() {
+        return 0;
+    }
+
+}
+
+describe("使用 effect 的其他能力",()=>{
+
+    test('使用 effect.update 方法来更新副作用回调函数',()=>{
+        const model = new CountModel();
+        const {agent, connect, disconnect} = create(model);
+        connect();
+
+        const effectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
+            if(state<0){
+                agent.reset();
+            }
+        });
+
+        const effect = addEffect(effectCallback, model, model.decrease);
+
+        agent.decrease();
+        expect(agent.state).toBe(0);
+
+        // 更新成另一个回调函数
+        effect.update(jest.fn());
+
+        agent.decrease();
+        // 新回调函数不具备重置 state 的能力
+        expect(agent.state).toBe(-1);
+
+        expect(effectCallback).toBeCalledTimes(1);
+
+        disconnect();
+    });
+
+});
+```
+
+### 手动卸载副作用
+
+`addEffect` API 返回对象的另一个方法 `unmount` 可用于手动卸载当前副作用。
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+class CountModel implements Model<number> {
+
+    state = 0;
+
+    increase() {
+        return this.state + 1;
+    }
+
+    decrease() {
+        return this.state - 1;
+    }
+
+    reset() {
+        return 0;
+    }
+
+}
+
+describe("使用 effect 的其他能力",()=>{
+
+    test('通过 effect.unmount 方法手动卸载副作用',()=>{
+        const model = new CountModel();
+        const {agent, connect, disconnect} = create(model);
+        connect();
+
+        const destroy = jest.fn();
+
+        const effectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
+            if(state<0){
+                agent.reset();
+            }
+            return destroy;
+        });
+
+        const {unmount} = addEffect(effectCallback, model, model.decrease);
+
+        agent.decrease();
+        expect(agent.state).toBe(0);
+
+        expect(effectCallback).toBeCalledTimes(1);
+        // 卸载副作用
+        unmount();
+        // 当副作用被卸载时会调用 destroy 销毁函数
+        expect(destroy).toBeCalledTimes(1);
+
+        // 这时已经没有副作用再将 state 重置为 0 了
+        agent.decrease();
+        expect(agent.state).toBe(-1);
+
+        expect(effectCallback).toBeCalledTimes(1);
+        expect(destroy).toBeCalledTimes(1);
+
+        disconnect();
+        expect(destroy).toBeCalledTimes(1);
+    });
+
+});
+```
+
 [下一章](/zh/feature?id=特性)我们将介绍一些非常有用的特性，请不要错过。
 
