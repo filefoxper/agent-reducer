@@ -2,7 +2,8 @@ import {
   Action, OriginAgent,
 } from './global.type';
 import {
-  agentActionsKey,
+  agentActionKey,
+  agentEffectsKey,
   agentListenerKey,
   agentMethodName,
   agentModelResetKey,
@@ -10,13 +11,16 @@ import {
   agentSharingTypeKey, DefaultActionType,
 } from './defines';
 import { ModelConnector } from './sharing.type';
+import { unmountEffects } from './effect';
 
 export function resetModel<
     S,
     T extends OriginAgent<S>=OriginAgent<S>
     >(entity:T):void {
   entity[agentSharingMiddleWareKey] = undefined;
-  entity[agentActionsKey] = undefined;
+  entity[agentActionKey] = undefined;
+  unmountEffects(entity);
+  entity[agentEffectsKey] = undefined;
 }
 
 function subscribe<
@@ -66,7 +70,10 @@ function mountMethod<
       return r;
     }
     const { value } = funcDesc;
-    const processedValue = Object.assign(value, { [agentMethodName]: key, model: instance });
+    if (value[agentMethodName] === key) {
+      return r;
+    }
+    const processedValue = Object.assign(value, { [agentMethodName]: key });
     return { ...r, [key]: { ...funcDesc, value: processedValue } };
   }, {});
   Object.defineProperties(instance, description);
@@ -82,17 +89,8 @@ function initialModel<
       resetModel<S, T>(instance);
     };
   }
-  if (!instance[agentActionsKey]) {
-    instance[agentActionsKey] = [];
-  }
+  instance[agentActionKey] = undefined;
   mountMethod<S, T>(instance);
-}
-
-export function stateUpdatable<
-    S,
-    T extends OriginAgent<S> = OriginAgent<S>
-    >(modelInstance:T):boolean {
-  return isConnecting(modelInstance) || modelInstance[agentSharingTypeKey] === 'hard';
 }
 
 function notification<
@@ -143,12 +141,4 @@ export function createSharingModelConnector<
       listener = null;
     },
   };
-}
-
-export function isConnecting<
-    S,
-    T extends OriginAgent<S> = OriginAgent<S>
-    >(modelInstance: T&{[agentListenerKey]?:((s:S)=>any)[]}):boolean {
-  const listeners = modelInstance[agentListenerKey] || [];
-  return listeners.length !== 0;
 }

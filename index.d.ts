@@ -129,6 +129,8 @@ declare type MiddleWareAble<S, T extends OriginAgent<S>> =
 
 declare type DecoratorCaller = (target: any, p?: string)=>any;
 
+declare type MethodDecoratorCaller = (target: any, p: string)=>any;
+
 export declare function withMiddleWare<S, T extends OriginAgent<S>>(
     agent: T,
     ...mdws: (MiddleWare | LifecycleMiddleWare)[]
@@ -158,6 +160,25 @@ export declare const toLifecycleMiddleWare: (lifecycleMiddleWare: Omit<Lifecycle
 export declare class LifecycleMiddleWares {
   static takeLatest(): LifecycleMiddleWare;
 }
+
+export declare type EffectCallback<S> = (
+    prevState:S, nextState:S, methodName:string|null
+)=>void|(()=>void);
+
+declare type EffectWrap<S=any, T extends Model<S>=Model> = {
+    unmount:()=>void,
+    update:(nextCallback:EffectCallback<S>)=>void,
+}
+
+export declare function addEffect<S=any, T extends Model<S> = Model>(
+    effectCallback:EffectCallback<S>,
+    target:T,
+    method?:keyof T|((...args:any[])=>any),
+):EffectWrap<S, T>;
+
+export declare function effect<S=any, T extends Model<S>=Model>(
+    method?:(...args:any[])=>any,
+):MethodDecoratorCaller
 
 export class MiddleWares {
   static takeNothing(): MiddleWare;

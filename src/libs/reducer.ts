@@ -6,7 +6,7 @@ import {
   Listener,
   Store,
   ConnectionFactory,
-  Model,
+  Model, ActionWrap, EffectMethod,
 } from './global.type';
 import {
   AgentReducer,
@@ -17,12 +17,20 @@ import {
 import {
   DefaultActionType,
   agentCallingMiddleWareKey,
-  agentActionsKey,
+  agentModelWorking,
+  agentEffectsKey,
+  agentActionKey,
 } from './defines';
-import { createSharingModelConnector, stateUpdatable } from './connector';
+import { createSharingModelConnector } from './connector';
 import { applyMiddleWares, defaultMiddleWare } from './applies';
 import { generateAgent } from './agent';
-import { createInstance, isPromise } from './util';
+import { createInstance, isPromise, warn } from './util';
+import {
+  addMethodEffects,
+  runEffects,
+  runningNotInitialedModelEffects,
+} from './effect';
+import { isConnecting, stateUpdatable } from './status';
 
 /**
  * Create a reducer function for a standard reducer system.
@@ -67,37 +75,97 @@ function createAgentInstance<
   return typeof model === 'function' ? createInstance(model) : model;
 }
 
+function hasRunningAction<S, T extends Model<S>>(entity:T):boolean {
+  const actionWrap = entity[agentActionKey];
+  return !!actionWrap;
+}
+
+function extractAction<S, T extends Model<S>>(entity:T):Action|null {
+  const actionWrap = entity[agentActionKey];
+  if (actionWrap) {
+    return actionWrap.current;
+  }
+  return null;
+}
+
+function linkAction<S, T extends Model<S>>(entity:T, action:Action):ActionWrap {
+  const actionWrap = entity[agentActionKey];
+  const wrap:ActionWrap = {
+    current: action,
+  };
+  if (!actionWrap) {
+    entity[agentActionKey] = wrap;
+    return wrap;
+  }
+  const { last } = actionWrap;
+  if (!last) {
+    actionWrap.next = wrap;
+    actionWrap.last = wrap;
+  } else {
+    last.next = wrap;
+    actionWrap.last = wrap;
+  }
+  return actionWrap;
+}
+
+function shiftAction<S, T extends Model<S>>(entity:T):Action|null {
+  const actionWrap = entity[agentActionKey];
+  if (!actionWrap) {
+    return null;
+  }
+  const { last, next } = actionWrap;
+  if (!next || !last) {
+    entity[agentActionKey] = undefined;
+    return null;
+  }
+  if (last === next) {
+    next.last = undefined;
+    next.next = undefined;
+    entity[agentActionKey] = next;
+    return next.current;
+  }
+  next.last = last;
+  entity[agentActionKey] = next;
+  return next.current;
+}
+
 function createStoreSlot<S, T extends Model<S>>(
   entity:T,
   reducer: Reducer<S, Action>,
 ):Store<S> {
   let listener:Listener<S>|null = null;
   const reduce = function reduce(action: Action) {
+    const effects = entity[agentEffectsKey] || [];
     const nextState = reducer(entity.state, action);
     if (!listener) {
       return;
     }
     const currentAction:Action = { ...action, state: nextState };
     listener(currentAction);
-  };
-  function consumeAction(action:Action) {
-    const actions = entity[agentActionsKey] || [];
-    entity[agentActionsKey] = [...actions, action];
-    if (actions.length) {
+    const { prevState, state } = currentAction;
+    if (!stateUpdatable<S, T>(entity) || prevState === state) {
       return;
     }
-    let errorWrap: { error:any }|null = null;
-    try {
-      reduce(action);
-    } catch (e) {
-      errorWrap = { error: e };
+    runEffects(entity, [...effects], currentAction);
+  };
+  function consumeAction(action:Action) {
+    const isRunning = hasRunningAction<S, T>(entity);
+    linkAction<S, T>(entity, action);
+    if (isRunning) {
+      return;
     }
-    const acs = (entity[agentActionsKey] || []).filter((ac) => ac !== action);
-    entity[agentActionsKey] = [];
-    acs.forEach(consumeAction);
-    if (errorWrap) {
-      throw errorWrap.error;
+    entity[agentModelWorking] = true;
+    let current = extractAction<S, T>(entity);
+    while (current) {
+      try {
+        reduce(current);
+      } catch (e) {
+        warn(e);
+      }
+      current = shiftAction<S, T>(entity);
     }
+    runningNotInitialedModelEffects(entity);
+    entity[agentModelWorking] = false;
   }
   const dispatch = function dispatch(sourceAction: Action) {
     const prevState = entity.state;
@@ -106,10 +174,9 @@ function createStoreSlot<S, T extends Model<S>>(
       reduce(action);
       return;
     }
-    if (
-      entity.state !== action.state
-        && stateUpdatable<S, T>(entity)
-    ) {
+    const needToUpdateEntityState = entity.state !== action.state
+        && stateUpdatable<S, T>(entity);
+    if (needToUpdateEntityState) {
       entity.state = action.state;
     }
     consumeAction(action);
@@ -159,6 +226,15 @@ function pickMiddleWare<
   return defaultMiddleWare;
 }
 
+function createMethodEffectBuilder<
+    S,
+    T extends Model<S>= Model<S>
+    >(entity:T) {
+  return function methodEffectBuilder(effectMethod:EffectMethod<S, T>, args:any[]) {
+    return connect<S, T>(entity).run((ag) => effectMethod.apply(ag, args));
+  };
+}
+
 function useConnection<
     S,
     T extends Model<S>= Model<S>
@@ -192,12 +268,10 @@ function useConnection<
 
     storeSlot.subscribe((action:Action) => {
       modelConnector.notify(action, (ac:Action) => {
-        if (
-          outerSubscriber !== null
-            && !env.expired
-        ) {
-          outerSubscriber(ac);
+        if (outerSubscriber == null || env.expired) {
+          return;
         }
+        outerSubscriber(ac);
       });
     });
 
@@ -211,8 +285,13 @@ function useConnection<
         if (env.expired) {
           env.expired = false;
         }
+        const connected = isConnecting<S, T>(entity);
         modelConnector.connect(listener);
-        // todo addModelEffects<S, T>(entity, agent);
+        if (connected) {
+          return;
+        }
+        const methodEffectBuilder = createMethodEffectBuilder<S, T>(entity);
+        addMethodEffects<S, T>(entity, methodEffectBuilder);
       },
       disconnect() {
         let error:Error|null = null;

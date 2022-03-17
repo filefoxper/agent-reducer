@@ -6,15 +6,23 @@ export const agentListenerKey = '@@agent-reducer-listeners';
 
 export const agentCallingMiddleWareKey = '@@agent-reducer-calling-middle-ware';
 
+export const agentCallingEffectTargetKey = '@@agent-reducer-calling-effect-target';
+
 export const agentSharingMiddleWareKey = '@@agent-reducer-sharing-middle-ware';
 
 export const agentSharingTypeKey = '@@agent-reducer-sharing-type';
 
-export const agentActionsKey = '@@agent-reducer-actions';
+export const agentActionKey = '@@agent-reducer-action';
 
 export const agentModelResetKey = '@@agent-reducer-model-reset';
 
 export const agentMethodName = '@@agent-method-name';
+
+export const agentEffectsKey = '@@agent-effects';
+
+export const agentRunningEffectsKey = '@@agent-running-effects';
+
+export const agentModelWorking = '@@agent-model-working';
 
 export enum DefaultActionType {
   DX_INITIAL_STATE = '@@AGENT_REDUCER_INITIAL_STATE',
@@ -25,3 +33,5 @@ export function isAgent<T extends {[key:string]:any}>(data: T):boolean {
   const dataType = typeof data;
   return dataType === 'object' && data[agentIdentifyKey] === true;
 }
+
+export const effectModelTargetPlacement = 'EFFECT_MODEL_TARGET_PLACEMENT';

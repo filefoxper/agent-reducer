@@ -622,3 +622,37 @@ export declare function getSharingType<
 * model - model instance
 
 returns 'weak', 'hard' or undefined.
+
+## addEffect
+
+Listen the model state change, and do something to complete work.
+
+```typescript
+export declare function addEffect<S=any, T extends Model<S> = Model>(
+    effectCallback:EffectCallback<S>,
+    target:T,
+    method?:keyof T|((...args:any[])=>any),
+):EffectWrap<S, T>;
+```
+
+* effectCallback - the function to process the effect of state change, the function returns void or a destroy function which is always called before the effectCallback works again or when the effect is unmounted.
+* target - a model instance or agent as a listening target.
+* method - optional, if you want filter the state change from specific method, you can add it.
+
+It returns a `effect` object, which provides `update` and `unmount` methods. The `update` method can be used to update effectCallback, and the `unmount` method can be used to unmount effect manually from model instance.
+
+To check more [details](/guides?id=effect).
+
+## effect
+
+The `ES6 decorator` usage of [addEffect](/api?id=addeffect). It makes the working instance of current class as effect target. If you want to listen to the state changes from a specific method, you can give it a method as param.
+
+```typescript
+export declare function effect<S=any, T extends Model<S>=Model>(
+    method?:(...args:any[])=>any,
+):MethodDecoratorCaller
+```
+
+* method - optional, it should come from the current model class: `Class.prototype.method`.
+
+To check more [details](/guides?id=effect-decorator).

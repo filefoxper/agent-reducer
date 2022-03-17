@@ -149,3 +149,9 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.0.9 2022-03-10
 
 * [bug] resolve typescript problem about `MiddleWarePresets.takeNothing`, `MiddleWarePresets.takeNone`, `MiddleWarePresets.takeAssignable`
+
+# 4.2.0 2022-03-17
+
+* [optimize] use linked list to control the action consuming
+* [api] add new API [addEffect](/zh/api?id=addeffect)
+* [api] add new API [effect](/zh/api?id=effect)
