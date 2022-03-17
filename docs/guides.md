@@ -650,7 +650,7 @@ describe('the basic usage about effect', () => {
 
 ### Effect decorator
 
-If you want to add effect inside model, and start it after this model is connected, you can use api [effect](/api?id=effect) to decorate a model method to be a effect callback. If you pass nothing into [effect](/api?id=effect) decorator, it will take current model instance as the listening target. If you pass a method of current model into [effect](/api?id=effect) decorator as a param, it will only listen to the state changes leaded by this specific `method`.
+If you want to add effect inside model, and start it after this model is connected, you can use api [effect](/api?id=effect) to decorate a model method to be a effect callback. If you pass nothing into [effect](/api?id=effect) decorator, it will take current model instance as the listening target. If you pass a callback which returns a method of current model into [effect](/api?id=effect) decorator as a param, it will only listen to the state changes leaded by this specific `method`.
 
 The method decorated by [effect](/api?id=effect) is bind on an `agent` which is created temporary from current `model instance`. So, if deploy the method from keyword `this` in a effect callback, it will change the model state.
 
@@ -700,7 +700,7 @@ describe("use decorator effect",()=>{
 
         // give a method as effect param,
         // the decorated method will only be triggered by the param method state changes.
-        @effect(InnerCountModel.prototype.increase)
+        @effect(()=>InnerCountModel.prototype.increase)
         ltFiveEffect(prevState:number, state:number){
             if(state>4){
                 // the keyword `this` is a temporary `agent` from model

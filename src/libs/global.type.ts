@@ -97,10 +97,12 @@ export type DecoratorCaller = (target: any, p?: string)=>any;
 
 export type MethodDecoratorCaller = (target: any, p: string)=>any;
 
+export type EffectDecoratorTargetMethod = ()=>((...args:any[])=>any);
+
 export type EffectDecoratorCallback<S=any, T extends Model<S>=Model> = (
     (...args:any[])=>any
     )&{
-  [agentCallingEffectTargetKey]?:(EffectCallback<S, T>)|string
+  [agentCallingEffectTargetKey]?:Array<EffectDecoratorTargetMethod|string>
 };
 
 export type EffectMethod<S=any, T extends Model<S>=Model> = EffectDecoratorCallback<S, T>;

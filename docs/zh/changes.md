@@ -163,3 +163,8 @@
 * [optimize] 使用链表形式控制 action 的非重叠运行过程。
 * [api] 新增 [addEffect](/zh/api?id=addeffect) API
 * [api] 新增 [effect](/zh/api?id=effect) API
+
+# 4.2.1 2022-03-17
+
+* [design] 修改 effect decorator 传参用法，不在直接使用 `Class.prototype.method` ，改用 `()=>Class.prototype.method`
+* [design] effect decorator 支持对一个 `effect method` 追加多个监听方法

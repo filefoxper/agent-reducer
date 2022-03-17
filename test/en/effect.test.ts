@@ -198,7 +198,7 @@ describe("use decorator effect",()=>{
 
         // give a method as effect param,
         // the decorated method will only be triggered by the param method state changes.
-        @effect(InnerCountModel.prototype.increase)
+        @effect(()=>InnerCountModel.prototype.increase)
         ltFiveEffect(prevState:number, state:number){
             if(state>4){
                 // the keyword `this` is a temporary `agent` from model

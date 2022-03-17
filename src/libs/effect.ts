@@ -3,8 +3,8 @@ import {
   Effect,
   EffectCallback,
   EffectDecoratorCallback,
+  EffectDecoratorTargetMethod,
   EffectMethod,
-  EffectTarget,
   EffectWrap,
   MethodDecoratorCaller,
   Model,
@@ -178,11 +178,15 @@ export function unmountEffects<S=any, T extends Model<S> = Model>(model:T):void 
 }
 
 export function effectDecorator<S=any, T extends Model<S>=Model>(
-  method?:(...args:any[])=>any,
+  method?:(()=>((...args:any[])=>any)),
 ):MethodDecoratorCaller {
   return function effectTo(target:T, p:string) {
     const call:EffectDecoratorCallback<S, T> = target[p];
-    call[agentCallingEffectTargetKey] = method || effectModelTargetPlacement;
+    const param = typeof method === 'function' ? method : effectModelTargetPlacement;
+    const callEffectTargets = call[agentCallingEffectTargetKey] || [];
+    callEffectTargets.push(param);
+    const targetSet = new Set(callEffectTargets);
+    call[agentCallingEffectTargetKey] = [...targetSet.values()];
     return call;
   };
 }
@@ -190,15 +194,17 @@ export function effectDecorator<S=any, T extends Model<S>=Model>(
 function extractEffectTargetFromMethod<
     S,
     T extends Model<S> = Model<S>
-    >(entity:T, method:EffectMethod) {
+    >(entity:T, method:EffectMethod):null|Array<(T|EffectDecoratorTargetMethod)> {
   const effectTarget = method[agentCallingEffectTargetKey];
-  if (typeof effectTarget === 'function') {
-    return effectTarget;
+  if (!Array.isArray(effectTarget) || !effectTarget.length) {
+    return null;
   }
-  if (effectTarget === effectModelTargetPlacement) {
-    return entity;
-  }
-  return null;
+  return effectTarget.map((target) => {
+    if (target === effectModelTargetPlacement) {
+      return entity as T;
+    }
+    return target as EffectDecoratorTargetMethod;
+  });
 }
 
 export function addMethodEffects<
@@ -212,14 +218,16 @@ export function addMethodEffects<
     if (typeof value !== 'function') {
       return;
     }
-    const target = extractEffectTargetFromMethod<S, T>(entity, value);
-    if (target == null) {
+    const targets = extractEffectTargetFromMethod<S, T>(entity, value);
+    if (targets == null) {
       return;
     }
-    if (typeof target === 'function') {
-      addEffect((...args) => methodEffectBuilder(value, args), entity, target);
-      return;
-    }
-    addEffect((...args) => methodEffectBuilder(value, args), entity);
+    targets.forEach((target) => {
+      if (typeof target === 'function') {
+        addEffect((...args) => methodEffectBuilder(value, args), entity, target());
+        return;
+      }
+      addEffect((...args) => methodEffectBuilder(value, args), entity);
+    });
   });
 }

@@ -637,7 +637,7 @@ describe('effect 基本用法', () => {
 
 ### 副作用 decorator 装饰器用法
 
-添加副作用的 decorator API 为 [effect](/zh/api?id=effect)。被该 decorator 函数修饰的方法将被作为副作用回调来使用，而副作用监听目标默认为当前模型实例：`effect()`，如传入当前模型方法，则监听该目标下的指定方法：`effect(Model.prototype.method)`。
+添加副作用的 decorator API 为 [effect](/zh/api?id=effect)。被该 decorator 函数修饰的方法将被作为副作用回调来使用，而副作用监听目标默认为当前模型实例：`effect()`，如传入当前模型方法提供函数，则监听该目标下的指定方法：`effect(()=>Model.prototype.method)`。
 
 装饰器副作用回调方法会在触发时被绑定到一个临时创建的当前模型代理 agent 对象上。所以该方法中的关键词 `this` 是个代理对象。这方便使用者在回调方法中调用其他方法，从而修改 state 数据。
 
@@ -684,7 +684,7 @@ describe("使用 effect decorator API",()=>{
 
         // 当 effect 入参为当前 class 的方法时，
         // 监听目标为当前入参方法
-        @effect(InnerCountModel.prototype.increase)
+        @effect(()=>InnerCountModel.prototype.increase)
         ltFiveEffect(prevState:number, state:number){
             if(state>4){
                 this.reset(4);
