@@ -168,3 +168,7 @@
 
 * [design] 修改 effect decorator 传参用法，不在直接使用 `Class.prototype.method` ，改用 `()=>Class.prototype.method`
 * [design] effect decorator 支持对一个 `effect method` 追加多个监听方法
+
+# 4.2.2 2022-03-19
+
+* [bug] 对副作用增加方法是否属于当前模型的检查

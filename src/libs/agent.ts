@@ -97,14 +97,16 @@ function createActionRunner<S, T extends OriginAgent<S>>(
   const {
     cache, functionCache, entry,
   } = invokeDependencies;
+  const modelMethod = entry[methodName] as ((...a: any[]) => any);
+  const sourceMethodDescriptors = Object.getOwnPropertyDescriptors(modelMethod);
   // cache runtime by methodName
   cache[methodName] = cache[methodName] || createRuntime(proxy, invokeDependencies, methodName);
   // cache wrapped method by methodName
-  if (functionCache[methodName]) {
-    return functionCache[methodName];
+  const cacheCaller = functionCache[methodName];
+  if (typeof cacheCaller === 'function') {
+    Object.defineProperties(cacheCaller, { ...sourceMethodDescriptors });
+    return cacheCaller;
   }
-  const modelMethod = entry[methodName] as ((...a: any[]) => any);
-  const sourceMethodDescriptors = Object.getOwnPropertyDescriptors(modelMethod);
   // wrapped method
   const caller:MethodCaller<T> = function caller(...args: any[]):any {
     const { env, middleWare } = invokeDependencies;
