@@ -437,7 +437,13 @@ addEffect((prevState, currentState, methodName)=>{
     // If this effect is caused by effect mount,
     // param `methodName` is `null`.
     ......
-},modelOrMethod);
+    // return function destroy() {
+    //   ......
+    // }
+    // if returns a function, 
+    // this function will be called before effect callback triggered again. 
+    // It is often used for clean or destroy something.
+},model, method);
 ```
 
 ### Model effect

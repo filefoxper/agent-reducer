@@ -427,7 +427,13 @@ addEffect((prevState, currentState, methodName)=>{
     // 会在模型空闲时立即执行一次，这时因为并没有方法引起 state 变更，
     // 所以 `methodName` 为 null
     ......
-},modelOrMethod);
+    // return function destroy() {
+    //   ......
+    // }
+    // 如果返回 function ，该 function 会在回调再次被调用，
+    // 或副作用被卸载时调用。
+    // 可用于销毁副作用回调过程中产生的影响
+},model, method);
 ```
 
 ### 模型副作用
