@@ -29,13 +29,22 @@ function extractValidateMethodName<S=any, T extends Model<S> = Model>(
   }
   if (typeof target === 'function') {
     const method = target as ModelInstanceMethod<S, T>;
-    validate(!!(method[agentMethodName]), 'The target method for effect is invalidated');
-    return method[agentMethodName] as string;
+    const methodName = method[agentMethodName];
+    validate(
+      !!(methodName && typeof model[methodName] === 'function'),
+      'The target method for effect is invalidated',
+    );
+    return methodName as string;
   }
-  if (typeof target !== 'string' || model[target] == null) {
-    return null;
+  if (typeof target === 'string') {
+    validate(
+      typeof model[target] === 'function',
+      'The target method for effect is invalidated',
+    );
+    return target;
   }
-  return target;
+  warn(new Error('The typeof method should be `string` or `function`'));
+  return null;
 }
 
 function createEffect<S=any, T extends Model<S> = Model>(

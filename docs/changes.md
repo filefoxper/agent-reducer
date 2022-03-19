@@ -160,3 +160,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 
 * [design] modify effect decorator param pattern, use as `()=>Class.prototype.method`.
 * [design] effect decorator has support multi target methods to one `effect method` .
+
+# 4.2.2 2022-03-19
+
+* [bug] add the check of if the effect method belongs to the effect model.
