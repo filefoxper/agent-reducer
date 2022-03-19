@@ -13,7 +13,7 @@ import {
 import {
   agentCallingMiddleWareKey,
   agentDependenciesKey,
-  agentIdentifyKey,
+  agentIdentifyKey, agentMethodName,
   agentSharingMiddleWareKey,
 } from './defines';
 import { createProxy } from './util';
@@ -98,16 +98,15 @@ function createActionRunner<S, T extends OriginAgent<S>>(
     cache, functionCache, entry,
   } = invokeDependencies;
   const modelMethod = entry[methodName] as ((...a: any[]) => any);
-  const sourceMethodDescriptors = Object.getOwnPropertyDescriptors(modelMethod);
   // cache runtime by methodName
   cache[methodName] = cache[methodName] || createRuntime(proxy, invokeDependencies, methodName);
   // cache wrapped method by methodName
   const cacheCaller = functionCache[methodName];
   if (typeof cacheCaller === 'function') {
-    Object.defineProperties(cacheCaller, { ...sourceMethodDescriptors });
     return cacheCaller;
   }
   // wrapped method
+  const sourceMethodDescriptors = Object.getOwnPropertyDescriptors(modelMethod);
   const caller:MethodCaller<T> = function caller(...args: any[]):any {
     const { env, middleWare } = invokeDependencies;
     const runtime = cache[methodName];
@@ -251,7 +250,9 @@ export function generateAgent<S, T extends OriginAgent<S>>(
     get(target: T, p: string & keyof T): any {
       const source = target[p];
       if (typeof source === 'function') {
-        return produceMethod(target, p, proxy);
+        const method = produceMethod(target, p, proxy);
+        method[agentMethodName] = p;
+        return method;
       }
       if (p === agentIdentifyKey) {
         return agentParams.isAgent;

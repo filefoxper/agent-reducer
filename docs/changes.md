@@ -164,3 +164,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.2.2 2022-03-19
 
 * [bug] add the check of if the effect method belongs to the effect model.
+
+# 4.2.3 2022-03-19
+
+* [bug] repair the problem about API addEffect, when pass the method from `agent`, it warns method is invalidate.
