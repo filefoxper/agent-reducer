@@ -11,12 +11,13 @@ import {
   MethodCaller,
 } from './global.type';
 import {
+  agentCallingEffectTargetKey,
   agentCallingMiddleWareKey,
   agentDependenciesKey,
   agentIdentifyKey, agentMethodName,
   agentSharingMiddleWareKey,
 } from './defines';
-import { createProxy } from './util';
+import { createProxy, validate } from './util';
 import { AgentDependencies } from './agent.type';
 
 import { applyMiddleWares, defaultMiddleWare } from './applies';
@@ -249,6 +250,9 @@ export function generateAgent<S, T extends OriginAgent<S>>(
   const proxy: T = createProxy(entry, {
     get(target: T, p: string & keyof T): any {
       const source = target[p];
+      if (typeof source === 'function' && source[agentCallingEffectTargetKey]) {
+        validate(false, 'The effect method can not be used as an action method');
+      }
       if (typeof source === 'function') {
         const method = produceMethod(target, p, proxy);
         method[agentMethodName] = p;

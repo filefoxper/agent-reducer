@@ -225,6 +225,14 @@ describe("use decorator effect",()=>{
         disconnect();
     });
 
+    test('the effect method can not be called as an action method',()=>{
+        const model = new InnerCountModel();
+        const {agent,connect,disconnect} = create(model);
+        connect();
+        expect(()=>agent.gtZeroEffect(1,2)).toThrow();
+        disconnect();
+    });
+
 });
 
 describe("use other abilities of effect",()=>{
