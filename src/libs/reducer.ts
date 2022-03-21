@@ -231,7 +231,7 @@ function createMethodEffectBuilder<
     T extends Model<S>= Model<S>
     >(entity:T) {
   return function methodEffectBuilder(effectMethod:EffectMethod<S, T>, args:any[]) {
-    return connect<S, T>(entity).run((ag) => effectMethod.apply(ag, args));
+    return connect<S, T>(entity).run((ag) => { effectMethod.apply(ag, args); });
   };
 }
 

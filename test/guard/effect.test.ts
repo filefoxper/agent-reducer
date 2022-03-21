@@ -1,4 +1,4 @@
-import {addEffect, create} from "../../src";
+import {addEffect, create, effect} from "../../src";
 import {EffectCallback, Model} from "../../src/libs/global.type";
 import {agentEffectsKey} from "../../src/libs/defines";
 
@@ -212,6 +212,74 @@ describe("the trigger time about effect", () => {
         const effectCallback: EffectCallback<number> = jest.fn();
 
         expect(()=>addEffect(effectCallback, model, model.decrease)).toThrow();
+    });
+
+});
+
+describe('async effect',()=>{
+
+    type User = {
+        id:number|null,
+        username:string|null,
+        password:string|null,
+        nick:string,
+        name?:string,
+        sex?:'male'|'female',
+        age?:number
+    };
+
+    class UserModel implements Model<User>{
+
+        state:User = {
+            id:null,
+            username:null,
+            password:null,
+            nick:'guest'
+        };
+
+        login(username:string,password:string):User{
+            return {...this.state,id:null,username,password};
+        }
+
+        private initial(user:Omit<User,'password'>):User{
+            return {...user,password: null};
+        }
+
+        @effect(()=>UserModel.prototype.login)
+        private async fetchUser(){
+            const {username}=this.state;
+            const user:Omit<User,'password'> = await new Promise((resolve)=>setTimeout(()=>{
+                resolve({
+                    id:1,
+                    username,
+                    nick:'nick',
+                    name:'name',
+                    sex:'male'
+                });
+            }));
+            this.initial(user);
+        }
+
+    }
+
+    test('test disconnect before effect starts action',async ()=>{
+        const model = new UserModel();
+        const {agent,connect,disconnect} = create(model);
+        connect();
+        agent.login('user','xxx');
+        disconnect();
+        await new Promise(resolve => setTimeout(resolve));
+        expect(model.state.id).toBe(null);
+    });
+
+    test('test disconnect after effect starts action',async ()=>{
+        const model = new UserModel();
+        const {agent,connect,disconnect} = create(model);
+        connect();
+        agent.login('user','xxx');
+        await new Promise(resolve => setTimeout(resolve));
+        disconnect();
+        expect(model.state.id).toBe(1);
     });
 
 });
