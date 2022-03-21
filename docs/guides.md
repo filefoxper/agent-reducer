@@ -736,6 +736,75 @@ describe("use decorator effect",()=>{
 });
 ```
 
+Note: the effect method can not be called as a agent action method.
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+describe("use decorator effect",()=>{
+
+    class InnerCountModel implements Model<number> {
+
+        state = 0;
+
+        increase() {
+            return this.state + 1;
+        }
+
+        decrease() {
+            return this.state - 1;
+        }
+
+        reset(to?:number) {
+            return to||0;
+        }
+
+        // effect decorator can create and mount a effect
+        // by using the decorated method as a effect callback,
+        // and if there is no param for this decorator,
+        // the effect will pick the model instance of this class as target
+        // for listening.
+        // In a decorator effect callback,
+        // the keyword `this` is a temporary `agent` from model,
+        // created for by model system.
+        // So, you can deploy methods to change state in these effect callbacks.
+        @effect()
+        gtZeroEffect(prevState:number, state:number){
+            if(state<0){
+                // the keyword `this` is a temporary `agent` from model
+                this.reset();
+            }
+        }
+
+        // give a method as effect param,
+        // the decorated method will only be triggered by the param method state changes.
+        @effect(()=>InnerCountModel.prototype.increase)
+        ltFiveEffect(prevState:number, state:number){
+            if(state>4){
+                // the keyword `this` is a temporary `agent` from model
+                this.reset(4);
+            }
+        }
+
+    }
+
+    test('the effect method can not be called as an action method',()=>{
+        const model = new InnerCountModel();
+        const {agent,connect,disconnect} = create(model);
+        connect();
+        expect(()=>agent.gtZeroEffect(1,2)).toThrow();
+        disconnect();
+    });
+
+});
+```
+
 ### Effect destroy
 
 If the effect callback returns a `function`, this `function` is also called destroy function, and it is always called before its effect callback be triggered again. Also, it will be called when the effect is unmounted from model instance.

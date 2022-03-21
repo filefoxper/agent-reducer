@@ -717,6 +717,71 @@ describe("使用 effect decorator API",()=>{
 });
 ```
 
+注意：被 effect 修饰的方法不能通过 agent 获取并被使用者直接调用。
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+describe("使用 effect decorator API",()=>{
+
+    class InnerCountModel implements Model<number> {
+
+        state = 0;
+
+        increase() {
+            return this.state + 1;
+        }
+
+        decrease() {
+            return this.state - 1;
+        }
+
+        reset(to?:number) {
+            return to||0;
+        }
+
+        // effect decorator 函数无入参，
+        // 这相当于监听当前模型实例 state 变更，
+        // 而被 decorate 的当前方法即为副作用回调方法
+        @effect()
+        gtZeroEffect(prevState:number, state:number){
+            if(state<0){
+                // effect decorator 函数会将当前函数绑定在一个临时代理对象上，
+                // 这时通过关键词 `this` 调用的方法可直接修改数据
+                this.reset();
+            }
+            // effect 回调函数本身不具备修改 state 的能力，所以不需要返回 state 数据，
+            // 但如果有需求可以返回 destroy 销毁函数
+        }
+
+        // 当 effect 入参为当前 class 的方法时，
+        // 监听目标为当前入参方法
+        @effect(()=>InnerCountModel.prototype.increase)
+        ltFiveEffect(prevState:number, state:number){
+            if(state>4){
+                this.reset(4);
+            }
+        }
+
+    }
+
+    test('副作用方法不能用作外部调用方法',()=>{
+        const model = new InnerCountModel();
+        const {agent,connect,disconnect} = create(model);
+        connect();
+        expect(()=>agent.gtZeroEffect(1,2)).toThrow();
+        disconnect();
+    });
+
+});
+```
+
 ### 副作用销毁函数
 
 如果在副作用回调函数中返回一个函数，该函数会在副作用再次被触发前调用，以便清理上次副作用处理中产生的内存占用等副效果。我们通常叫这种函数为销毁函数。

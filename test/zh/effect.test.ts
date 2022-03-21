@@ -216,6 +216,14 @@ describe("使用 effect decorator API",()=>{
         disconnect();
     });
 
+    test('副作用方法不能用作外部调用方法',()=>{
+        const model = new InnerCountModel();
+        const {agent,connect,disconnect} = create(model);
+        connect();
+        expect(()=>agent.gtZeroEffect(1,2)).toThrow();
+        disconnect();
+    });
+
 });
 
 describe("使用 effect 的其他能力",()=>{
