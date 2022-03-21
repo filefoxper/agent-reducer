@@ -101,6 +101,9 @@ function createEffect<S=any, T extends Model<S> = Model>(
 }
 
 export function runningNotInitialedModelEffects<S=any, T extends Model<S> = Model>(model:T):void {
+  if (!isConnecting<S, T>(model)) {
+    return;
+  }
   const effects = model[agentEffectsKey] || [];
   const notInitialedModelEffects = effects.filter(
     (effect) => !effect.initialed,

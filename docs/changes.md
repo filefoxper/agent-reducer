@@ -172,3 +172,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.2.4 2022-03-21
 
 * [optimize] add validation about effect method getting from `agent`.
+
+# 4.2.5 2022-03-22
+
+* [bug] repair the problem about when all the connections from agents are disconnected, the method effect may still work, and change state, if it is a asynchronous method. 
