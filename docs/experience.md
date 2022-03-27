@@ -2,11 +2,13 @@
 
 We have add some experience features and APIs. These features and APIs may be changing in future, and we suppose you try them privately not in your production codes.
 
-## Effect decorator (experience)
+## Guides
 
-If you want to add effect inside model, and start it after this model is connected, you can use api [effect](/api?id=effect) to decorate a model method to be a effect callback. If you pass nothing into [effect](/api?id=effect) decorator, it will take current model instance as the listening target. If you pass a callback which returns a method of current model into [effect](/api?id=effect) decorator as a param, it will only listen to the state changes leaded by this specific `method`.
+### Effect decorator (experience)
 
-The method decorated by [effect](/api?id=effect) is bind on an `agent` which is created temporary from current `model instance`. So, if deploy the method from keyword `this` in a effect callback, it will change the model state.
+If you want to add effect inside model, and start it after this model is connected, you can use api [effect](/experience?id=effect-experience) to decorate a model method to be a effect callback. If you pass nothing into [effect](/experience?id=effect-experience) decorator, it will take current model instance as the listening target. If you pass a callback which returns a method of current model into [effect](/experience?id=effect-experience) decorator as a param, it will only listen to the state changes leaded by this specific `method`.
+
+The method decorated by [effect](/experience?id=effect-experience) is bind on an `agent` which is created temporary from current `model instance`. So, if deploy the method from keyword `this` in a effect callback, it will change the model state.
 
 ```typescript
 import {
@@ -152,3 +154,17 @@ describe("use decorator effect",()=>{
 
 });
 ```
+
+## API
+
+### effect (experience)
+
+The `ES6 decorator` usage of [addEffect](/api?id=addeffect). It makes the working instance of current class as effect target. If you want to listen to the state changes from a specific method, you can give it a callback which returns method as param.
+
+```typescript
+export declare function effect<S=any, T extends Model<S>=Model>(
+    method?:()=>(...args:any[])=>any,
+):MethodDecoratorCaller
+```
+
+* method - optional, a callback which returns `Class.prototype.method` as the target method for state change listening.

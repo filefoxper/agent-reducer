@@ -642,17 +642,3 @@ export declare function addEffect<S=any, T extends Model<S> = Model>(
 It returns a `effect` object, which provides `update` and `unmount` methods. The `update` method can be used to update effectCallback, and the `unmount` method can be used to unmount effect manually from model instance.
 
 To check more [details](/guides?id=effect).
-
-## effect
-
-The `ES6 decorator` usage of [addEffect](/api?id=addeffect). It makes the working instance of current class as effect target. If you want to listen to the state changes from a specific method, you can give it a callback which returns method as param.
-
-```typescript
-export declare function effect<S=any, T extends Model<S>=Model>(
-    method?:()=>(...args:any[])=>any,
-):MethodDecoratorCaller
-```
-
-* method - optional, a callback which returns `Class.prototype.method` as the target method for state change listening.
-
-To check more [details](/guides?id=effect-decorator).

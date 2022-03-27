@@ -2,9 +2,10 @@
 
 `agent-reducer@4.2.0` 重新开启了体验版特性与 API。它们可能在后续版本中发生更改，建议在非生产环境中进行试验和使用。
 
-## 副作用 decorator 装饰器用法 (体验)
+## 引导
+### 副作用 decorator 装饰器用法 (体验)
 
-添加副作用的 decorator API 为 [effect](/zh/api?id=effect)。被该 decorator 函数修饰的方法将被作为副作用回调来使用，而副作用监听目标默认为当前模型实例：`effect()`，如传入当前模型方法提供函数，则监听该目标下的指定方法：`effect(()=>Model.prototype.method)`。
+添加副作用的 decorator API 为 [effect](/zh/experience?id=effect-体验)。被该 decorator 函数修饰的方法将被作为副作用回调来使用，而副作用监听目标默认为当前模型实例：`effect()`，如传入当前模型方法提供函数，则监听该目标下的指定方法：`effect(()=>Model.prototype.method)`。
 
 装饰器副作用回调方法会在触发时被绑定到一个临时创建的当前模型代理 agent 对象上。所以该方法中的关键词 `this` 是个代理对象。这方便使用者在回调方法中调用其他方法，从而修改 state 数据。
 
@@ -216,3 +217,18 @@ describe('effect 基本用法', () => {
 
 });
 ```
+
+## API
+### effect (体验)
+
+[addEffect](/zh/api?id=addeffect) API 的 `ES6 decorator` 模式。添加该 decorator 装饰器的模型方法会被当作`副作用回调函数`，监听目标默认为当前模型实例，而 `effect` 入参函数返回的`模型方法`将被当作被监听的目标方法。
+
+```typescript
+export declare function effect<S=any, T extends Model<S>=Model>(
+    method?:()=>(...args:any[])=>any,
+):MethodDecoratorCaller
+```
+
+* method - 可选，返回被监听的目标方法的回调函数，必须为当前模型方法。
+
+查看更多[细节](/zh/guides?id=副作用-decorator-装饰器用法)。
