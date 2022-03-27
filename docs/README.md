@@ -19,5 +19,6 @@ The difference with library like [redux](https://redux.js.org), `agent-reducer` 
 * [Guides](/guides.md)
 * [Feature](/feature.md)
 * [Advanced](/advanced.md)
+* [Experience](/experience.md)
 * [API Reference](/api.md)
 * [Change Logs](/changes.md)

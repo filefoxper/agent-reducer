@@ -19,5 +19,6 @@
 * [引导](/zh/guides.md)
 * [特性](/zh/feature.md)
 * [高级用法](/zh/advanced.md)
+* [体验](/zh/experience.md)
 * [API 文档](/zh/api.md)
 * [更新日志](/zh/changes.md)
