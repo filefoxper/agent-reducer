@@ -178,7 +178,14 @@ export declare function addEffect<S=any, T extends Model<S> = Model>(
 
 export declare function effect<S=any, T extends Model<S>=Model>(
     method?:()=>(...args:any[])=>any,
-):MethodDecoratorCaller
+):MethodDecoratorCaller;
+
+export type ErrorListener = (error:any, methodName:string)=>any;
+
+export declare function subscribeError<S, T extends Model<S>>(
+    model:T,
+    listener:ErrorListener
+):(()=>void)
 
 export class MiddleWares {
   static takeNothing(): MiddleWare;

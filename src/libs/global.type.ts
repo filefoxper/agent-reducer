@@ -12,6 +12,8 @@ import {
   agentRunningEffectsKey,
   agentActionKey,
   agentCallingEffectTargetKey,
+  agentIsEffectMethodAgentKey,
+  agentErrorConnectionKey,
 } from './defines';
 
 export type SharingType = 'hard'|'weak';
@@ -77,6 +79,8 @@ export type EffectWrap<S=any, T extends Model<S>=Model> = {
   update:(nextCallback:EffectCallback<S>)=>void,
 }
 
+export type ErrorListener = (error:any, methodName:string)=>any;
+
 export interface OriginAgent<S = any> {
   state: S;
   [key: string]: any;
@@ -90,7 +94,9 @@ export interface OriginAgent<S = any> {
   [agentCallingMiddleWareKey]?:MiddleWare;
   [agentEffectsKey]?: Effect[],
   [agentRunningEffectsKey]?:Effect[],
-  [agentModelWorking]?:boolean
+  [agentErrorConnectionKey]?:ErrorListener[],
+  [agentModelWorking]?:boolean,
+  [agentIsEffectMethodAgentKey]?:boolean,
 }
 
 export type DecoratorCaller = (target: any, p?: string)=>any;
@@ -102,6 +108,8 @@ export type EffectDecoratorTargetMethod = ()=>((...args:any[])=>any);
 export type EffectDecoratorCallback<S=any, T extends Model<S>=Model> = (
     (...args:any[])=>any
     )&{
+  [agentMethodName]:string,
+  [agentCallingMiddleWareKey]?:MiddleWare,
   [agentCallingEffectTargetKey]?:Array<EffectDecoratorTargetMethod|string>
 };
 
@@ -124,6 +132,7 @@ export type Runtime<T extends Record<string, any>=any> = {
   cache: { [key: string]: any };
   mappedModel:null|T;
   mapModel:(handler:ProxyHandler<T>)=>T;
+  reject:(error:any)=>any
 };
 
 export type StateProcess = <T = any>(result: any) => any;

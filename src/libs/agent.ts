@@ -2,32 +2,34 @@ import {
   Env,
   MiddleWare,
   Runtime,
-  OriginAgent,
   LifecycleMiddleWare,
   LifecycleEnv,
   Action,
   Store,
   SharingMiddleWareMethods,
   MethodCaller,
+  Model,
 } from './global.type';
 import {
   agentCallingEffectTargetKey,
   agentCallingMiddleWareKey,
   agentDependenciesKey,
-  agentIdentifyKey, agentMethodName,
+  agentIdentifyKey,
+  agentIsEffectMethodAgentKey,
+  agentMethodName,
   agentSharingMiddleWareKey,
 } from './defines';
 import { createProxy, validate } from './util';
 import { AgentDependencies } from './agent.type';
-
 import { applyMiddleWares, defaultMiddleWare } from './applies';
+import { hasErrorListener, reject } from './error';
 
 /**
  *  use dependencies to create a dispatch callback
  * @param invokeDependencies
  * @param proxy
  */
-function generateDispatchCall<S, T extends OriginAgent<S>>(
+function generateDispatchCall<S, T extends Model<S>>(
   invokeDependencies: AgentDependencies<S, T>,
   proxy:T,
 ) {
@@ -47,7 +49,7 @@ function generateDispatchCall<S, T extends OriginAgent<S>>(
  * @param invokeDependencies
  * @param proxy
  */
-function createDispatchStateProcess<S, T extends OriginAgent<S>>(
+function createDispatchStateProcess<S, T extends Model<S>>(
   methodName: string,
   invokeDependencies: AgentDependencies<S, T>,
   proxy:T,
@@ -59,7 +61,7 @@ function createDispatchStateProcess<S, T extends OriginAgent<S>>(
   };
 }
 
-function createRuntime<S, T extends OriginAgent<S>>(
+function createRuntime<S, T extends Model<S>>(
   proxy: T,
   invokeDependencies: AgentDependencies<S, T>,
   methodName: string,
@@ -78,6 +80,14 @@ function createRuntime<S, T extends OriginAgent<S>>(
       this.mappedModel = createProxy(entry, handler);
       return this.mappedModel;
     },
+    reject(error:any) {
+      const canCatch = hasErrorListener<S, T>(entry);
+      const isEffectMethodAgent = proxy[agentIsEffectMethodAgentKey];
+      if (isEffectMethodAgent || !canCatch) {
+        throw error;
+      }
+      reject<S, T>(entry, error, methodName);
+    },
   } as Omit<Runtime<T>, 'caller'>;
 }
 
@@ -87,7 +97,7 @@ function createRuntime<S, T extends OriginAgent<S>>(
  * @param invokeDependencies agent running dependencies
  * @param methodName method name
  */
-function createActionRunner<S, T extends OriginAgent<S>>(
+function createActionRunner<S, T extends Model<S>>(
   proxy: T,
   invokeDependencies: AgentDependencies<S, T>,
   methodName: string,
@@ -154,7 +164,7 @@ function createActionRunner<S, T extends OriginAgent<S>>(
 }
 
 // generate the function about how to reproduce a method
-function methodProducer<S, T extends OriginAgent<S>>(
+function methodProducer<S, T extends Model<S>>(
   invokeDependencies: AgentDependencies<S, T>,
   copyInfo?: {
       sourceAgent: T;
@@ -199,7 +209,7 @@ function methodProducer<S, T extends OriginAgent<S>>(
   };
 }
 
-function createAgentDependencies<S, T extends OriginAgent<S>>(
+function createAgentDependencies<S, T extends Model<S>>(
   entry: T,
   store: Store<S>,
   env: Env,
@@ -223,7 +233,7 @@ function createAgentDependencies<S, T extends OriginAgent<S>>(
  * @param middleWare
  * @param copyInfo
  */
-export function generateAgent<S, T extends OriginAgent<S>>(
+export function generateAgent<S, T extends Model<S>>(
   entry: T,
   store: Store<S>,
   env: Env,
@@ -243,6 +253,7 @@ export function generateAgent<S, T extends OriginAgent<S>>(
   const agentParams = {
     invokeDependencies: undefined,
     isAgent: true,
+    isEffectAgent: false,
   };
 
   const produceMethod = methodProducer<S, T>(invokeDependencies, copyInfo);
@@ -264,6 +275,9 @@ export function generateAgent<S, T extends OriginAgent<S>>(
       if (p === agentDependenciesKey) {
         return agentParams.invokeDependencies;
       }
+      if (p === agentIsEffectMethodAgentKey) {
+        return agentParams.isEffectAgent;
+      }
       return entry[p];
     },
     set(target: T, p: string & keyof T, value: any): boolean {
@@ -275,6 +289,8 @@ export function generateAgent<S, T extends OriginAgent<S>>(
         agentParams.invokeDependencies = value;
       } else if (p === agentIdentifyKey) {
         agentParams.isAgent = value;
+      } else if (p === agentIsEffectMethodAgentKey) {
+        agentParams.isEffectAgent = value;
       } else {
         entry[p] = value;
       }
@@ -290,7 +306,7 @@ export function generateAgent<S, T extends OriginAgent<S>>(
   return proxy as T;
 }
 
-function createLifecycleEnv(env:Env, rebuild:()=>any):Env {
+function createLifecycleEnv(env:Env, rebuild?:()=>any):LifecycleEnv {
   let expired = false;
   const cloneEnv: LifecycleEnv = {
     ...env,
@@ -299,10 +315,13 @@ function createLifecycleEnv(env:Env, rebuild:()=>any):Env {
     },
     rebuild: () => {
       expired = true;
+      if (!rebuild) {
+        return;
+      }
       rebuild();
     },
   };
-  return createProxy(cloneEnv, {
+  return createProxy<LifecycleEnv>(cloneEnv, {
     set() {
       return false;
     },
@@ -316,7 +335,7 @@ function createLifecycleEnv(env:Env, rebuild:()=>any):Env {
   });
 }
 
-function createLifecycleAgentBuilder<S, T extends OriginAgent<S>>(
+function createLifecycleAgentBuilder<S, T extends Model<S>>(
   agent: T,
   mdw: MiddleWare | LifecycleMiddleWare,
   copyType: 'copy' | 'decorator',
@@ -345,7 +364,7 @@ function createLifecycleAgentBuilder<S, T extends OriginAgent<S>>(
   };
 }
 
-export function copyWithMiddleWare<S, T extends OriginAgent<S>>(
+export function copyWithMiddleWare<S, T extends Model<S>>(
   agent: T,
   mdw: MiddleWare | LifecycleMiddleWare,
   copyType: 'copy' | 'decorator',
@@ -377,9 +396,36 @@ export function copyWithMiddleWare<S, T extends OriginAgent<S>>(
   });
 }
 
-function decorateWithMiddleWare<S, T extends OriginAgent<S>>(
+function decorateWithMiddleWare<S, T extends Model<S>>(
   agent: T,
   mdw: MiddleWare | LifecycleMiddleWare,
 ): T {
   return copyWithMiddleWare<S, T>(agent, mdw, 'decorator');
+}
+
+export function copyAgentWithEnv<S, T extends Model<S>>(agent:T):[T, LifecycleEnv] {
+  const copyType = 'copy';
+  const invokeDependencies: undefined | AgentDependencies<S, T> = agent[agentDependenciesKey];
+  if (!invokeDependencies) {
+    throw new Error('An agent copy version should be created on an agent object.');
+  }
+
+  const {
+    entry, store, env, middleWare,
+  } = invokeDependencies;
+
+  const cloneEnvProxy = createLifecycleEnv(env);
+  return [
+    generateAgent(
+      entry,
+      store,
+      cloneEnvProxy,
+      middleWare,
+      {
+        sourceAgent: agent,
+        type: copyType,
+      },
+    ),
+    cloneEnvProxy,
+  ];
 }

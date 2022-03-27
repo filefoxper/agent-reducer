@@ -4,6 +4,10 @@ export const agentIdentifyKey = '@@agent-reducer-identify';
 
 export const agentListenerKey = '@@agent-reducer-listeners';
 
+export const agentIsEffectMethodAgentKey = '@@agent-is-effect-method-agent';
+
+export const agentErrorConnectionKey = '@@agent-error-connection';
+
 export const agentCallingMiddleWareKey = '@@agent-reducer-calling-middle-ware';
 
 export const agentCallingEffectTargetKey = '@@agent-reducer-calling-effect-target';

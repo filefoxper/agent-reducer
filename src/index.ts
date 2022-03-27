@@ -29,3 +29,6 @@ export {
 /** effect * */
 
 export { addEffect, effectDecorator as effect } from './libs/effect';
+
+/** error * */
+export { subscribeError } from './libs/error';

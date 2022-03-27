@@ -19,18 +19,21 @@ import {
   agentCallingMiddleWareKey,
   agentModelWorking,
   agentEffectsKey,
-  agentActionKey,
+  agentActionKey, agentIsEffectMethodAgentKey, agentMethodName,
 } from './defines';
 import { createSharingModelConnector } from './connector';
 import { applyMiddleWares, defaultMiddleWare } from './applies';
-import { generateAgent } from './agent';
-import { createInstance, isPromise, warn } from './util';
+import { copyAgentWithEnv, generateAgent } from './agent';
+import {
+  createInstance, isPromise, warn,
+} from './util';
 import {
   addMethodEffects,
   runEffects,
   runningNotInitialedModelEffects,
 } from './effect';
 import { isConnecting, stateUpdatable } from './status';
+import { reject } from './error';
 
 /**
  * Create a reducer function for a standard reducer system.
@@ -231,7 +234,22 @@ function createMethodEffectBuilder<
     T extends Model<S>= Model<S>
     >(entity:T) {
   return function methodEffectBuilder(effectMethod:EffectMethod<S, T>, args:any[]) {
-    return connect<S, T>(entity).run((ag) => { effectMethod.apply(ag, args); });
+    const mdw = effectMethod[agentCallingMiddleWareKey];
+    const mdws = mdw ? [mdw] : [];
+    return connect<S, T>(entity, ...mdws).run((ag) => {
+      const [effectAgent, env] = copyAgentWithEnv<S, T>(ag);
+      effectAgent[agentIsEffectMethodAgentKey] = true;
+      try {
+        const result = effectMethod.apply(effectAgent, args);
+        if (isPromise(result)) {
+          result.then(null, (error) => {
+            reject<S, T>(entity, error, effectMethod[agentMethodName]);
+          });
+        }
+      } catch (e) {
+        reject<S, T>(entity, e, effectMethod[agentMethodName]);
+      }
+    });
   };
 }
 

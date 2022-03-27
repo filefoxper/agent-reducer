@@ -4,6 +4,7 @@ import {
 import {
   agentActionKey,
   agentEffectsKey,
+  agentErrorConnectionKey,
   agentListenerKey,
   agentMethodName,
   agentModelResetKey,
@@ -21,6 +22,7 @@ export function resetModel<
   entity[agentActionKey] = undefined;
   unmountEffects(entity);
   entity[agentEffectsKey] = undefined;
+  entity[agentErrorConnectionKey] = undefined;
 }
 
 function subscribe<
@@ -88,6 +90,9 @@ function initialModel<
     instance[agentModelResetKey] = function reset() {
       resetModel<S, T>(instance);
     };
+  }
+  if (!instance[agentErrorConnectionKey]) {
+    instance[agentErrorConnectionKey] = [];
   }
   instance[agentActionKey] = undefined;
   mountMethod<S, T>(instance);
