@@ -3,6 +3,7 @@
 * [Guides](/guides.md)
 * [Feature](/feature.md)
 * [Advanced](/advanced.md)
+* [Experience](/experience.md)
 * [API Reference](/api.md)
 * [FAQ](/faq.md)
 * [Change Logs](/changes.md)
