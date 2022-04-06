@@ -19,11 +19,17 @@ import {
   agentCallingMiddleWareKey,
   agentModelWorking,
   agentEffectsKey,
-  agentActionKey, agentIsEffectMethodAgentKey, agentMethodName,
+  agentActionKey,
+  agentActMethodAgentLevelKey,
+  agentMethodName,
+  agentConnectorKey,
+  agentMethodActsKey,
+  agentActMethodAgentLaunchHandlerKey,
+  agentIsEffectAgentKey,
 } from './defines';
 import { createSharingModelConnector } from './connector';
 import { applyMiddleWares, defaultMiddleWare } from './applies';
-import { copyAgentWithEnv, generateAgent } from './agent';
+import { copyAgentWithEnv, createActRuntime, generateAgent } from './agent';
 import {
   createInstance, isPromise, warn,
 } from './util';
@@ -33,7 +39,7 @@ import {
   runningNotInitialedModelEffects,
 } from './effect';
 import { isConnecting, stateUpdatable } from './status';
-import { reject } from './error';
+import { defaultFlow } from './flows';
 
 /**
  * Create a reducer function for a standard reducer system.
@@ -234,22 +240,30 @@ function createMethodEffectBuilder<
     T extends Model<S>= Model<S>
     >(entity:T) {
   return function methodEffectBuilder(effectMethod:EffectMethod<S, T>, args:any[]) {
-    const mdw = effectMethod[agentCallingMiddleWareKey];
-    const mdws = mdw ? [mdw] : [];
-    return connect<S, T>(entity, ...mdws).run((ag) => {
-      const [effectAgent, env] = copyAgentWithEnv<S, T>(ag);
-      effectAgent[agentIsEffectMethodAgentKey] = true;
+    return connect<S, T>(entity).run((ag, disconnect) => {
+      const [effectAgent] = copyAgentWithEnv<S, T>(ag);
+      const methodName = effectMethod[agentMethodName];
+      effectAgent[agentActMethodAgentLevelKey] = 1;
+      effectAgent[agentIsEffectAgentKey] = true;
+      const runtime = createActRuntime<S, T>(effectAgent, entity, methodName);
+      const actor = effectMethod[agentMethodActsKey] || defaultFlow;
+      const launchHandler = actor(runtime);
+      const { shouldLaunch, didLaunch, reLaunch } = launchHandler;
+      effectAgent[agentActMethodAgentLaunchHandlerKey] = launchHandler;
+      disconnect();
+      if (typeof shouldLaunch === 'function' && !shouldLaunch()) {
+        return;
+      }
+      const runMethod = typeof reLaunch === 'function' ? reLaunch(effectMethod.bind(effectAgent)) : effectMethod;
       try {
-        const result = effectMethod.apply(effectAgent, args);
-        if (isPromise(result)) {
-          result.then(null, (error) => {
-            reject<S, T>(entity, error, effectMethod[agentMethodName]);
-          });
+        const result = runMethod.apply(effectAgent, args);
+        if (typeof didLaunch === 'function') {
+          didLaunch(result);
         }
       } catch (e) {
-        reject<S, T>(entity, e, effectMethod[agentMethodName]);
+        runtime.reject(e);
       }
-    });
+    }, false);
   };
 }
 
@@ -262,6 +276,10 @@ function useConnection<
     mdw: (MiddleWare & { lifecycle?: boolean }),
   ): AgentReducer<S, T> {
     const entity = createAgentInstance<S, T>(model);
+
+    if (typeof entity[agentConnectorKey] !== 'function') {
+      entity[agentConnectorKey] = connect;
+    }
 
     const finalMiddleWare = pickMiddleWare<S, T>(entity, mdw);
 
@@ -352,12 +370,16 @@ export function connect<
   const reducer = create<S, T>(model, ...middleWares);
   const { agent, disconnect } = reducer;
   return {
-    run<R>(callback:(ag:T)=>any):R {
+    run<R>(callback:(ag:T, disconnect:()=>any)=>any, autoDisconnect = true):R {
       reducer.connect();
-      const result = callback(agent);
+      const result = callback(agent, disconnect);
+      if (!autoDisconnect) {
+        return result;
+      }
       if (isPromise(result)) {
-        result.finally(() => {
+        result.then(disconnect, (e) => {
           disconnect();
+          return Promise.reject(e);
         });
       } else {
         disconnect();

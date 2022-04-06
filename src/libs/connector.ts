@@ -6,7 +6,7 @@ import {
   agentEffectsKey,
   agentErrorConnectionKey,
   agentListenerKey,
-  agentMethodName,
+  agentMethodName, agentModelMethodsCacheKey,
   agentModelResetKey,
   agentSharingMiddleWareKey,
   agentSharingTypeKey, DefaultActionType,
@@ -20,6 +20,7 @@ export function resetModel<
     >(entity:T):void {
   entity[agentSharingMiddleWareKey] = undefined;
   entity[agentActionKey] = undefined;
+  entity[agentModelMethodsCacheKey] = undefined;
   unmountEffects(entity);
   entity[agentEffectsKey] = undefined;
   entity[agentErrorConnectionKey] = undefined;
@@ -94,7 +95,9 @@ function initialModel<
   if (!instance[agentErrorConnectionKey]) {
     instance[agentErrorConnectionKey] = [];
   }
-  instance[agentActionKey] = undefined;
+  if (!instance[agentModelMethodsCacheKey]) {
+    instance[agentModelMethodsCacheKey] = {};
+  }
   mountMethod<S, T>(instance);
 }
 

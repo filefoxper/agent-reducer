@@ -184,3 +184,8 @@
 # 4.2.5 2022-03-22
 
 * [bug] 修复异步副作用方法在所有代理断连后，依然可以修改 state 的问题。
+
+# 4.3.0 2022-04-06
+
+* [design] 添加 [flow](/zh/experience?id=工作流-体验) 和 [effect decorator](/zh/experience?id=副作用-decorator-装饰器用法-体验).
+* [design] 添加 experience 体验模式，设置 `process.env.AGENT_REDUCER_EXPERIENCE` 为 `OPEN`, 可体验最新特性和 API. 

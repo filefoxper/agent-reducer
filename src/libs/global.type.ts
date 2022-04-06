@@ -12,8 +12,12 @@ import {
   agentRunningEffectsKey,
   agentActionKey,
   agentCallingEffectTargetKey,
-  agentIsEffectMethodAgentKey,
+  agentActMethodAgentLevelKey,
   agentErrorConnectionKey,
+  agentConnectorKey,
+  agentMethodActsKey,
+  agentActMethodAgentLaunchHandlerKey,
+  agentIsEffectAgentKey, agentModelMethodsCacheKey,
 } from './defines';
 
 export type SharingType = 'hard'|'weak';
@@ -62,8 +66,6 @@ export type EffectCallback<S=any, T extends Model<S>=Model> = (
     methodName:string|null,
 )=>void|(()=>void);
 
-export type EffectTarget<S=any, T extends Model<S>=Model> = (ModelInstanceMethod<S, T>)|T;
-
 export type Effect<S=any, T extends Model<S>=Model> = {
   callback: EffectCallback<S>,
   destroy:null|(()=>void)
@@ -81,6 +83,16 @@ export type EffectWrap<S=any, T extends Model<S>=Model> = {
 
 export type ErrorListener = (error:any, methodName:string)=>any;
 
+export type Connector<
+    S=any,
+    T extends Model<S> = Model<S>
+    > =(
+        model: T | { new (): T },
+...middleWares: (MiddleWare & { lifecycle?: boolean })[]
+)=>{
+  run:<R>(callback:(agent:T, disconnect:()=>any)=>any, autoDisconnect?:boolean)=>R
+};
+
 export interface OriginAgent<S = any> {
   state: S;
   [key: string]: any;
@@ -96,19 +108,24 @@ export interface OriginAgent<S = any> {
   [agentRunningEffectsKey]?:Effect[],
   [agentErrorConnectionKey]?:ErrorListener[],
   [agentModelWorking]?:boolean,
-  [agentIsEffectMethodAgentKey]?:boolean,
+  [agentActMethodAgentLevelKey]?:number,
+  [agentActMethodAgentLaunchHandlerKey]?:LaunchHandler,
+  [agentIsEffectAgentKey]?:boolean,
+  [agentModelMethodsCacheKey]?:Record<string, any>;
+  [agentConnectorKey]?:Connector,
 }
 
 export type DecoratorCaller = (target: any, p?: string)=>any;
 
 export type MethodDecoratorCaller = (target: any, p: string)=>any;
 
-export type EffectDecoratorTargetMethod = ()=>((...args:any[])=>any);
+export type EffectDecoratorTargetMethod = ()=>((...args:any[])=>any)|(((...args:any[])=>any)[]);
 
 export type EffectDecoratorCallback<S=any, T extends Model<S>=Model> = (
     (...args:any[])=>any
     )&{
   [agentMethodName]:string,
+  [agentMethodActsKey]?:WorkFlow,
   [agentCallingMiddleWareKey]?:MiddleWare,
   [agentCallingEffectTargetKey]?:Array<EffectDecoratorTargetMethod|string>
 };
@@ -123,8 +140,23 @@ export interface Env {
 
 export type ComposeCaller = (p: any) => any;
 
+export type FlowRuntime = {
+  cache:Record<string, any>,
+  resolve:(result:any)=>any;
+  reject:(error:any)=>any
+};
+
+export type LaunchHandler = {
+  shouldLaunch?:()=>boolean,
+  shouldUpdate?:()=>boolean,
+  didLaunch?:(result:any)=>any,
+  reLaunch?:(method:(...args:any[])=>any)=>((...args:any[])=>any);
+}
+
+export type WorkFlow = (runtime:FlowRuntime)=>LaunchHandler;
+
 export type Runtime<T extends Record<string, any>=any> = {
-  methodName: string|number;
+  methodName: string;
   args?: any[];
   agent: T;
   model: T;
@@ -132,7 +164,6 @@ export type Runtime<T extends Record<string, any>=any> = {
   cache: { [key: string]: any };
   mappedModel:null|T;
   mapModel:(handler:ProxyHandler<T>)=>T;
-  reject:(error:any)=>any
 };
 
 export type StateProcess = <T = any>(result: any) => any;

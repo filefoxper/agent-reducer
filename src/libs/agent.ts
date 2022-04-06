@@ -8,21 +8,25 @@ import {
   Store,
   SharingMiddleWareMethods,
   MethodCaller,
-  Model,
+  Model, Connector, FlowRuntime, WorkFlow,
 } from './global.type';
 import {
   agentCallingEffectTargetKey,
-  agentCallingMiddleWareKey,
+  agentCallingMiddleWareKey, agentConnectorKey,
   agentDependenciesKey,
   agentIdentifyKey,
-  agentIsEffectMethodAgentKey,
+  agentMethodActsKey,
+  agentActMethodAgentLevelKey,
   agentMethodName,
   agentSharingMiddleWareKey,
+  agentActMethodAgentLaunchHandlerKey,
+  agentModelMethodsCacheKey,
 } from './defines';
 import { createProxy, validate } from './util';
 import { AgentDependencies } from './agent.type';
 import { applyMiddleWares, defaultMiddleWare } from './applies';
 import { hasErrorListener, reject } from './error';
+import { defaultFlow } from './flows';
 
 /**
  *  use dependencies to create a dispatch callback
@@ -56,6 +60,10 @@ function createDispatchStateProcess<S, T extends Model<S>>(
 ) {
   const dispatchCall = generateDispatchCall(invokeDependencies, proxy);
   return function finalStateProcess<NS = S>(nextState: NS): NS {
+    const launchHandler = proxy[agentActMethodAgentLaunchHandlerKey];
+    if (launchHandler && typeof launchHandler.shouldUpdate === 'function' && !launchHandler.shouldUpdate()) {
+      return nextState;
+    }
     dispatchCall({ type: methodName, state: nextState });
     return nextState;
   };
@@ -79,14 +87,6 @@ function createRuntime<S, T extends Model<S>>(
     mapModel(handler:ProxyHandler<T>) {
       this.mappedModel = createProxy(entry, handler);
       return this.mappedModel;
-    },
-    reject(error:any) {
-      const canCatch = hasErrorListener<S, T>(entry);
-      const isEffectMethodAgent = proxy[agentIsEffectMethodAgentKey];
-      if (isEffectMethodAgent || !canCatch) {
-        throw error;
-      }
-      reject<S, T>(entry, error, methodName);
     },
   } as Omit<Runtime<T>, 'caller'>;
 }
@@ -225,6 +225,85 @@ function createAgentDependencies<S, T extends Model<S>>(
   };
 }
 
+export function createActRuntime<S, T extends Model<S>>(
+  proxy:T,
+  entry: T,
+  methodName:string,
+):FlowRuntime {
+  const modelCache = entry[agentModelMethodsCacheKey] || {};
+  const methodCache = modelCache[methodName] || {};
+  modelCache[methodName] = methodCache;
+  return {
+    cache: methodCache,
+    resolve(result) {
+      return result;
+    },
+    reject(error:any) {
+      const canReject = hasErrorListener<S, T>(entry);
+      const level = proxy[agentActMethodAgentLevelKey];
+      if ((!level || level < 2) && canReject) {
+        reject<S, T>(entry, error, methodName);
+        return;
+      }
+      throw error;
+    },
+  };
+}
+
+function buildActionMethod<S, T extends Model<S>>(
+  proxy:T,
+  methodName:string,
+  mdw:MiddleWare,
+  invokeDependencies: AgentDependencies<S, T>,
+) {
+  const {
+    functionCache, entry,
+  } = invokeDependencies;
+  const cacheCaller = functionCache[methodName];
+  if (typeof cacheCaller === 'function') {
+    return cacheCaller;
+  }
+  const modelMethod = entry[methodName] as ((...a: any[]) => any)&{[agentMethodActsKey]?:WorkFlow};
+  // cache runtime by methodName
+  // cache[methodName] = cache[methodName] || createRuntime(proxy, invokeDependencies, methodName);
+  const sourceMethodDescriptors = Object.getOwnPropertyDescriptors(modelMethod);
+  const callableMethod = function effectMethod(...args:any[]):any {
+    const connector = entry[agentConnectorKey] as Connector;
+    validate(typeof connector === 'function', 'Can not find connector in model instance');
+    const sourceLevel = proxy[agentActMethodAgentLevelKey];
+    if (sourceLevel) {
+      return modelMethod.apply(proxy, args);
+    }
+    return connector(entry).run((ag, disconnect) => {
+      const [self] = copyAgentWithEnv(ag);
+      const runtime = createActRuntime(self, entry, methodName);
+      self[agentActMethodAgentLevelKey] = 1;
+      const actor = modelMethod[agentMethodActsKey] || defaultFlow;
+      const launchHandler = actor(runtime);
+      const { shouldLaunch, didLaunch, reLaunch } = launchHandler;
+      self[agentActMethodAgentLaunchHandlerKey] = launchHandler;
+      disconnect();
+      if (typeof shouldLaunch === 'function' && !shouldLaunch()) {
+        return undefined;
+      }
+      const runMethod = typeof reLaunch === 'function' ? reLaunch(modelMethod.bind(self)) : modelMethod;
+      try {
+        const result = runMethod.apply(self, args);
+        if (typeof didLaunch === 'function') {
+          return didLaunch(result);
+        }
+        return result;
+      } catch (e) {
+        runtime.reject(e);
+        return undefined;
+      }
+    }, false);
+  };
+  Object.defineProperties(callableMethod, { ...sourceMethodDescriptors });
+  functionCache[methodName] = callableMethod;
+  return callableMethod;
+}
+
 /**
  *  create a agent object from entry
  * @param entry
@@ -253,7 +332,8 @@ export function generateAgent<S, T extends Model<S>>(
   const agentParams = {
     invokeDependencies: undefined,
     isAgent: true,
-    isEffectAgent: false,
+    actAgentLevel: undefined,
+    actAgentLaunchHandler: undefined,
   };
 
   const produceMethod = methodProducer<S, T>(invokeDependencies, copyInfo);
@@ -263,6 +343,12 @@ export function generateAgent<S, T extends Model<S>>(
       const source = target[p];
       if (typeof source === 'function' && source[agentCallingEffectTargetKey]) {
         validate(false, 'The effect method can not be used as an action method');
+      }
+      if (
+        typeof source === 'function'
+          && source[agentMethodActsKey]
+      ) {
+        return buildActionMethod(proxy, p, middleWare, invokeDependencies);
       }
       if (typeof source === 'function') {
         const method = produceMethod(target, p, proxy);
@@ -275,8 +361,11 @@ export function generateAgent<S, T extends Model<S>>(
       if (p === agentDependenciesKey) {
         return agentParams.invokeDependencies;
       }
-      if (p === agentIsEffectMethodAgentKey) {
-        return agentParams.isEffectAgent;
+      if (p === agentActMethodAgentLevelKey) {
+        return agentParams.actAgentLevel;
+      }
+      if (p === agentActMethodAgentLaunchHandlerKey) {
+        return agentParams.actAgentLaunchHandler;
       }
       return entry[p];
     },
@@ -289,8 +378,10 @@ export function generateAgent<S, T extends Model<S>>(
         agentParams.invokeDependencies = value;
       } else if (p === agentIdentifyKey) {
         agentParams.isAgent = value;
-      } else if (p === agentIsEffectMethodAgentKey) {
-        agentParams.isEffectAgent = value;
+      } else if (p === agentActMethodAgentLevelKey) {
+        agentParams.actAgentLevel = value;
+      } else if (p === agentActMethodAgentLaunchHandlerKey) {
+        agentParams.actAgentLaunchHandler = value;
       } else {
         entry[p] = value;
       }
@@ -404,7 +495,6 @@ function decorateWithMiddleWare<S, T extends Model<S>>(
 }
 
 export function copyAgentWithEnv<S, T extends Model<S>>(agent:T):[T, LifecycleEnv] {
-  const copyType = 'copy';
   const invokeDependencies: undefined | AgentDependencies<S, T> = agent[agentDependenciesKey];
   if (!invokeDependencies) {
     throw new Error('An agent copy version should be created on an agent object.');
@@ -421,11 +511,16 @@ export function copyAgentWithEnv<S, T extends Model<S>>(agent:T):[T, LifecycleEn
       store,
       cloneEnvProxy,
       middleWare,
-      {
-        sourceAgent: agent,
-        type: copyType,
-      },
     ),
     cloneEnvProxy,
   ];
+}
+
+export function extractModelInstance<S, T extends Model<S>>(agent:T):T|null {
+  const invokeDependencies: undefined | AgentDependencies<S, T> = agent[agentDependenciesKey];
+  if (!invokeDependencies) {
+    return null;
+  }
+  const { entry } = invokeDependencies;
+  return entry;
 }

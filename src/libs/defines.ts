@@ -4,7 +4,11 @@ export const agentIdentifyKey = '@@agent-reducer-identify';
 
 export const agentListenerKey = '@@agent-reducer-listeners';
 
-export const agentIsEffectMethodAgentKey = '@@agent-is-effect-method-agent';
+export const agentIsEffectAgentKey = '@@agent-is-effect-agent';
+
+export const agentActMethodAgentLevelKey = '@@agent-act-method-agent-level';
+
+export const agentActMethodAgentLaunchHandlerKey = '@@agent-act-method-agent-launch-handler';
 
 export const agentErrorConnectionKey = '@@agent-error-connection';
 
@@ -27,6 +31,12 @@ export const agentEffectsKey = '@@agent-effects';
 export const agentRunningEffectsKey = '@@agent-running-effects';
 
 export const agentModelWorking = '@@agent-model-working';
+
+export const agentMethodActsKey = '@@agent-method-acts';
+
+export const agentConnectorKey = '@@agent-connector';
+
+export const agentModelMethodsCacheKey = '@@agent-model-methods-cache';
 
 export enum DefaultActionType {
   DX_INITIAL_STATE = '@@AGENT_REDUCER_INITIAL_STATE',

@@ -1,5 +1,7 @@
 import {Model} from "../../index";
-import {create, effect, middleWare, MiddleWarePresets} from "../../src";
+import {create, effect, experience, middleWare, MiddleWarePresets} from "../../src";
+
+experience();
 
 describe('guard middleWarePresets', () => {
 

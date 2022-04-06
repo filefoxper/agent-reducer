@@ -185,7 +185,42 @@ export type ErrorListener = (error:any, methodName:string)=>any;
 export declare function subscribeError<S, T extends Model<S>>(
     model:T,
     listener:ErrorListener
-):(()=>void)
+):(()=>void);
+
+export declare function experience():void;
+
+export type LaunchHandler = {
+    shouldLaunch?:()=>boolean,
+    shouldUpdate?:()=>boolean,
+    didLaunch?:(result:any)=>any,
+    reLaunch?:(method:(...args:any[])=>any)=>((...args:any[])=>any);
+}
+
+export type FlowRuntime = {
+    cache:Record<string, any>,
+    resolve:(result:any)=>any;
+    reject:(error:any)=>any
+};
+
+export type WorkFlow = (runtime:FlowRuntime)=>LaunchHandler;
+
+declare type FlowFn =((...flows:WorkFlow[])=>MethodDecoratorCaller)&{
+    on:<S, T extends Model<S>>(target:T)=>T,
+    error:<
+        S=any,
+        T extends Model<S>=Model<S>
+        >(model:T, listener:ErrorListener)=>(()=>void)
+}
+
+export declare const flow:FlowFn;
+
+export class Flows {
+  static promise():WorkFlow;
+
+  static latest():WorkFlow;
+
+  static debounce(ms:number, leading?:boolean):WorkFlow;
+}
 
 export class MiddleWares {
   static takeNothing(): MiddleWare;

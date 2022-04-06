@@ -101,3 +101,9 @@ export function warn(error:Error):void {
     throw error;
   } catch (e) {} // eslint-disable-line no-empty
 }
+
+export function unblockThrow(error:unknown):void {
+  setTimeout(():void => {
+    throw error;
+  });
+}

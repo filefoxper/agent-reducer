@@ -515,7 +515,7 @@ describe('effect 基本用法', () => {
 
 ### 方法副作用
 
-如果想要监听单个代理方法产生的 state 变更副作用，可以使用 `addEffect(callback, model, method)` 。这时，副作用为方法副作用，当且仅当该方法被调用，并引起了 state 变更才会触发当前副作用回调函数。
+如果想要监听单个代理方法产生的 state 变更副作用，可以使用 `addEffect(callback, model, method)` 。这时，副作用为方法副作用，当且仅当该方法被调用，并引起了 state 变更才会触发当前副作用回调函数。当参数 `method` 为 `*` 时，该副作用监听所有方法。
 
 ```typescript
 import {
@@ -636,6 +636,80 @@ describe('effect 基本用法', () => {
         expect(effectCallback).toBeCalledTimes(4);
         expect(decreaseEffectCallback).toBeCalledTimes(1);
         disconnect();
+    });
+
+});
+```
+
+### 副作用销毁函数
+
+如果在副作用回调函数中返回一个函数，该函数会在副作用再次被触发前调用，以便清理上次副作用处理中产生的内存占用等副效果。我们通常叫这种函数为销毁函数。
+
+```typescript
+import {
+    EffectCallback, 
+    Model, 
+    addEffect, 
+    create, 
+    effect
+} from "agent-reducer";
+
+class CountModel implements Model<number> {
+
+    state = 0;
+
+    increase() {
+        return this.state + 1;
+    }
+
+    decrease() {
+        return this.state - 1;
+    }
+
+    reset() {
+        return 0;
+    }
+
+}
+
+describe('effect 基本用法', () => {
+
+    test('副作用回调函数可返回一个销毁函数，该销毁函数会在副作用回调函数再次被调用前或副作用被卸载时被调用',()=>{
+        const model = new CountModel();
+        const {agent, connect, disconnect} = create(model);
+        connect();
+
+        const destroy = jest.fn();
+
+        const effectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
+            if(state<0){
+                agent.reset();
+            }
+            // 副作用回调函数返回一个销毁函数,
+            // t该销毁函数会在副作用回调函数再次被调用前或副作用被卸载时被调用
+            return destroy;
+        });
+
+        addEffect(effectCallback, model, model.decrease);
+
+        // 第一次触发副作用时并不会运行销毁函数
+        agent.decrease();
+        expect(agent.state).toBe(0);
+
+        expect(effectCallback).toBeCalledTimes(1);
+        expect(destroy).toBeCalledTimes(0);
+
+        // 再次触发副作用前，运行销毁函数
+        agent.decrease();
+        expect(agent.state).toBe(0);
+
+        expect(effectCallback).toBeCalledTimes(2);
+        expect(destroy).toBeCalledTimes(1);
+
+        // 当前 disconnect 导致模型的所有代理链接全被销毁，
+        // 这时系统会强行卸载当前模型的所有副作用，并再次触发销毁函数
+        disconnect();
+        expect(destroy).toBeCalledTimes(2);
     });
 
 });

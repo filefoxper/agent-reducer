@@ -33,9 +33,7 @@ export default class MiddleWares {
           if (!isPromise(result)) {
             return next(result);
           }
-          return result.then((data: any) => next(data), (error) => {
-            runtime.reject(error);
-          });
+          return result.then((data: any) => next(data));
         };
       };
     };
