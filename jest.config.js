@@ -16,7 +16,5 @@ module.exports = {
         '@/(.*)': '<rootDir>/src/$1',
         '@test/(.*)': '<rootDir>/test/$1'
     },
-    bail: 1,
-    noStackTrace: true,
     collectCoverage: true,
 };

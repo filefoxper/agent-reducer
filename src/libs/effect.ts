@@ -15,17 +15,20 @@ import {
   agentEffectsKey,
   agentMethodName,
   agentModelWorking,
-  effectModelTargetPlacement,
 } from './defines';
-import { validate, warn } from './util';
+import { unblockThrow, validate, warn } from './util';
 import { isConnecting } from './status';
+import { validateExperience } from './experience';
 
 function extractValidateMethodName<S=any, T extends Model<S> = Model>(
   model:T,
-  target?:keyof T|ModelInstanceMethod<S, T>,
+  target?:keyof T|ModelInstanceMethod<S, T>|'*',
 ):string|null {
   if (!target) {
     return null;
+  }
+  if (target === '*') {
+    return target as string;
   }
   if (typeof target === 'function') {
     const method = target as ModelInstanceMethod<S, T>;
@@ -61,7 +64,7 @@ function createEffect<S=any, T extends Model<S> = Model>(
     unmount?:()=>void
   } = {
     callback,
-    methodName,
+    methodName: methodName === '*' ? null : methodName,
     initialed: false,
     destroy: null,
   };
@@ -75,7 +78,7 @@ function createEffect<S=any, T extends Model<S> = Model>(
       const destroy = callback(state, state, null);
       effect.destroy = typeof destroy === 'function' ? destroy : null;
     } catch (e) {
-      warn(e);
+      unblockThrow(e);
     }
   };
   effect.update = function update(nextCallback:EffectCallback<S>) {
@@ -93,7 +96,7 @@ function createEffect<S=any, T extends Model<S> = Model>(
       try {
         destroy();
       } catch (e) {
-        warn(e);
+        unblockThrow(e);
       }
     }
   };
@@ -116,7 +119,7 @@ export function runningNotInitialedModelEffects<S=any, T extends Model<S> = Mode
 export function addEffect<S=any, T extends Model<S> = Model>(
   callback:EffectCallback<S>,
   model:T,
-  method?:keyof T|ModelInstanceMethod<S, T>,
+  method?:keyof T|ModelInstanceMethod<S, T>|'*',
 ):EffectWrap {
   validate(isConnecting<S, T>(model), 'The target model is unconnected');
   const methodName = extractValidateMethodName(model, method);
@@ -159,7 +162,7 @@ export function runEffects<S=any, T extends Model<S> = Model>(
     try {
       destroy();
     } catch (e) {
-      warn(e);
+      unblockThrow(e);
     }
   }
   function runEffect(ac:Action, ef:Effect) {
@@ -172,7 +175,7 @@ export function runEffects<S=any, T extends Model<S> = Model>(
       const destroy = callback(prevState, state, type);
       ef.destroy = typeof destroy === 'function' ? destroy : null;
     } catch (e) {
-      warn(e);
+      unblockThrow(e);
     }
   }
   if (!isConnecting<S, T>(model)) {
@@ -189,15 +192,32 @@ export function unmountEffects<S=any, T extends Model<S> = Model>(model:T):void 
   });
 }
 
+function checkEffectDecoratorParams<S=any, T extends Model<S>=Model>(
+  target:T,
+  p?:string,
+  method?:(()=>((...args:any[])=>any)|(((...args:any[])=>any)[]))|'*',
+):void {
+  validate(typeof p === 'string', 'this decorator can not be used on class');
+  validate(
+    method === '*' || typeof method === 'function',
+    'the param of decorator is invalidate',
+  );
+}
+
 export function effectDecorator<S=any, T extends Model<S>=Model>(
-  method?:(()=>((...args:any[])=>any)),
+  method:(()=>((...args:any[])=>any)|(((...args:any[])=>any)[]))|'*',
 ):MethodDecoratorCaller {
+  validateExperience();
   return function effectTo(target:T, p:string) {
+    checkEffectDecoratorParams<S, T>(target, p, method);
     const call:EffectDecoratorCallback<S, T> = target[p];
-    const param = typeof method === 'function' ? method : effectModelTargetPlacement;
+    const param = method;
     const callEffectTargets = call[agentCallingEffectTargetKey] || [];
-    callEffectTargets.push(param);
-    const targetSet = new Set(callEffectTargets);
+    const nextCallEffectTargets = [...callEffectTargets, param];
+    const hasInvalidation = nextCallEffectTargets.length > 1
+        && nextCallEffectTargets.some((t) => typeof t === 'string');
+    validate(!hasInvalidation, 'the effect method can not both listen to: `*` or `methods`');
+    const targetSet = new Set(nextCallEffectTargets);
     call[agentCallingEffectTargetKey] = [...targetSet.values()];
     return call;
   };
@@ -206,17 +226,45 @@ export function effectDecorator<S=any, T extends Model<S>=Model>(
 function extractEffectTargetFromMethod<
     S,
     T extends Model<S> = Model<S>
-    >(entity:T, method:EffectMethod):null|Array<(T|EffectDecoratorTargetMethod)> {
+    >(entity:T, method:EffectMethod):null|Array<(EffectDecoratorTargetMethod)|T|string> {
   const effectTarget = method[agentCallingEffectTargetKey];
   if (!Array.isArray(effectTarget) || !effectTarget.length) {
     return null;
   }
-  return effectTarget.map((target) => {
-    if (target === effectModelTargetPlacement) {
-      return entity as T;
-    }
-    return target as EffectDecoratorTargetMethod;
-  });
+  const methodTargets = effectTarget.filter((target) => typeof target === 'function');
+  if (methodTargets.length) {
+    return methodTargets;
+  }
+  const [data] = effectTarget;
+  if (data === '*') {
+    return [entity];
+  }
+  return null;
+}
+
+function checkEffectMethod<
+    S,
+    T extends Model<S> = Model<S>
+    >(entity:T, method:(...args:any[])=>any):boolean {
+  const mayValidateMethod = (method as ((...args:any[])=>any)&{[agentMethodName]:string});
+  const methodName = mayValidateMethod[agentMethodName];
+  return !!(methodName && entity[methodName]);
+}
+
+function recomposeMethods<
+    S,
+    T extends Model<S> = Model<S>
+    >(
+  entity:T,
+  targetMethods:((...args:any[])=>any)|((...args:any[])=>any)[],
+):((...args:any[])=>any)[] {
+  if (typeof targetMethods === 'function' && checkEffectMethod<S, T>(entity, targetMethods)) {
+    return [targetMethods];
+  }
+  if (Array.isArray(targetMethods)) {
+    return targetMethods.filter((call) => checkEffectMethod<S, T>(entity, call));
+  }
+  return [];
 }
 
 export function addMethodEffects<
@@ -236,10 +284,17 @@ export function addMethodEffects<
     }
     targets.forEach((target) => {
       if (typeof target === 'function') {
-        addEffect((...args) => methodEffectBuilder(value, args), entity, target());
+        const targetMethods = target();
+        const targetMethodArray = recomposeMethods<S, T>(entity, targetMethods);
+        targetMethodArray.forEach((targetMethod) => {
+          addEffect((...args) => methodEffectBuilder(value, args), entity, targetMethod);
+        });
         return;
       }
-      addEffect((...args) => methodEffectBuilder(value, args), entity);
+      if (typeof target === 'string') {
+        return;
+      }
+      addEffect((...args) => methodEffectBuilder(value, args), entity, '*');
     });
   });
 }

@@ -631,13 +631,13 @@ Listen the model state change, and do something to complete work.
 export declare function addEffect<S=any, T extends Model<S> = Model>(
     effectCallback:EffectCallback<S>,
     target:T,
-    method?:keyof T|((...args:any[])=>any),
+    method?:keyof T|((...args:any[])=>any)|'*',
 ):EffectWrap<S, T>;
 ```
 
 * effectCallback - the function to process the effect of state change, the function returns void or a destroy function which is always called before the effectCallback works again or when the effect is unmounted.
 * target - a model instance or agent as a listening target.
-* method - optional, if you want filter the state change from specific method, you can add it.
+* method - optional, if you want filter the state change from specific method, you can add it. When this param is `*`, it means the effect listen to all the method state changes. 
 
 It returns a `effect` object, which provides `update` and `unmount` methods. The `update` method can be used to update effectCallback, and the `unmount` method can be used to unmount effect manually from model instance.
 

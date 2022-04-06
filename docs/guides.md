@@ -527,7 +527,7 @@ describe('the basic usage about effect', () => {
 
 ### Method effect
 
-If you want to listen to state changes leaded by specific `method`, you can add `callback`, `model`, `method` as params into API `addEffect`, like: `addEffect(callback, model, method)`. Then only the state changes leaded by this specific `method` can trigger `effect callback`.
+If you want to listen to state changes leaded by specific `method`, you can add `callback`, `model`, `method` as params into API `addEffect`, like: `addEffect(callback, model, method)`. Then only the state changes leaded by this specific `method` can trigger `effect callback`. When the param `method` is `*`, the effect listen to all the method state changes.
 
 Listen on the state changes leaded by this specific `method` (method effect):
 

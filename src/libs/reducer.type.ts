@@ -18,5 +18,5 @@ export type AgentReducer<
     > = Reducer<S, Action> & ReducerPadding<S, T>;
 
 export type AgentRunner<T> = {
-  run:<R>(callback:(agent:T)=>any)=>R
+  run:<R>(callback:(agent:T, disconnect:()=>any)=>any, autoDisconnect?:boolean)=>R
 };

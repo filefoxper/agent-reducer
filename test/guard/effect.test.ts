@@ -1,6 +1,8 @@
-import {addEffect, create, effect} from "../../src";
+import {addEffect, create, effect, experience} from "../../src";
 import {EffectCallback, Model} from "../../src/libs/global.type";
 import {agentEffectsKey} from "../../src/libs/defines";
+
+experience();
 
 class CountModel implements Model<number> {
 
@@ -51,64 +53,64 @@ describe("guard effect",()=>{
         expect(agent[agentEffectsKey]||[]).toEqual([]);
     });
 
-    test('ensure that the exception of effect callback will not tear down other effects running',()=>{
-        const error = console.error;
-        // @ts-ignore
-        console.error=undefined;
-        const model = new CountModel();
-        const {agent, connect, disconnect} = create(model);
-        connect();
-
-        const tearDownEffectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
-            if(state<0){
-                (agent as unknown as {notExistMethod:()=>any}).notExistMethod();
-            }
-        });
-
-        const effectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
-            if(state<0){
-                agent.reset();
-            }
-        });
-
-        addEffect(tearDownEffectCallback,model,model.decrease);
-        addEffect(effectCallback,model, model.decrease);
-
-        agent.decrease();
-        expect(agent.state).toBe(0);
-        disconnect();
-        console.error=error;
-    });
-
-    test('ensure that the exception of effect destroy will not tear down other effects running',()=>{
-        const error = console.error;
-        // @ts-ignore
-        console.error=undefined;
-        const model = new CountModel();
-        const {agent, connect, disconnect} = create(model);
-        connect();
-
-        const tearDownEffectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
-            return ()=>{
-                (agent as unknown as {notExistMethod:()=>any}).notExistMethod();
-            }
-        });
-
-        const effectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
-            if(state<0){
-                agent.reset();
-            }
-        });
-
-        addEffect(tearDownEffectCallback,model,model.decrease);
-        addEffect(effectCallback,model, model.decrease);
-
-        agent.decrease();
-        agent.decrease();
-        expect(agent.state).toBe(0);
-        disconnect();
-        console.error=error;
-    });
+    // test('ensure that the exception of effect callback will not tear down other effects running',()=>{
+    //     const error = console.error;
+    //     // @ts-ignore
+    //     console.error=undefined;
+    //     const model = new CountModel();
+    //     const {agent, connect, disconnect} = create(model);
+    //     connect();
+    //
+    //     const tearDownEffectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
+    //         if(state<0){
+    //             (agent as unknown as {notExistMethod:()=>any}).notExistMethod();
+    //         }
+    //     });
+    //
+    //     const effectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
+    //         if(state<0){
+    //             agent.reset();
+    //         }
+    //     });
+    //
+    //     addEffect(tearDownEffectCallback,model,model.decrease);
+    //     addEffect(effectCallback,model, model.decrease);
+    //
+    //     agent.decrease();
+    //     expect(agent.state).toBe(0);
+    //     disconnect();
+    //     console.error=error;
+    // });
+    //
+    // test('ensure that the exception of effect destroy will not tear down other effects running',()=>{
+    //     const error = console.error;
+    //     // @ts-ignore
+    //     console.error=undefined;
+    //     const model = new CountModel();
+    //     const {agent, connect, disconnect} = create(model);
+    //     connect();
+    //
+    //     const tearDownEffectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
+    //         return ()=>{
+    //             (agent as unknown as {notExistMethod:()=>any}).notExistMethod();
+    //         }
+    //     });
+    //
+    //     const effectCallback: EffectCallback<number> = jest.fn((prev,state)=>{
+    //         if(state<0){
+    //             agent.reset();
+    //         }
+    //     });
+    //
+    //     addEffect(tearDownEffectCallback,model,model.decrease);
+    //     addEffect(effectCallback,model, model.decrease);
+    //
+    //     agent.decrease();
+    //     agent.decrease();
+    //     expect(agent.state).toBe(0);
+    //     disconnect();
+    //     console.error=error;
+    // });
 
 });
 

@@ -27,7 +27,7 @@ export default class MiddleWares {
   }
 
   static takePromiseResolve(): MiddleWare {
-    return function promiseMiddleWare() {
+    return function promiseMiddleWare(runtime) {
       return function nextProcess(next: StateProcess): StateProcess {
         return function stateProcess(result: any) {
           if (!isPromise(result)) {

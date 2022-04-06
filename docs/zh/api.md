@@ -617,13 +617,13 @@ export declare function getSharingType<
 export declare function addEffect<S=any, T extends Model<S> = Model>(
     effectCallback:EffectCallback<S>,
     target:T,
-    method?:keyof T|((...args:any[])=>any),
+    method?:keyof T|((...args:any[])=>any)|'*',
 ):EffectWrap<S, T>;
 ```
 
 * effectCallback - 副作用回调函数，可返回一个销毁函数，用于承接副作用回调函数中加入需要销毁的功能。销毁函数会在副作用回调函数再次调用前被调用。
 * model - 副作用目标，可以是模型实例，也可以是模型代理（等效于加在模型实例上）。
-* method - 可选，副作用目标方法，可以是模型实例方法，也可以是模型代理方法（等效于加在模型实例方法上）。
+* method - 可选，副作用目标方法，可以是模型实例方法，也可以是模型代理方法（等效于加在模型实例方法上）。当该参数为 `*` 时，监听所有方法引起的 state 变更。
 
 返回一个`副作用对象`，该对象包含了`update`（更新副作用回调函数）方法和`unmount`（手动卸载副作用）方法。
 
