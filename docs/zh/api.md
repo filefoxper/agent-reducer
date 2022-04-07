@@ -628,3 +628,11 @@ export declare function addEffect<S=any, T extends Model<S> = Model>(
 返回一个`副作用对象`，该对象包含了`update`（更新副作用回调函数）方法和`unmount`（手动卸载副作用）方法。
 
 查看更多[细节](/zh/guides?id=effect)。
+
+## experience
+
+用于开启体验模式。
+
+```typescript
+export declare function experience():void;
+```

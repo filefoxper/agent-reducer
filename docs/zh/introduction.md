@@ -103,6 +103,8 @@ const { agent } = create(Counter);
 npm i agent-reducer
 ```
 
+#### 手动编译
+
 `agent-reducer` 当前版本已小于 `100 kb` ，如果你还是觉得它太占空间，可通过编译类源码的方式减小体积，我们为此提供了一个 `agent-reducer/es` 包。您可以参考我们提供的 webpack 优化方案来使用该包。
 
 ```javascript

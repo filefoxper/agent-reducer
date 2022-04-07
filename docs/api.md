@@ -642,3 +642,11 @@ export declare function addEffect<S=any, T extends Model<S> = Model>(
 It returns a `effect` object, which provides `update` and `unmount` methods. The `update` method can be used to update effectCallback, and the `unmount` method can be used to unmount effect manually from model instance.
 
 To check more [details](/guides?id=effect).
+
+## experience
+
+This API is used for using new features or APIs which are still in  experience mode.
+
+```typescript
+export declare function experience():void;
+```

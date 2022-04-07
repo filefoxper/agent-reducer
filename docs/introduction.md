@@ -97,6 +97,8 @@ The `agent-reducer` package lives in [npm](https://www.npmjs.com/get-npm). To in
 npm i agent-reducer
 ```
 
+#### manual compile
+
 If you consider the package size of `agent-reducer` is still too large for you, you can take the `optimization` below into your `webpack.config.js` file.
 
 ```javascript
