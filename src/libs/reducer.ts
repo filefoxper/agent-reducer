@@ -97,14 +97,17 @@ function extractAction<S, T extends Model<S>>(entity:T):Action|null {
   return null;
 }
 
-function linkAction<S, T extends Model<S>>(entity:T, action:Action):ActionWrap {
+function linkAction<S, T extends Model<S>>(entity:T, action:Action):void {
   const actionWrap = entity[agentActionKey];
+  if (!stateUpdatable<S, T>(entity)) {
+    return;
+  }
   const wrap:ActionWrap = {
     current: action,
   };
   if (!actionWrap) {
     entity[agentActionKey] = wrap;
-    return wrap;
+    return;
   }
   const { last } = actionWrap;
   if (!last) {
@@ -114,12 +117,11 @@ function linkAction<S, T extends Model<S>>(entity:T, action:Action):ActionWrap {
     last.next = wrap;
     actionWrap.last = wrap;
   }
-  return actionWrap;
 }
 
 function shiftAction<S, T extends Model<S>>(entity:T):Action|null {
   const actionWrap = entity[agentActionKey];
-  if (!actionWrap) {
+  if (!actionWrap || !stateUpdatable<S, T>(entity)) {
     return null;
   }
   const { last, next } = actionWrap;

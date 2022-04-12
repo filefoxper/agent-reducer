@@ -30,10 +30,12 @@ export {
 
 export { addEffect, effectDecorator as effect } from './libs/effect';
 
-/** act * */
+/** flow * */
 export { default as flow } from './libs/flow';
 
 export { Flows } from './libs/flows';
+
+export { default as avatar } from './libs/avatar';
 
 /** experience * */
 export { experience } from './libs/experience';

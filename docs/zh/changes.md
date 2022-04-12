@@ -189,3 +189,7 @@
 
 * [design] 添加 [flow](/zh/experience?id=工作流-体验) 和 [effect decorator](/zh/experience?id=副作用-decorator-装饰器用法-体验).
 * [design] 添加 experience 体验模式，设置 `process.env.AGENT_REDUCER_EXPERIENCE` 为 `OPEN`, 可体验最新特性和 API. 
+
+# 4.3.1 2022-04-12
+
+* [design] 添加 [avatar](/zh/experience?id=avatar-体验) API.

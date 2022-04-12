@@ -17,7 +17,9 @@ import {
   agentConnectorKey,
   agentMethodActsKey,
   agentActMethodAgentLaunchHandlerKey,
-  agentIsEffectAgentKey, agentModelMethodsCacheKey,
+  agentIsEffectAgentKey,
+  agentModelMethodsCacheKey,
+  agentModelInstanceInitialedKey,
 } from './defines';
 
 export type SharingType = 'hard'|'weak';
@@ -112,6 +114,7 @@ export interface OriginAgent<S = any> {
   [agentActMethodAgentLaunchHandlerKey]?:LaunchHandler,
   [agentIsEffectAgentKey]?:boolean,
   [agentModelMethodsCacheKey]?:Record<string, any>;
+  [agentModelInstanceInitialedKey]?:boolean,
   [agentConnectorKey]?:Connector,
 }
 
@@ -192,3 +195,8 @@ export type Connection<S> = {
 }
 
 export type ConnectionFactory<S, T extends OriginAgent<S>> = ((entity:T)=>Connection<S>);
+
+export type Avatar<T extends Record<string, any>> = {
+  current:T,
+  implement:(impl:Partial<T>)=>()=>void;
+};
