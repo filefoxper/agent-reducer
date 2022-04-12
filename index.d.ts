@@ -187,6 +187,15 @@ export declare function subscribeError<S, T extends Model<S>>(
     listener:ErrorListener
 ):(()=>void);
 
+export type Avatar<T extends Record<string, any>> = {
+    current:T,
+    implement:(impl:Partial<T>)=>()=>void;
+};
+
+export declare function avatar<
+    T extends Record<string, unknown>
+    >(interfaces:T):Avatar<T>;
+
 export declare function experience():void;
 
 export type LaunchHandler = {

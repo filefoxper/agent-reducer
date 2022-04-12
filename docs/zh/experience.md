@@ -261,6 +261,214 @@ describe('how to use flow', () => {
 });
 ```
 
+### 替身 (体验)
+
+在使用模型工作流的过程中，我们常常还需要加入 UI 调用，中断等待数据处理等步骤来完善任务。如果直接调用 UI 函数，以及部分平台相关的外部数据等待函数，那么我们的模型将被当前平台所束缚，失去了该有的易迁移特性。
+
+至 `agent-reducer@4.3.1` ，我们在体验版中新增了 `avatar` API，用于代替 UI 及平台相关操作，从而降低模型对平台的依赖性。
+
+`avatar` 替身是一种对 `代数效应 (Algebraic Effects)` 设计模式的实现。我们通过预设一系列只通过入参直接返回默认值的函数来做替身，并在模型中直接使用替身函数来做临时工作，然后在外部平台层，通过 `avatar(interface).implement(impl)` 来实现当前替身在平台运行环境中的代码。在模型 flow 工作流调用的时候，`avatar(interface).current` 会根据已实现的 `impl` 和替身 `interface` 来决定该用哪一个来工作。如被使用接口在 `impl` 中存在，则会直接使用，否则用替身 `interface` 中对应的接口来做弥补。
+
+简单实用 avatar :
+
+```typescript
+import {
+    Flows, 
+    flow, 
+    create, 
+    effect, 
+    experience, 
+    avatar,
+    Model
+} from "agent-reducer";
+
+describe('how to use global avatar', () => {
+
+    type User = {
+        id: number,
+        name: string
+    };
+
+    type UserListState = {
+        source: User[] | null,
+        loading: boolean,
+    }
+
+    const dataSource: User[] = [
+        {id: 1, name: 'Jimmy'},
+        {id: 2, name: 'Jacky'},
+        {id: 3, name: 'Lucy'},
+        {id: 4, name: 'Lily'},
+        {id: 5, name: 'Nike'},
+    ];
+
+    const prompt = avatar({
+        success:(info:string)=>undefined,
+        error:(e:any)=>undefined
+    });
+
+    class UserListModel implements Model<UserListState> {
+
+        state: UserListState = {
+            source: [],
+            loading: false,
+        };
+
+        private load() {
+            return {...this.state, loading: true};
+        }
+
+        private changeSource(source: User[] | null) {
+            return {...this.state, source};
+        }
+
+        private unload() {
+            return {...this.state, loading: false};
+        }
+
+        @flow(Flows.latest())
+        async loadSource() {
+            this.load();
+            try {
+                const source: User[] = await new Promise((resolve) => {
+                    resolve([...dataSource]);
+                });
+                this.changeSource(source);
+                // 弹出 `fetch success` 提示信息框
+                prompt.current.success('fetch success!');
+            } catch (e) {
+                // 弹出错误提示框
+                prompt.current.error(e);
+            }finally {
+                this.unload();
+            }
+        }
+
+    }
+
+    test('如果希望在工作流中调用平台相关效果API，可使用 API `avatar`', async () => {
+        const success = jest.fn().mockImplementation((info:string)=>console.log(info));
+        // 实现替身接口函数
+        const destroy] = prompt.implement({
+            success,
+        });
+        const {agent, connect, disconnect} = create(UserListModel);
+        connect();
+        await agent.loadSource();
+        expect(success).toBeCalledTimes(1);
+        disconnect();
+        // 在不再需要替身时，可以销毁它
+        destroy();
+    });
+
+});
+```
+
+如果希望在按模型实例的不通调用不同的实现，可以将替身挂在模型里，并对不同的模型实例提供的替身进行实现。
+
+```typescript
+import {
+    Flows, 
+    flow, 
+    create, 
+    effect, 
+    experience, 
+    avatar,
+    Model
+} from "agent-reducer";
+
+describe('how to use model avatar', () => {
+
+    type User = {
+        id: number,
+        name: string
+    };
+
+    type UserListState = {
+        source: User[] | null,
+        list: User[],
+        filterName: string,
+        loading: boolean,
+    }
+
+    const dataSource: User[] = [
+        {id: 1, name: 'Jimmy'},
+        {id: 2, name: 'Jacky'},
+        {id: 3, name: 'Lucy'},
+        {id: 4, name: 'Lily'},
+        {id: 5, name: 'Nike'},
+    ];
+
+    class UserListModel implements Model<UserListState> {
+
+        state: UserListState = {
+            source: [],
+            list: [],
+            filterName: '',
+            loading: false,
+        };
+
+        prompt = avatar({
+            success:(info:string)=>undefined,
+            error:(e:any)=>undefined
+        });
+
+        private load() {
+            return {...this.state, loading: true};
+        }
+
+        private changeSource(source: User[] | null) {
+            return {...this.state,source}
+        }
+
+        private unload() {
+            return {...this.state, loading: false};
+        }
+
+        @flow(Flows.latest())
+        async loadSource() {
+            this.load();
+            try {
+                const source: User[] = await new Promise((resolve) => {
+                    resolve([...dataSource]);
+                });
+                this.changeSource(source);
+                // 弹出 `fetch success` 提示信息框
+                this.prompt.current.success('fetch success!');
+            } catch (e) {
+                // 弹出错误提示信息框
+                this.prompt.current.error(e);
+            }finally {
+                this.unload();
+            }
+        }
+
+    }
+
+    test('If you want to use `avatar` in model, please build avatar inside model', async () => {
+        const success = jest.fn().mockImplementation((info:string)=>console.log(info));
+
+        const {agent, connect, disconnect} = create(UserListModel);
+        const {agent:another, connect:anotherConnect, disconnect:anotherDisconnect} = create(UserListModel);
+        // 为不同的模型实例实现替身接口
+        const destroy = agent.prompt.implement({
+            success,
+        });
+        connect();
+        anotherConnect();
+        await agent.loadSource();
+        await another.loadSource();
+        // agent.prompt 被实现了，但 another 没有
+        expect(success).toBeCalledTimes(1);
+        disconnect();
+        anotherDisconnect();
+        // 如果不再使用可以销毁掉
+        destroy();
+    });
+
+});
+```
+
 ### 副作用 decorator 装饰器用法 (体验)
 
 添加副作用的 decorator API 为 [effect](/zh/experience?id=effect-体验)。被该 decorator 函数修饰的方法将被作为副作用回调来使用，而副作用监听目标为该函数入参，如：`effect('*')` 表示监听所有 state 变化，如传入当前模型方法提供函数，则监听该目标下的指定方法 `effect(()=>Model.prototype.method)`。
@@ -530,3 +738,27 @@ export declare function effect<S=any, T extends Model<S>=Model>(
 * method - 可选，返回被监听的目标方法的回调函数，必须为当前模型方法。
 
 查看更多[细节](/zh/guides?id=副作用-decorator-装饰器用法)。
+
+### avatar (体验)
+
+维护一个替身接口对象，在使用时，根据已分配的实现接口运行。若接口已实现，则运行已经实现的接口，否则运行默认接口。
+
+```typescript
+export type Avatar<T extends Record<string, any>> = {
+    current:T,
+    implement:(impl:Partial<T>)=>()=>void;
+};
+
+export declare function avatar<
+    T extends Record<string, unknown>
+    >(interfaces:T):Avatar<T>;
+```
+
+* interfaces - 默认接口对象。
+
+返回 Avatar 对象：
+
+* current - 默认接口与实现接口合并后的接口集合。
+* implement - 实现方法，传入的 `impl` 对象作为实现接口。
+
+该方法主要用作平台接口与模型的交接。

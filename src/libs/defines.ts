@@ -38,6 +38,8 @@ export const agentConnectorKey = '@@agent-connector';
 
 export const agentModelMethodsCacheKey = '@@agent-model-methods-cache';
 
+export const agentModelInstanceInitialedKey = '@@agent-model-instance-initialed';
+
 export enum DefaultActionType {
   DX_INITIAL_STATE = '@@AGENT_REDUCER_INITIAL_STATE',
   DX_MUTE_STATE = '@@AGENT_MUTE_STATE',

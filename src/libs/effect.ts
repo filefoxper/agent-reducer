@@ -17,7 +17,7 @@ import {
   agentModelWorking,
 } from './defines';
 import { unblockThrow, validate, warn } from './util';
-import { isConnecting } from './status';
+import { stateUpdatable } from './status';
 import { validateExperience } from './experience';
 
 function extractValidateMethodName<S=any, T extends Model<S> = Model>(
@@ -104,7 +104,7 @@ function createEffect<S=any, T extends Model<S> = Model>(
 }
 
 export function runningNotInitialedModelEffects<S=any, T extends Model<S> = Model>(model:T):void {
-  if (!isConnecting<S, T>(model)) {
+  if (!stateUpdatable<S, T>(model)) {
     return;
   }
   const effects = model[agentEffectsKey] || [];
@@ -121,7 +121,7 @@ export function addEffect<S=any, T extends Model<S> = Model>(
   model:T,
   method?:keyof T|ModelInstanceMethod<S, T>|'*',
 ):EffectWrap {
-  validate(isConnecting<S, T>(model), 'The target model is unconnected');
+  validate(stateUpdatable<S, T>(model), 'The target model instance is expired');
   const methodName = extractValidateMethodName(model, method);
 
   const effect:Effect<S, T> = createEffect(callback, model, methodName);
@@ -178,7 +178,7 @@ export function runEffects<S=any, T extends Model<S> = Model>(
       unblockThrow(e);
     }
   }
-  if (!isConnecting<S, T>(model)) {
+  if (!stateUpdatable<S, T>(model)) {
     return;
   }
   effectCopies.forEach(runDestroy.bind(null, action));

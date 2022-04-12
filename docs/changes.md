@@ -181,3 +181,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 
 * [design] add [flow](/experience?id=flow-experience) and [effect](/experience?id=effect-decorator-experience).
 * [design] add experience, set `process.env.AGENT_REDUCER_EXPERIENCE` to `OPEN`, can use the experience features. 
+
+# 4.3.1 2022-04-12
+
+* [design] add [avatar](/experience?id=avatar-experience-1) API.
