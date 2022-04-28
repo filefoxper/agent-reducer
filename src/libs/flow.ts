@@ -5,21 +5,22 @@ import {
   LaunchHandler,
   WorkFlow, ErrorListener,
 } from './global.type';
-import { validate } from './util';
+import { noop, validate } from './util';
 import {
-  agentCallingMiddleWareKey,
+  agentActMethodAgentLevelKey,
+  agentCallingMiddleWareKey, agentFlowForceWorkFlow,
   agentMethodActsKey, isAgent,
 } from './defines';
-import { copyAgentWithEnv, extractModelInstance } from './agent';
 import { defaultFlow } from './flows';
 import { validateExperience } from './experience';
 import { subscribeError } from './error';
+import { copyAgentWithEnv } from './agent';
 
 export default function flow(
   ...flows:WorkFlow[]
 ):MethodDecoratorCaller {
   validateExperience();
-  const workableActor = flows.length ? applyActors(...flows, defaultFlow) : defaultFlow;
+  const workableActor = flows.length ? applyActors(...flows, defaultFlow) : noop;
   return function actDecorator<S=any, T extends Model<S>=Model<S>>(target:T, p:string) {
     validate(typeof (p as unknown) === 'string', 'The `act` decorator can not use on class');
     const source = target[p];
@@ -30,14 +31,18 @@ export default function flow(
   };
 }
 
-flow.on = function on<S=any, T extends Model<S>=Model<S>>(target:T):T {
+flow.force = function force<S=any, T extends Model<S>=Model<S>>(target:T, workFlow?:WorkFlow):T {
   validateExperience();
-  const instance = extractModelInstance<S, T>(target);
-  if (!instance || !isAgent(target)) {
-    validate(false, 'API `act(...).on(...)` can only work in an act method');
+  if (!isAgent(target) || !target[agentActMethodAgentLevelKey]) {
+    validate(false, 'API `flow.force(...)` can only work in an flow method');
+    return target;
+  }
+  if (workFlow && typeof workFlow !== 'function') {
+    validate(false, 'The param `workFlow` is not a function or undefined value.');
     return target;
   }
   const [self] = copyAgentWithEnv<S, T>(target);
+  self[agentFlowForceWorkFlow] = workFlow || target;
   return self;
 };
 

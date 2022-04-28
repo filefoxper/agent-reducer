@@ -84,19 +84,10 @@ describe('how to use act', () => {
         }
 
         @flow()
-        changeFilterNameThenFilter(filterName:string){
-            this.changeFilterName(filterName);
-            // the flow method called by others,
-            // can not keep its own `WorkFlow`,
-            // it shares a new `WorkFlow` from the current one.
-            this.filterDebounce();
-        }
-
-        @flow()
         changeFilterNameThenFilterDebounce(filterName:string){
             this.changeFilterName(filterName);
-            // `flow.on` can keep `WorkFlow` inside the flow method.
-            flow.on(this).filterDebounce();
+            // the flow method called in another flow method keeps its own `WorkFlow`
+            this.filterDebounce();
         }
 
     }
@@ -114,23 +105,7 @@ describe('how to use act', () => {
         disconnect();
     });
 
-    test('An flow method can call another one with the same `WorkFlow`', async () => {
-        const {agent, connect, disconnect} = create(UserListModel);
-        const changes: string[] = [];
-        connect(({state}) => {
-            changes.push(state);
-        });
-        await agent.loadSource();
-        agent.changeFilterNameThenFilter('Lucy');
-        agent.changeFilterNameThenFilter('Lily');
-        await new Promise((resolve) => setTimeout(resolve,500));
-
-        expect(changes.length).toBe(7);
-        expect(agent.state.list).toEqual([{id: 4, name: 'Lily'}]);
-        disconnect();
-    });
-
-    test('An flow method can call another one, if we want to keep the origin `WorkFlow` of the inside one, we can use API `flow.on`', async () => {
+    test('An flow method can call another one, and the called one keeps its own `WorkFlow`', async () => {
         const {agent, connect, disconnect} = create(UserListModel);
         const changes: string[] = [];
         connect(({state}) => {
@@ -148,7 +123,7 @@ describe('how to use act', () => {
 
 });
 
-describe('try `flow.on` in effect method', () => {
+describe('use flow method in effect', () => {
 
     type User = {
         id?: number,
@@ -192,12 +167,12 @@ describe('try `flow.on` in effect method', () => {
 
         @effect(() => UserModel.prototype.changeUserName)
         effectOfKeyUsername() {
-            flow.on(this).fetchUser(this.state.username);
+            this.fetchUser(this.state.username);
         }
 
     }
 
-    test('The API `flow.on` works in `@effect` too', async () => {
+    test('you can use flow method in effect too', async () => {
         const {agent, connect, disconnect} = create(UserModel);
         const nameChanges: string[] = [];
         connect(({state}) => {
@@ -211,6 +186,92 @@ describe('try `flow.on` in effect method', () => {
         await new Promise((resolve) => setTimeout(resolve, 300));
 
         expect(nameChanges).toEqual(['ab']);
+        disconnect();
+    });
+
+});
+
+describe('use `flow.force` API',()=>{
+
+    type User = {
+        id?: number,
+        username: string,
+        role?: 'master' | 'user' | 'guest',
+        password?: string
+        name?: string,
+        age?: number,
+        sex?: 'male' | 'female'
+    };
+
+    class UserModel implements Model<User> {
+
+        state: User = {
+            username: 'guest'
+        };
+
+        changeUserName(username: string) {
+            return {...this.state, username};
+        }
+
+        updateUser(user: User): User {
+            return user;
+        }
+
+        @flow(Flows.debounce(200))
+        async fetchUser(username: string) {
+            const user: User = await new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    resolve({
+                        id: 1,
+                        username: username,
+                        name: username,
+                        role: 'user',
+                        age: 20
+                    } as User);
+                });
+            });
+            this.updateUser(user);
+        }
+
+        @effect(() => UserModel.prototype.changeUserName)
+        effectOfKeyUsername() {
+            // 'flow.force' can force the `WorkFlow` of as inside flow method.
+            flow.force(this,Flows.default()).fetchUser(this.state.username);
+        }
+
+        @flow()
+        fetchByUsername(username:string){
+            // we can give 'flow.force' no `WorkFlow` param,
+            // that makes inside flow method run with a `WorkFlow` env of the current one.
+            flow.force(this).fetchUser(username);
+        }
+
+    }
+
+    test('if you want to rewrite the `WorkFlow` of a inside flow method, you can use `flow.force`', async () => {
+        const {agent, connect, disconnect} = create(UserModel);
+        const nameChanges: string[] = [];
+        connect(({state}) => {
+            if (!state.name) {
+                return;
+            }
+            nameChanges.push(state.name);
+        });
+        agent.changeUserName('a');
+        agent.changeUserName('ab');
+        await new Promise((resolve) => setTimeout(resolve));
+
+        expect(nameChanges).toEqual(['a','ab']);
+        disconnect();
+    });
+
+    test('if you want to use the `WorkFlow` env of current method for the inside flow method, you can pass no `WorkFlow` param to `flow.force` API',async ()=>{
+        const {agent, connect, disconnect} = create(UserModel);
+        connect();
+        agent.fetchByUsername('ab')
+        await new Promise((resolve) => setTimeout(resolve));
+
+        expect(agent.state.username).toBe('ab');
         disconnect();
     });
 

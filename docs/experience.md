@@ -207,16 +207,14 @@ describe('how to use flow', () => {
         changeFilterNameThenFilter(filterName:string){
             this.changeFilterName(filterName);
             // the flow method called by others,
-            // can not keep its own `WorkFlow`,
-            // it shares a new `WorkFlow` from the current one.
+            // keeps its own `WorkFlow`.
+            // So, it keeps `debounce` work flow mode.
             this.filterDebounce();
-        }
-
-        @flow()
-        changeFilterNameThenFilterDebounce(filterName:string){
-            this.changeFilterName(filterName);
-            // `flow.on` can keep `WorkFlow` inside the flow method.
-            flow.on(this).filterDebounce();
+            // If you want to make inside flow method 
+            // works as part of the current method,
+            // and take the current method `WorkFlow` env,
+            // you should keep the inside one with no `WorkFlow`,
+            // like `@flow()`
         }
 
     }
@@ -229,30 +227,11 @@ describe('how to use flow', () => {
         });
         // there are 3 action methods: load, changeSource, unload
         await agent.loadSource();
-        // there are 2 action methods: changeFilterName, filterList
+        // there are 1 action methods: changeFilterName
         agent.changeFilterNameThenFilter('Lucy');
         // there are 2 action methods: changeFilterName, filterList
         agent.changeFilterNameThenFilter('Lily');
         await new Promise((resolve) => setTimeout(resolve,500));
-
-        expect(changes.length).toBe(7);
-        expect(agent.state.list).toEqual([{id: 4, name: 'Lily'}]);
-        disconnect();
-    });
-
-    test('An flow method can call another one, if we want to keep the origin `WorkFlow` of the inside one, we can use API `flow.on`', async () => {
-        const {agent, connect, disconnect} = create(UserListModel);
-        const changes: string[] = [];
-        connect(({state}) => {
-            changes.push(state);
-        });
-        // there are 3 action methods: load, changeSource, unload
-        await agent.loadSource();
-        // there are 1 action methods: changeFilterName
-        agent.changeFilterNameThenFilterDebounce('Lucy');
-        // there are 2 action methods: changeFilterName, filterList
-        agent.changeFilterNameThenFilterDebounce('Lily');
-        await new Promise((resolve) => setTimeout(resolve, 500));
 
         expect(changes.length).toBe(6);
         expect(agent.state.list).toEqual([{id: 4, name: 'Lily'}]);
@@ -363,6 +342,81 @@ describe('subscribe error',()=>{
     });
 })
 
+```
+
+If you want to change the `workFlow` of a inside flow method temporary, please use `flow.force` API.
+
+```typescript
+import {Flows, flow, create, effect, experience, middleWare, MiddleWarePresets, Model} from "agent-reducer";
+
+describe('use `flow.force` API',()=>{
+
+    type User = {
+        id?: number,
+        username: string,
+        role?: 'master' | 'user' | 'guest',
+        password?: string
+        name?: string,
+        age?: number,
+        sex?: 'male' | 'female'
+    };
+
+    class UserModel implements Model<User> {
+
+        state: User = {
+            username: 'guest'
+        };
+
+        changeUserName(username: string) {
+            return {...this.state, username};
+        }
+
+        updateUser(user: User): User {
+            return user;
+        }
+
+        @flow(Flows.debounce(200))
+        async fetchUser(username: string) {
+            const user: User = await new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    resolve({
+                        id: 1,
+                        username: username,
+                        name: username,
+                        role: 'user',
+                        age: 20
+                    } as User);
+                });
+            });
+            this.updateUser(user);
+        }
+
+        @effect(() => UserModel.prototype.changeUserName)
+        effectOfKeyUsername() {
+            // 'flow.force' can force the `WorkFlow` of as inside flow method.
+            flow.force(this,Flows.default()).fetchUser(this.state.username);
+        }
+
+    }
+
+    test('if you want to rewrite the `WorkFlow` of a inside flow method, you can use `flow.force`', async () => {
+        const {agent, connect, disconnect} = create(UserModel);
+        const nameChanges: string[] = [];
+        connect(({state}) => {
+            if (!state.name) {
+                return;
+            }
+            nameChanges.push(state.name);
+        });
+        agent.changeUserName('a');
+        agent.changeUserName('ab');
+        await new Promise((resolve) => setTimeout(resolve));
+
+        expect(nameChanges).toEqual(['a','ab']);
+        disconnect();
+    });
+
+});
 ```
 
 ### avatar (experience)
@@ -916,7 +970,7 @@ A `ES6 decorator` function which is used for marking a method to be a work flow 
 export type WorkFlow = (runtime:FlowRuntime)=>LaunchHandler;
 
 declare type FlowFn =((...flows:WorkFlow[])=>MethodDecoratorCaller)&{
-    on:<S, T extends Model<S>>(target:T)=>T,
+    force:<S, T extends Model<S>>(target:T, workFlow?:WorkFlow)=>T,
     error:<
         S=any,
         T extends Model<S>=Model<S>
@@ -927,8 +981,8 @@ export declare const flow:FlowFn;
 ```
 
 * flows - optional, used to control how to run a flow method. You can select them from [Flows](/experience?id=flows-experience).
-* on - property function, used to keep a inside flow method running on its own `WorkFlow`.
-* error - property function, used to listen the error from `flow methods`.
+* flow.force - property function, used to force a inside flow method running on a special `WorkFlow`, for example: `flow.force(this, Flows.latest()).flowMethod()`, if you want the inside flow method just work as part of the current running flow method, you can provide no `WorkFlow` param for it, for example: `flow.force(this).flowMethod()`.
+* flow.error - property function, used to listen the error from `flow methods`.
 
 return a decorator callback.
 
@@ -939,11 +993,15 @@ A set class for storing common `WorkFlows`.
 ```typescript
 export class Flows {
 
+  static default():WorkFlow;
+
   static latest():WorkFlow;
 
   static debounce(ms:number, leading?:boolean):WorkFlow;
 }
 ```
+
+* Flows.default - use default work flow, which just like `@flow()`.
 * Flows.latest - to take state changes which is leaded by the newest calling of a flow method.
 * Flows.debounce - to make the flow method work with a debounce effect. 
 

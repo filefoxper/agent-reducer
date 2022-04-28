@@ -39,7 +39,6 @@ class UserModel implements Model<User>{
         });
     }
 
-    @flow()
     @effect(()=>UserModel.prototype.login)
     async loginEffect(prevState:User){
         const {username,password} = this.state;
@@ -73,8 +72,7 @@ describe('subscribe error',()=>{
             exception = `error from method "${methodName}":${error}`;
         });
         agent.login('nik','123');
-        await new Promise((resolve)=>setTimeout(resolve));
-
+        await new Promise((resolve)=>setTimeout(resolve,100));
         expect(exception).toBe(`error from method "loginEffect":error username or password`);
         disconnect();
     });

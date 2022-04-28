@@ -12,8 +12,7 @@ function promise():WorkFlow {
               runtime.resolve(result);
               return result;
             }
-            Promise.resolve(result).then(runtime.resolve, runtime.reject);
-            return result;
+            return result.then(runtime.resolve, runtime.reject);
           } catch (e) {
             runtime.reject(e);
             return undefined;
@@ -25,6 +24,10 @@ function promise():WorkFlow {
 }
 
 export class Flows {
+  static default():WorkFlow {
+    return promise();
+  }
+
   static latest():WorkFlow {
     return function process(runtime:FlowRuntime):LaunchHandler {
       const { cache } = runtime;

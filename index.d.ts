@@ -173,11 +173,11 @@ declare type EffectWrap<S=any, T extends Model<S>=Model> = {
 export declare function addEffect<S=any, T extends Model<S> = Model>(
     effectCallback:EffectCallback<S>,
     target:T,
-    method?:keyof T|((...args:any[])=>any),
+    method?:keyof T|((...args:any[])=>any)|'*',
 ):EffectWrap<S, T>;
 
 export declare function effect<S=any, T extends Model<S>=Model>(
-    method?:()=>(...args:any[])=>any,
+    method:(()=>((...args:any[])=>any)|(((...args:any[])=>any)[]))|'*',
 ):MethodDecoratorCaller;
 
 export type ErrorListener = (error:any, methodName:string)=>any;
@@ -214,7 +214,7 @@ export type FlowRuntime = {
 export type WorkFlow = (runtime:FlowRuntime)=>LaunchHandler;
 
 declare type FlowFn =((...flows:WorkFlow[])=>MethodDecoratorCaller)&{
-    on:<S, T extends Model<S>>(target:T)=>T,
+    force:<S=any, T extends Model<S>=Model<S>>(target:T, workFlow?:WorkFlow)=>T,
     error:<
         S=any,
         T extends Model<S>=Model<S>

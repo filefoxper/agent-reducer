@@ -185,3 +185,9 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.3.1 2022-04-12
 
 * [design] add [avatar](/experience?id=avatar-experience-1) API.
+
+# 4.3.2 2022-04-28
+
+* [experience] remove experience API `flow.on`.
+* [experience] add experience API `flow.force`.
+* [experience] fix the problem about the type interface of `@effect`.

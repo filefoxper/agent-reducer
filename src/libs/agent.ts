@@ -20,12 +20,12 @@ import {
   agentMethodName,
   agentSharingMiddleWareKey,
   agentActMethodAgentLaunchHandlerKey,
-  agentModelMethodsCacheKey,
+  agentModelMethodsCacheKey, agentFlowForceWorkFlow, isAgent,
 } from './defines';
-import { createProxy, validate } from './util';
+import { createProxy, noop, validate } from './util';
 import { AgentDependencies } from './agent.type';
 import { applyMiddleWares, defaultMiddleWare } from './applies';
-import { hasErrorListener, reject } from './error';
+import { hasErrorListener, rejectErrorOnModelMethod } from './error';
 import { defaultFlow } from './flows';
 
 /**
@@ -242,7 +242,7 @@ export function createActRuntime<S, T extends Model<S>>(
       const canReject = hasErrorListener<S, T>(entry);
       const level = proxy[agentActMethodAgentLevelKey];
       if ((!level || level < 2) && canReject) {
-        reject<S, T>(entry, error, methodName);
+        rejectErrorOnModelMethod<S, T>(entry, error, methodName);
         return;
       }
       throw error;
@@ -250,7 +250,7 @@ export function createActRuntime<S, T extends Model<S>>(
   };
 }
 
-function buildActionMethod<S, T extends Model<S>>(
+function buildFlowMethod<S, T extends Model<S>>(
   proxy:T,
   methodName:string,
   mdw:MiddleWare,
@@ -263,22 +263,35 @@ function buildActionMethod<S, T extends Model<S>>(
   if (typeof cacheCaller === 'function') {
     return cacheCaller;
   }
-  const modelMethod = entry[methodName] as ((...a: any[]) => any)&{[agentMethodActsKey]?:WorkFlow};
-  // cache runtime by methodName
-  // cache[methodName] = cache[methodName] || createRuntime(proxy, invokeDependencies, methodName);
+  const modelMethod = entry[methodName] as ((...a: any[]) => any)&{
+    [agentMethodActsKey]?:WorkFlow|(()=>void)
+  };
   const sourceMethodDescriptors = Object.getOwnPropertyDescriptors(modelMethod);
-  const callableMethod = function effectMethod(...args:any[]):any {
+  const callableMethod = function flowMethod(...args:any[]):any {
     const connector = entry[agentConnectorKey] as Connector;
     validate(typeof connector === 'function', 'Can not find connector in model instance');
     const sourceLevel = proxy[agentActMethodAgentLevelKey];
-    if (sourceLevel) {
+    const forceWorkFlow = proxy[agentFlowForceWorkFlow];
+    const sourceActor = modelMethod[agentMethodActsKey];
+    const actor:WorkFlow = (function computeFlow():WorkFlow {
+      if (typeof forceWorkFlow === 'function') {
+        return forceWorkFlow;
+      }
+      if (!sourceActor || sourceActor === noop) {
+        return defaultFlow;
+      }
+      return sourceActor as WorkFlow;
+    }());
+    if (forceWorkFlow && isAgent(forceWorkFlow)) {
+      return modelMethod.apply(forceWorkFlow, args);
+    }
+    if (sourceLevel && sourceActor === noop) {
       return modelMethod.apply(proxy, args);
     }
     return connector(entry).run((ag, disconnect) => {
       const [self] = copyAgentWithEnv(ag);
+      self[agentActMethodAgentLevelKey] = !sourceLevel ? 1 : (sourceLevel + 1);
       const runtime = createActRuntime(self, entry, methodName);
-      self[agentActMethodAgentLevelKey] = 1;
-      const actor = modelMethod[agentMethodActsKey] || defaultFlow;
       const launchHandler = actor(runtime);
       const { shouldLaunch, didLaunch, reLaunch } = launchHandler;
       self[agentActMethodAgentLaunchHandlerKey] = launchHandler;
@@ -334,6 +347,7 @@ export function generateAgent<S, T extends Model<S>>(
     isAgent: true,
     actAgentLevel: undefined,
     actAgentLaunchHandler: undefined,
+    forceFlow: undefined,
   };
 
   const produceMethod = methodProducer<S, T>(invokeDependencies, copyInfo);
@@ -341,20 +355,6 @@ export function generateAgent<S, T extends Model<S>>(
   const proxy: T = createProxy(entry, {
     get(target: T, p: string & keyof T): any {
       const source = target[p];
-      if (typeof source === 'function' && source[agentCallingEffectTargetKey]) {
-        validate(false, 'The effect method can not be used as an action method');
-      }
-      if (
-        typeof source === 'function'
-          && source[agentMethodActsKey]
-      ) {
-        return buildActionMethod(proxy, p, middleWare, invokeDependencies);
-      }
-      if (typeof source === 'function') {
-        const method = produceMethod(target, p, proxy);
-        method[agentMethodName] = p;
-        return method;
-      }
       if (p === agentIdentifyKey) {
         return agentParams.isAgent;
       }
@@ -367,13 +367,27 @@ export function generateAgent<S, T extends Model<S>>(
       if (p === agentActMethodAgentLaunchHandlerKey) {
         return agentParams.actAgentLaunchHandler;
       }
+      if (p === agentFlowForceWorkFlow) {
+        return agentParams.forceFlow;
+      }
+      if (typeof source === 'function' && source[agentCallingEffectTargetKey]) {
+        validate(false, 'The effect method can not be used as an action method');
+      }
+      if (
+        typeof source === 'function'
+          && source[agentMethodActsKey]
+      ) {
+        return buildFlowMethod(proxy, p, middleWare, invokeDependencies);
+      }
+      if (typeof source === 'function') {
+        const method = produceMethod(target, p, proxy);
+        method[agentMethodName] = p;
+        return method;
+      }
       return entry[p];
     },
     set(target: T, p: string & keyof T, value: any): boolean {
       const source = entry[p];
-      if (typeof source === 'function') {
-        return false;
-      }
       if (p === agentDependenciesKey) {
         agentParams.invokeDependencies = value;
       } else if (p === agentIdentifyKey) {
@@ -382,6 +396,10 @@ export function generateAgent<S, T extends Model<S>>(
         agentParams.actAgentLevel = value;
       } else if (p === agentActMethodAgentLaunchHandlerKey) {
         agentParams.actAgentLaunchHandler = value;
+      } else if (p === agentFlowForceWorkFlow) {
+        agentParams.forceFlow = value;
+      } else if (typeof source === 'function') {
+        return false;
       } else {
         entry[p] = value;
       }
@@ -514,13 +532,4 @@ export function copyAgentWithEnv<S, T extends Model<S>>(agent:T):[T, LifecycleEn
     ),
     cloneEnvProxy,
   ];
-}
-
-export function extractModelInstance<S, T extends Model<S>>(agent:T):T|null {
-  const invokeDependencies: undefined | AgentDependencies<S, T> = agent[agentDependenciesKey];
-  if (!invokeDependencies) {
-    return null;
-  }
-  const { entry } = invokeDependencies;
-  return entry;
 }

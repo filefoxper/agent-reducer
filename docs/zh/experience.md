@@ -201,24 +201,15 @@ describe('how to use flow', () => {
         @flow()
         changeFilterNameThenFilter(filterName:string){
             this.changeFilterName(filterName);
-            // filterDebounce 也是一个工作流方法，
-            // 当它在另一个工作流方法中被直接调用时，
-            // 它会采用与当前工作流方法一致的工作流模式，
-            // 因此这里的 filterDebounce 并不会按照 debounce 模式工作
+            // 当被调用工作流方法没有工作模式时，会采取当前调用者的工作模式环境，
+            // 因为 filterDebounce 有自己的工作模式，
+            // 因此它会采用原来的 debounce 工作模式运行
             this.filterDebounce();
-        }
-
-        @flow()
-        changeFilterNameThenFilterDebounce(filterName:string){
-            this.changeFilterName(filterName);
-            // `flow.on` 可以让 filterDebounce 保持自身的工作流模式，
-            // 因此这里的 filterDebounce 依旧可以按 debounce 模式工作
-            flow.on(this).filterDebounce();
         }
 
     }
 
-    test('同一个工作流方法的工作模式总是以被直接调用的工作流方法为准的', async () => {
+    test('flow 方法互相调用时，工作模式不会互相影响', async () => {
         const {agent, connect, disconnect} = create(UserListModel);
         const changes: string[] = [];
         connect(({state}) => {
@@ -226,35 +217,90 @@ describe('how to use flow', () => {
         });
         // 3个修改 state 方法: load, changeSource, unload
         await agent.loadSource();
-        // 2个修改 state 方法: changeFilterName, filterList
+        // 1个修改 state 方法: changeFilterName, 
+        // filterList 被 debounce 推迟执行，因此会被后一个连续调用取消
         agent.changeFilterNameThenFilter('Lucy');
         // 2个修改 state 方法: changeFilterName, filterList
         agent.changeFilterNameThenFilter('Lily');
         await new Promise((resolve) => setTimeout(resolve,500));
 
-        expect(changes.length).toBe(7);
+        expect(changes.length).toBe(6);
         expect(agent.state.list).toEqual([{id: 4, name: 'Lily'}]);
         disconnect();
     });
 
-    test('API `flow.on` 可以保持一个工作流在其他工作流中被调用时，依然保持自身的工作模式', async () => {
-        const {agent, connect, disconnect} = create(UserListModel);
-        const changes: string[] = [];
-        connect(({state}) => {
-            changes.push(state);
-        });
-        // 3个修改 state 方法: load, changeSource, unload
-        await agent.loadSource();
-        // 1个修改 state 方法: changeFilterName，
-        // filterList 采用了 debounce 向后节流模式
-        agent.changeFilterNameThenFilterDebounce('Lucy');
-        // 2个修改 state 方法: changeFilterName, filterList
-        // filterList 向后截流到这次调用生效
-        agent.changeFilterNameThenFilterDebounce('Lily');
-        await new Promise((resolve) => setTimeout(resolve, 500));
+});
+```
 
-        expect(changes.length).toBe(6);
-        expect(agent.state.list).toEqual([{id: 4, name: 'Lily'}]);
+如果希望对某个内部调用的工作流方法使用临时性的`工作流模式`，可以使用 API `flow.force`。
+
+```typescript
+import {Flows, flow, create, effect, experience, middleWare, MiddleWarePresets, Model} from "agent-reducer";
+
+describe('use `flow.force` API',()=>{
+
+    type User = {
+        id?: number,
+        username: string,
+        role?: 'master' | 'user' | 'guest',
+        password?: string
+        name?: string,
+        age?: number,
+        sex?: 'male' | 'female'
+    };
+
+    class UserModel implements Model<User> {
+
+        state: User = {
+            username: 'guest'
+        };
+
+        changeUserName(username: string) {
+            return {...this.state, username};
+        }
+
+        updateUser(user: User): User {
+            return user;
+        }
+
+        @flow(Flows.debounce(200))
+        async fetchUser(username: string) {
+            const user: User = await new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    resolve({
+                        id: 1,
+                        username: username,
+                        name: username,
+                        role: 'user',
+                        age: 20
+                    } as User);
+                });
+            });
+            this.updateUser(user);
+        }
+
+        @effect(() => UserModel.prototype.changeUserName)
+        effectOfKeyUsername() {
+            // 'flow.force' 可以临时变更工作模式
+            flow.force(this,Flows.default()).fetchUser(this.state.username);
+        }
+
+    }
+
+    test('if you want to rewrite the `WorkFlow` of a inside flow method, you can use `flow.force`', async () => {
+        const {agent, connect, disconnect} = create(UserModel);
+        const nameChanges: string[] = [];
+        connect(({state}) => {
+            if (!state.name) {
+                return;
+            }
+            nameChanges.push(state.name);
+        });
+        agent.changeUserName('a');
+        agent.changeUserName('ab');
+        await new Promise((resolve) => setTimeout(resolve));
+
+        expect(nameChanges).toEqual(['a','ab']);
         disconnect();
     });
 
@@ -364,7 +410,7 @@ describe('how to use global avatar', () => {
 });
 ```
 
-如果希望在按模型实例的不通调用不同的实现，可以将替身挂在模型里，并对不同的模型实例提供的替身进行实现。
+如果希望每个模型实例拥有不同的替身实现，可以将替身挂在模型里，并对不同的模型实例提供的替身进行实现。
 
 ```typescript
 import {
@@ -695,7 +741,7 @@ export function myFlow(runtime:FlowRuntime){
 export type WorkFlow = (runtime:FlowRuntime)=>LaunchHandler;
 
 declare type FlowFn =((...flows:WorkFlow[])=>MethodDecoratorCaller)&{
-    on:<S, T extends Model<S>>(target:T)=>T,
+    force:<S, T extends Model<S>>(target:T, workFlow?:WorkFlow)=>T,
     error:<
         S=any,
         T extends Model<S>=Model<S>
@@ -705,7 +751,7 @@ declare type FlowFn =((...flows:WorkFlow[])=>MethodDecoratorCaller)&{
 export declare const flow:FlowFn;
 ```
 
-* flow.on - 用于在一个工作流方法中，保持被调用的另一个工作流方法的运行模式。`flow.on(this).flowMethod()`。
+* flow.force - 在工作流方法中强制其他被调用工作流方法的工作模式，如：`flow.force(this, Flows.latest()).flowMethod()`，如不提供工作模式，则作为当前工作流方法的一部分工作，如：：`flow.force(this).flowMethod()`。
 * flow.error - 用于监听模型中的工作流方法异常。`flow.error(model, (error:any)=>{......})`
 
 返回一个 decorator function。
@@ -717,11 +763,15 @@ export declare const flow:FlowFn;
 ```typescript
 export class Flows {
 
+  static default():WorkFlow;
+
   static latest():WorkFlow;
 
   static debounce(ms:number, leading?:boolean):WorkFlow;
 }
 ```
+
+* Flows.default - 默认工作模式，和无传参的 `@flow()` 等效。
 * Flows.latest - 只允许最新工作流方法产生的 state 变更生效.
 * Flows.debounce - 使工作流方法以 debounce 防抖模式运行. 
 
