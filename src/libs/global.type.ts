@@ -20,6 +20,7 @@ import {
   agentIsEffectAgentKey,
   agentModelMethodsCacheKey,
   agentModelInstanceInitialedKey,
+  agentFlowForceWorkFlow,
 } from './defines';
 
 export type SharingType = 'hard'|'weak';
@@ -115,6 +116,7 @@ export interface OriginAgent<S = any> {
   [agentIsEffectAgentKey]?:boolean,
   [agentModelMethodsCacheKey]?:Record<string, any>;
   [agentModelInstanceInitialedKey]?:boolean,
+  [agentFlowForceWorkFlow]?:WorkFlow|OriginAgent<S>,
   [agentConnectorKey]?:Connector,
 }
 
@@ -128,7 +130,7 @@ export type EffectDecoratorCallback<S=any, T extends Model<S>=Model> = (
     (...args:any[])=>any
     )&{
   [agentMethodName]:string,
-  [agentMethodActsKey]?:WorkFlow,
+  [agentMethodActsKey]?:WorkFlow|(()=>void),
   [agentCallingMiddleWareKey]?:MiddleWare,
   [agentCallingEffectTargetKey]?:Array<EffectDecoratorTargetMethod|string>
 };

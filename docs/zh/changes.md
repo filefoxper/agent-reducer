@@ -193,3 +193,9 @@
 # 4.3.1 2022-04-12
 
 * [design] 添加 [avatar](/zh/experience?id=avatar-体验) API.
+
+# 4.3.2 2022-04-28
+
+* [experience] 移除体验 API `flow.on`.
+* [experience] 添加体验 API `flow.force`.
+* [experience] 修复 `@effect` 接口问题.

@@ -18,7 +18,9 @@ export function subscribeError<S, T extends Model<S>>(model:T, listener:ErrorLis
   };
 }
 
-export function reject<S, T extends Model<S>>(model:T, error:unknown, methodName:string):void {
+export function rejectErrorOnModelMethod<
+    S, T extends Model<S>
+    >(model:T, error:unknown, methodName:string):void {
   const listeners = model[agentErrorConnectionKey] || [];
   model[agentErrorConnectionKey] = listeners;
   listeners.forEach((l) => {

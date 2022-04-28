@@ -10,6 +10,8 @@ export const agentActMethodAgentLevelKey = '@@agent-act-method-agent-level';
 
 export const agentActMethodAgentLaunchHandlerKey = '@@agent-act-method-agent-launch-handler';
 
+export const agentFlowForceWorkFlow = '@@agent-flow-force-work-flow';
+
 export const agentErrorConnectionKey = '@@agent-error-connection';
 
 export const agentCallingMiddleWareKey = '@@agent-reducer-calling-middle-ware';

@@ -6,7 +6,7 @@ import {
   Listener,
   Store,
   ConnectionFactory,
-  Model, ActionWrap, EffectMethod,
+  Model, ActionWrap, EffectMethod, WorkFlow,
 } from './global.type';
 import {
   AgentReducer,
@@ -31,7 +31,7 @@ import { createSharingModelConnector } from './connector';
 import { applyMiddleWares, defaultMiddleWare } from './applies';
 import { copyAgentWithEnv, createActRuntime, generateAgent } from './agent';
 import {
-  createInstance, isPromise, warn,
+  createInstance, isPromise, noop, warn,
 } from './util';
 import {
   addMethodEffects,
@@ -248,7 +248,8 @@ function createMethodEffectBuilder<
       effectAgent[agentActMethodAgentLevelKey] = 1;
       effectAgent[agentIsEffectAgentKey] = true;
       const runtime = createActRuntime<S, T>(effectAgent, entity, methodName);
-      const actor = effectMethod[agentMethodActsKey] || defaultFlow;
+      const sourceActor = effectMethod[agentMethodActsKey];
+      const actor = (!sourceActor || sourceActor === noop ? defaultFlow : sourceActor) as WorkFlow;
       const launchHandler = actor(runtime);
       const { shouldLaunch, didLaunch, reLaunch } = launchHandler;
       effectAgent[agentActMethodAgentLaunchHandlerKey] = launchHandler;
