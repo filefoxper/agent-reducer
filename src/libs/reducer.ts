@@ -23,13 +23,13 @@ import {
   agentActMethodAgentLevelKey,
   agentMethodName,
   agentConnectorKey,
-  agentMethodActsKey,
+  agentModelFlowMethodKey,
   agentActMethodAgentLaunchHandlerKey,
   agentIsEffectAgentKey,
 } from './defines';
 import { createSharingModelConnector } from './connector';
 import { applyMiddleWares, defaultMiddleWare } from './applies';
-import { copyAgentWithEnv, createActRuntime, generateAgent } from './agent';
+import { copyAgentWithEnv, createFlowRuntime, generateAgent } from './agent';
 import {
   createInstance, isPromise, noop, warn,
 } from './util';
@@ -247,17 +247,17 @@ function createMethodEffectBuilder<
       const methodName = effectMethod[agentMethodName];
       effectAgent[agentActMethodAgentLevelKey] = 1;
       effectAgent[agentIsEffectAgentKey] = true;
-      const runtime = createActRuntime<S, T>(effectAgent, entity, methodName);
-      const sourceActor = effectMethod[agentMethodActsKey];
+      const runtime = createFlowRuntime<S, T>(effectAgent, entity, methodName);
+      const sourceActor = effectMethod[agentModelFlowMethodKey];
       const actor = (!sourceActor || sourceActor === noop ? defaultFlow : sourceActor) as WorkFlow;
       const launchHandler = actor(runtime);
-      const { shouldLaunch, didLaunch, reLaunch } = launchHandler;
+      const { shouldLaunch, didLaunch, invoke } = launchHandler;
       effectAgent[agentActMethodAgentLaunchHandlerKey] = launchHandler;
       disconnect();
       if (typeof shouldLaunch === 'function' && !shouldLaunch()) {
         return;
       }
-      const runMethod = typeof reLaunch === 'function' ? reLaunch(effectMethod.bind(effectAgent)) : effectMethod;
+      const runMethod = typeof invoke === 'function' ? invoke(effectMethod.bind(effectAgent)) : effectMethod;
       try {
         const result = runMethod.apply(effectAgent, args);
         if (typeof didLaunch === 'function') {

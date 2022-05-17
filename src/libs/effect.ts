@@ -207,7 +207,6 @@ function checkEffectDecoratorParams<S=any, T extends Model<S>=Model>(
 export function effectDecorator<S=any, T extends Model<S>=Model>(
   method:(()=>((...args:any[])=>any)|(((...args:any[])=>any)[]))|'*',
 ):MethodDecoratorCaller {
-  validateExperience();
   return function effectTo(target:T, p:string) {
     checkEffectDecoratorParams<S, T>(target, p, method);
     const call:EffectDecoratorCallback<S, T> = target[p];

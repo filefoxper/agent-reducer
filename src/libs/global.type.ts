@@ -15,12 +15,12 @@ import {
   agentActMethodAgentLevelKey,
   agentErrorConnectionKey,
   agentConnectorKey,
-  agentMethodActsKey,
+  agentModelFlowMethodKey,
   agentActMethodAgentLaunchHandlerKey,
   agentIsEffectAgentKey,
   agentModelMethodsCacheKey,
   agentModelInstanceInitialedKey,
-  agentFlowForceWorkFlow,
+  agentFlowForceWorkFlow, agentStrictModelKey,
 } from './defines';
 
 export type SharingType = 'hard'|'weak';
@@ -118,7 +118,10 @@ export interface OriginAgent<S = any> {
   [agentModelInstanceInitialedKey]?:boolean,
   [agentFlowForceWorkFlow]?:WorkFlow|OriginAgent<S>,
   [agentConnectorKey]?:Connector,
+  [agentStrictModelKey]?:boolean
 }
+
+export type ClassConstructorCaller<T> = new (...args: any[]) => T;
 
 export type DecoratorCaller = (target: any, p?: string)=>any;
 
@@ -130,7 +133,7 @@ export type EffectDecoratorCallback<S=any, T extends Model<S>=Model> = (
     (...args:any[])=>any
     )&{
   [agentMethodName]:string,
-  [agentMethodActsKey]?:WorkFlow|(()=>void),
+  [agentModelFlowMethodKey]?:WorkFlow|(()=>void),
   [agentCallingMiddleWareKey]?:MiddleWare,
   [agentCallingEffectTargetKey]?:Array<EffectDecoratorTargetMethod|string>
 };
@@ -146,7 +149,7 @@ export interface Env {
 export type ComposeCaller = (p: any) => any;
 
 export type FlowRuntime = {
-  cache:Record<string, any>,
+  state:Record<string, any>,
   resolve:(result:any)=>any;
   reject:(error:any)=>any
 };
@@ -155,7 +158,7 @@ export type LaunchHandler = {
   shouldLaunch?:()=>boolean,
   shouldUpdate?:()=>boolean,
   didLaunch?:(result:any)=>any,
-  reLaunch?:(method:(...args:any[])=>any)=>((...args:any[])=>any);
+  invoke?:(method:(...args:any[])=>any)=>((...args:any[])=>any);
 }
 
 export type WorkFlow = (runtime:FlowRuntime)=>LaunchHandler;

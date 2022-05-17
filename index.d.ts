@@ -182,11 +182,6 @@ export declare function effect<S=any, T extends Model<S>=Model>(
 
 export type ErrorListener = (error:any, methodName:string)=>any;
 
-export declare function subscribeError<S, T extends Model<S>>(
-    model:T,
-    listener:ErrorListener
-):(()=>void);
-
 export type Avatar<T extends Record<string, any>> = {
     current:T,
     implement:(impl:Partial<T>)=>()=>void;
@@ -198,15 +193,19 @@ export declare function avatar<
 
 export declare function experience():void;
 
+export declare function strict():DecoratorCaller;
+
+export declare function act():MethodDecoratorCaller;
+
 export type LaunchHandler = {
     shouldLaunch?:()=>boolean,
     shouldUpdate?:()=>boolean,
     didLaunch?:(result:any)=>any,
-    reLaunch?:(method:(...args:any[])=>any)=>((...args:any[])=>any);
+    invoke?:(method:(...args:any[])=>any)=>((...args:any[])=>any);
 }
 
 export type FlowRuntime = {
-    cache:Record<string, any>,
+    state:Record<string, any>,
     resolve:(result:any)=>any;
     reject:(error:any)=>any
 };

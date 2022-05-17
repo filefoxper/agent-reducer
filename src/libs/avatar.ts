@@ -5,7 +5,6 @@ import { validateExperience } from './experience';
 export default function avatar<
     T extends Record<string, unknown>
     >(interfaces:T):Avatar<T> {
-  validateExperience();
   validate(isObject(interfaces) || Array.isArray(interfaces), 'you need to provide a object or an array as a `interfaces`');
   let global:Partial<T>|undefined;
   return {

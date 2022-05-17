@@ -850,5 +850,723 @@ describe("使用 effect 的其他能力",()=>{
 });
 ```
 
+## 工作流
+
+我们通常把可直接通过返回值修改 state 的方法称为 action method（行为方法），每个行为方法通常只能修改一次 state （除了有些加了特殊 MiddleWare 的行为方法外）。为了能更好的组织这些行为方法，形成一个系统的工作流程，并分离副作用接口（如数据请求），我们引入了 flow 工作流概念。
+
+工作流方法用于将普通 state 更新方法（action methods）组合成一套较为完整的工作流程。可通过在方法上加 `@flow` 装饰器来使用，在 flow 方法中关键词 `this` 是当前 `agent 代理对象` 的副本，所以可以直接用来调用普通 state 更新方法，甚至其他工作流方法。工作流方法的返回值不能修改 state 数据，所以返回值可以是任何对象，无需特别关注。
+
+工作流方法也有自己的一套方法运行控制器（`WorkFlow`），可通过 `@flow(......)` 添加，如：`@flow(Flows.latest())`。目前官方只提供了 2 个较为常用的 `WorkFlow`：`Flows.latest()`、`Flows.debounce(ms:number, leading?:boolean)`。
+
+我们给出一个基本的列表查询、过滤例子来看看 `flow` 的用途：
+
+```typescript
+import {Flows, flow, create, effect, Model} from "agent-reducer";
+
+describe('如何使用 flow', () => {
+
+    type User = {
+        id: number,
+        name: string
+    };
+
+    type UserListState = {
+        source: User[] | null,
+        list: User[],
+        filterName: string,
+        loading: boolean,
+    }
+
+    const dataSource: User[] = [
+        {id: 1, name: 'Jimmy'},
+        {id: 2, name: 'Jacky'},
+        {id: 3, name: 'Lucy'},
+        {id: 4, name: 'Lily'},
+        {id: 5, name: 'Nike'},
+    ];
+
+    class UserListModel implements Model<UserListState> {
+
+        state: UserListState = {
+            source: [],
+            list: [],
+            filterName: '',
+            loading: false,
+        };
+
+        private load() {
+            return {...this.state, loading: true};
+        }
+
+        private unload() {
+            return {...this.state, loading: false};
+        }
+
+        private filterList(source: User[], filterName: string) {
+            const list = source!.filter(({name}) => name.startsWith(filterName));
+            return {...this.state, source, filterName, list};
+        }
+
+        private changeSource(source: User[] | null) {
+            const {filterName} = this.state;
+            return this.filterList(source || [], filterName);
+        }
+
+        // 使用 @flow() 将方法定性为工作流方法
+        @flow()
+        async loadSource() {
+            // 关键词 this 是一个 agent 代理对象，
+            // 因此可通过调用 this 中的 state 修改方法来修改 state，
+            // 这里调用 load 方法让 state.loading 为 true。
+            this.load();
+            try {
+                // 获取远程服务器数据
+                const source: User[] = await new Promise((resolve) => {
+                    resolve([...dataSource]);
+                });
+                // 调用 changeSource 修改 state.source
+                this.changeSource(source);
+            } finally {
+                // 最后将 state.loading 置为 false，结束本次查询
+                this.unload();
+            }
+        }
+
+    }
+
+    test('使用工作流方法来组织 state 更新，完成查询流程', async () => {
+        const {agent, connect, disconnect} = create(UserListModel);
+        const changes: string[] = [];
+        connect((action) => {
+            changes.push(action.type);
+        });
+        // 3次修改 state: load, changeSource, unload
+        await agent.loadSource();
+        expect(agent.state.source).toEqual(dataSource);
+        expect(changes.length).toBe(3);
+        disconnect();
+    });
+
+});
+```
+
+上例中，我们通过在 loadSource 方法中调用 `load`, `changeSource`, `unload` 等方法完成了一个标准的查询数据工作流。之后，我们将通过添加 `WorkFlow` 来完成一个体验较好的搜索过滤方法。
+
+```typescript
+import {Flows, flow, create, effect, Model} from "agent-reducer";
+
+describe('how to use flow', () => {
+
+    type User = {
+        id: number,
+        name: string
+    };
+
+    type UserListState = {
+        source: User[] | null,
+        list: User[],
+        filterName: string,
+        loading: boolean,
+    }
+
+    const dataSource: User[] = [
+        {id: 1, name: 'Jimmy'},
+        {id: 2, name: 'Jacky'},
+        {id: 3, name: 'Lucy'},
+        {id: 4, name: 'Lily'},
+        {id: 5, name: 'Nike'},
+    ];
+
+    class UserListModel implements Model<UserListState> {
+
+        state: UserListState = {
+            source: [],
+            list: [],
+            filterName: '',
+            loading: false,
+        };
+
+        private load() {
+            return {...this.state, loading: true};
+        }
+
+        private changeFilterName(filterName: string) {
+            return {...this.state, filterName};
+        }
+
+        private changeSource(source: User[] | null) {
+            const {filterName} = this.state;
+            return this.filterList(source || [], filterName);
+        }
+
+        private unload() {
+            return {...this.state, loading: false};
+        }
+
+        private filterList(source: User[], filterName: string) {
+            const list = source!.filter(({name}) => name.startsWith(filterName));
+            return {...this.state, source, filterName, list};
+        }
+
+        // 设置一个 debounce 节流模式
+        @flow(Flows.debounce(200))
+        private filterDebounce() {
+            const {source, filterName} = this.state;
+            this.filterList(source || [], filterName);
+        }
+
+        // 使用 @flow() 将方法定性为工作流方法，
+        // 使用 Flows.latest() 作为当前方法的工作流模式，
+        // 从而让最新运行的方法修改 state 数据生效。
+        @flow(Flows.latest())
+        async loadSource() {
+            // 关键词 this 是一个 agent 代理对象，
+            // 因此可通过调用 this 中的 state 修改方法来修改 state，
+            // 这里调用 load 方法让 state.loading 为 true。
+            this.load();
+            try {
+                // 获取远程服务器数据
+                const source: User[] = await new Promise((resolve) => {
+                    resolve([...dataSource]);
+                });
+                // 调用 changeSource 修改 state.source
+                this.changeSource(source);
+            } finally {
+                // 最后将 state.loading 置为 false，结束本次查询
+                this.unload();
+            }
+        }
+
+        @flow()
+        changeFilterNameThenFilter(filterName:string){
+            this.changeFilterName(filterName);
+            // 当被调用工作流方法没有工作模式时，会采取当前调用者的工作模式环境，
+            // 因为 filterDebounce 有自己的工作模式，
+            // 因此它会采用原来的 debounce 工作模式运行
+            this.filterDebounce();
+        }
+
+    }
+
+    test('flow 方法互相调用时，工作模式不会互相影响', async () => {
+        const {agent, connect, disconnect} = create(UserListModel);
+        const changes: string[] = [];
+        connect(({state}) => {
+            changes.push(state);
+        });
+        // 3个修改 state 方法: load, changeSource, unload
+        await agent.loadSource();
+        // 1个修改 state 方法: changeFilterName, 
+        // filterList 被 debounce 推迟执行，因此会被后一个连续调用取消
+        agent.changeFilterNameThenFilter('Lucy');
+        // 2个修改 state 方法: changeFilterName, filterList
+        agent.changeFilterNameThenFilter('Lily');
+        await new Promise((resolve) => setTimeout(resolve,500));
+
+        expect(changes.length).toBe(6);
+        expect(agent.state.list).toEqual([{id: 4, name: 'Lily'}]);
+        disconnect();
+    });
+
+});
+```
+
+如果希望对某个内部调用的工作流方法使用临时性的`工作流模式`，可以使用 API `flow.force`。
+
+```typescript
+import {Flows, flow, create, effect, middleWare, MiddleWarePresets, Model} from "agent-reducer";
+
+describe('use `flow.force` API',()=>{
+
+    type User = {
+        id?: number,
+        username: string,
+        role?: 'master' | 'user' | 'guest',
+        password?: string
+        name?: string,
+        age?: number,
+        sex?: 'male' | 'female'
+    };
+
+    class UserModel implements Model<User> {
+
+        state: User = {
+            username: 'guest'
+        };
+
+        changeUserName(username: string) {
+            return {...this.state, username};
+        }
+
+        updateUser(user: User): User {
+            return user;
+        }
+
+        @flow(Flows.debounce(200))
+        async fetchUser(username: string) {
+            const user: User = await new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    resolve({
+                        id: 1,
+                        username: username,
+                        name: username,
+                        role: 'user',
+                        age: 20
+                    } as User);
+                });
+            });
+            this.updateUser(user);
+        }
+
+        @effect(() => UserModel.prototype.changeUserName)
+        effectOfKeyUsername() {
+            // 'flow.force' 可以临时变更工作模式
+            flow.force(this,Flows.default()).fetchUser(this.state.username);
+        }
+
+    }
+
+    test('if you want to rewrite the `WorkFlow` of a inside flow method, you can use `flow.force`', async () => {
+        const {agent, connect, disconnect} = create(UserModel);
+        const nameChanges: string[] = [];
+        connect(({state}) => {
+            if (!state.name) {
+                return;
+            }
+            nameChanges.push(state.name);
+        });
+        agent.changeUserName('a');
+        agent.changeUserName('ab');
+        await new Promise((resolve) => setTimeout(resolve));
+
+        expect(nameChanges).toEqual(['a','ab']);
+        disconnect();
+    });
+
+});
+```
+
+## 替身
+
+在使用模型工作流的过程中，我们常常还需要加入 UI 调用，中断等待数据处理等步骤来完善任务。如果直接调用 UI 函数，以及部分平台相关的外部数据等待函数，那么我们的模型将被当前平台所束缚，失去了该有的易迁移特性。
+
+至 `agent-reducer@4.3.1` ，我们在体验版中新增了 `avatar` API，用于代替 UI 及平台相关操作，从而降低模型对平台的依赖性。
+
+`avatar` 替身是一种对 `代数效应 (Algebraic Effects)` 设计模式的实现。我们通过预设一系列只通过入参直接返回默认值的函数来做替身，并在模型中直接使用替身函数来做临时工作，然后在外部平台层，通过 `avatar(interface).implement(impl)` 来实现当前替身在平台运行环境中的代码。在模型 flow 工作流调用的时候，`avatar(interface).current` 会根据已实现的 `impl` 和替身 `interface` 来决定该用哪一个来工作。如被使用接口在 `impl` 中存在，则会直接使用，否则用替身 `interface` 中对应的接口来做弥补。
+
+简单实用 avatar :
+
+```typescript
+import {
+    Flows, 
+    flow, 
+    create, 
+    effect,
+    avatar,
+    Model
+} from "agent-reducer";
+
+describe('how to use global avatar', () => {
+
+    type User = {
+        id: number,
+        name: string
+    };
+
+    type UserListState = {
+        source: User[] | null,
+        loading: boolean,
+    }
+
+    const dataSource: User[] = [
+        {id: 1, name: 'Jimmy'},
+        {id: 2, name: 'Jacky'},
+        {id: 3, name: 'Lucy'},
+        {id: 4, name: 'Lily'},
+        {id: 5, name: 'Nike'},
+    ];
+
+    const prompt = avatar({
+        success:(info:string)=>undefined,
+        error:(e:any)=>undefined
+    });
+
+    class UserListModel implements Model<UserListState> {
+
+        state: UserListState = {
+            source: [],
+            loading: false,
+        };
+
+        private load() {
+            return {...this.state, loading: true};
+        }
+
+        private changeSource(source: User[] | null) {
+            return {...this.state, source};
+        }
+
+        private unload() {
+            return {...this.state, loading: false};
+        }
+
+        @flow(Flows.latest())
+        async loadSource() {
+            this.load();
+            try {
+                const source: User[] = await new Promise((resolve) => {
+                    resolve([...dataSource]);
+                });
+                this.changeSource(source);
+                // 弹出 `fetch success` 提示信息框
+                prompt.current.success('fetch success!');
+            } catch (e) {
+                // 弹出错误提示框
+                prompt.current.error(e);
+            }finally {
+                this.unload();
+            }
+        }
+
+    }
+
+    test('如果希望在工作流中调用平台相关效果API，可使用 API `avatar`', async () => {
+        const success = jest.fn().mockImplementation((info:string)=>console.log(info));
+        // 实现替身接口函数
+        const destroy] = prompt.implement({
+            success,
+        });
+        const {agent, connect, disconnect} = create(UserListModel);
+        connect();
+        await agent.loadSource();
+        expect(success).toBeCalledTimes(1);
+        disconnect();
+        // 在不再需要替身时，可以销毁它
+        destroy();
+    });
+
+});
+```
+
+如果希望每个模型实例拥有不同的替身实现，可以将替身挂在模型里，并对不同的模型实例提供的替身进行实现。
+
+```typescript
+import {
+    Flows, 
+    flow, 
+    create, 
+    effect,
+    avatar,
+    Model
+} from "agent-reducer";
+
+describe('how to use model avatar', () => {
+
+    type User = {
+        id: number,
+        name: string
+    };
+
+    type UserListState = {
+        source: User[] | null,
+        list: User[],
+        filterName: string,
+        loading: boolean,
+    }
+
+    const dataSource: User[] = [
+        {id: 1, name: 'Jimmy'},
+        {id: 2, name: 'Jacky'},
+        {id: 3, name: 'Lucy'},
+        {id: 4, name: 'Lily'},
+        {id: 5, name: 'Nike'},
+    ];
+
+    class UserListModel implements Model<UserListState> {
+
+        state: UserListState = {
+            source: [],
+            list: [],
+            filterName: '',
+            loading: false,
+        };
+
+        prompt = avatar({
+            success:(info:string)=>undefined,
+            error:(e:any)=>undefined
+        });
+
+        private load() {
+            return {...this.state, loading: true};
+        }
+
+        private changeSource(source: User[] | null) {
+            return {...this.state,source}
+        }
+
+        private unload() {
+            return {...this.state, loading: false};
+        }
+
+        @flow(Flows.latest())
+        async loadSource() {
+            this.load();
+            try {
+                const source: User[] = await new Promise((resolve) => {
+                    resolve([...dataSource]);
+                });
+                this.changeSource(source);
+                // 弹出 `fetch success` 提示信息框
+                this.prompt.current.success('fetch success!');
+            } catch (e) {
+                // 弹出错误提示信息框
+                this.prompt.current.error(e);
+            }finally {
+                this.unload();
+            }
+        }
+
+    }
+
+    test('If you want to use `avatar` in model, please build avatar inside model', async () => {
+        const success = jest.fn().mockImplementation((info:string)=>console.log(info));
+
+        const {agent, connect, disconnect} = create(UserListModel);
+        const {agent:another, connect:anotherConnect, disconnect:anotherDisconnect} = create(UserListModel);
+        // 为不同的模型实例实现替身接口
+        const destroy = agent.prompt.implement({
+            success,
+        });
+        connect();
+        anotherConnect();
+        await agent.loadSource();
+        await another.loadSource();
+        // agent.prompt 被实现了，但 another 没有
+        expect(success).toBeCalledTimes(1);
+        disconnect();
+        anotherDisconnect();
+        // 如果不再使用可以销毁掉
+        destroy();
+    });
+
+});
+```
+
+## 副作用 decorator 装饰器用法
+
+添加副作用的 decorator API 为 [effect](/zh/api?id=effect)。被该 decorator 函数修饰的方法将被作为副作用回调来使用，而副作用监听目标为该函数入参，如：`effect('*')` 表示监听所有 state 变化，如传入当前模型方法提供函数，则监听该目标下的指定方法 `effect(()=>Model.prototype.method)`。
+
+装饰器副作用回调方法会在触发时被绑定到一个临时创建的当前模型代理 agent 对象上。所以该方法中的关键词 `this` 是个代理对象。这方便使用者在回调方法中调用其他方法，从而修改 state 数据。该用法加入的副作用方法没有 `addEffect(callback, model)` 的首次加载调用效果。
+
+副作用方法其实也是一种工作流方法，因此它继承了工作流方法的几乎所有特性，除了能被直接调用。这里我们通过使用副作用方法来实现上述的查询过滤搜索模型。
+
+```typescript
+import {flow, create, effect, middleWare, MiddleWarePresets, Flows, Model} from "agent-reducer";
+
+describe('try decorator effect', () => {
+
+    type User = {
+        id: number,
+        name: string
+    };
+
+    type UserListState = {
+        source: User[]|null,
+        list: User[],
+        filterName: string,
+        loading: boolean,
+    }
+
+    const dataSource: User[] = [
+        {id: 1, name: 'Jimmy'},
+        {id: 2, name: 'Jacky'},
+        {id: 3, name: 'Lucy'},
+        {id: 4, name: 'Lily'},
+        {id: 5, name: 'Nike'},
+    ];
+
+    class UserListModel implements Model<UserListState> {
+
+        state: UserListState = {
+            source: [],
+            list: [],
+            filterName: '',
+            loading: false,
+        };
+
+        fetchSource() {
+            // 准备查询数据，进入 loading 状态
+            return {...this.state, loading: true};
+        }
+
+        changeFilterName(filterName: string) {
+            return {...this.state, filterName};
+        }
+
+        changeSource(source: User[]|null) {
+            return {...this.state, source, list: source};
+        }
+
+        finishLoading(){
+            return {...this.state,loading: false};
+        }
+
+        private filter() {
+            const {filterName, source} = this.state;
+            const list = source!.filter(({name}) => name.startsWith(filterName));
+            return {...this.state, list};
+        }
+
+        // 使用 Flows.debounce 模式
+        @flow(Flows.debounce(200))
+        // 监听 changeSource 和 changeFilterName 引起的 state 变更，
+        // 因为只有这两个方法引起的 state 变更能影响过滤结果
+        @effect(()=>UserListModel.prototype.changeSource)
+        @effect(() => UserListModel.prototype.changeFilterName)
+        filterEffect() {
+            // 运行 filter 普通 state 变更方法进行过滤
+            this.filter();
+        }
+
+        // 监听所有 state 变更
+        // effect 方法不能被直接调用，所以最好加上 private 私有化修饰。
+        // 为什么不使用 Flows.latest()？
+        // 因为 prevSate.loading === loading ||!loading 配合 latest 工作模式
+        // 可能会导致永久的 loading 激活状态，
+        // 所以 @effect('*') 要尽量少用，这里只是一个示例
+        @effect('*')
+        private async loadingEffect(prevSate: UserListState) {
+            const {loading} = this.state;
+            if (prevSate.loading === loading ||!loading) {
+                return;
+            }
+            try {
+                const source:User[] = await new Promise((resolve)=>{
+                    resolve([...dataSource]);
+                });
+                // 更新远程获取的数据
+                this.changeSource(source);
+            }finally {
+                // 在最后结束 loading 状态
+                this.finishLoading();
+            }
+
+        }
+
+    }
+
+    test('监听所有 state 变更', async () => {
+        const {agent, connect, disconnect} = create(UserListModel);
+        connect();
+        agent.fetchSource();
+        expect(agent.state.loading).toBe(true);
+        await new Promise((r)=>setTimeout(r));
+        // `loadingEffect` 最终会把 loading 设置为 false
+        expect(agent.state.loading).toBe(false);
+        disconnect();
+    });
+
+    test('监听指定的方法引起的 state 变更', async () => {
+        const {agent, connect, disconnect} = create(UserListModel);
+        connect();
+        agent.fetchSource();
+        expect(agent.state.loading).toBe(true);
+        await new Promise((r)=>setTimeout(r));
+        expect(agent.state.loading).toBe(false);
+        agent.changeFilterName('L');
+        await new Promise((r)=>setTimeout(r,220));
+        // `filterEffect` 会调用 filter 方法过滤数据
+        expect(agent.state.list).toEqual([
+            {id: 3, name: 'Lucy'},
+            {id: 4, name: 'Lily'},
+        ]);
+        disconnect();
+    });
+
+    test('不能直接通过 agent 代理调用 effect 方法',()=>{
+        const {agent, connect, disconnect} = create(UserListModel);
+        connect();
+        // 不能直接通过 agent 代理调用 effect 方法
+        expect(()=>agent.filterEffect).toThrow();
+        disconnect();
+    });
+
+    test('通过 API `flow.error`，我们可以拦截 effect 方法爆的错，也可以拦截工作流方法爆的错', async ()=>{
+        const {agent, connect, disconnect} = create(UserListModel);
+        connect();
+        let exception = '';
+        // 通过 API `flow.error`，我们可以拦截 effect 方法爆的错，也可以拦截工作流方法爆的错
+        flow.error(agent,(error, methodName)=>{
+            exception = `[${methodName}]: ${error.message}`;
+        });
+        agent.changeSource(null);
+        await new Promise((r)=>setTimeout(r,220));
+        expect(exception).not.toBe('');
+        disconnect();
+    });
+
+});
+
+```
+
+## WorkFlow 生命周期
+
+使用者可根据自己的需求自行添加工作流模式。
+
+```typescript
+export type LaunchHandler = {
+    shouldLaunch?:()=>boolean,
+    shouldUpdate?:()=>boolean,
+    didLaunch?:(result:any)=>any,
+    invoke?:(method:(...args:any[])=>any)=>((...args:any[])=>any);
+}
+
+export type FlowRuntime = {
+    state:Record<string, any>,
+    resolve:(result:any)=>any;
+    reject:(error:any)=>any
+};
+
+export type WorkFlow = (runtime:FlowRuntime)=>LaunchHandler;
+```
+
+详解：
+
+```typescript
+export function myFlow(runtime:FlowRuntime){
+    // 运行工作流方法运行前启动,用于初始化数据。
+    // runtime 的 state 为当前模型为当前工作模式分配的唯一缓存,
+    // state 初值为一个默认空 object {}
+    const state = runtime.state;
+    // resolve 可通知系统，方法正常结束
+    // reject 可通知系统，方法异常，并将异常值通知给 flow.error
+    const {resolve, reject} = runtime;
+    return {
+        shouldLaunch(){
+            // 初始化后运行，依然先于工作流方法运行。
+            // 可利用缓存通过返回 true, false 来启动或阻止工作流方法运行
+            return true;
+        },
+        shouldUpdate(){
+            // 工作流方法运行过程中，
+            // 在每次调用 state 更新方法前运行，
+            // 利用缓存通过返回 true, false 来允许或禁止 state 数据更新。
+            return true;
+        },
+        didLaunch(result:any){
+            // 运行工作流方法结束后运行，
+            // 可利用工作流方法运行产生的结果 result 做些事情。
+            // 比如利用 reject 将异常通知到 flow.error 监听事件
+        },
+        reLaunch(method){
+            // 从写当前被调用方法
+            return function wrapMethod(...args:any[]){
+                return method(...args);
+            }
+        },
+    }
+}
+```
+
 [下一章](/zh/feature?id=特性)我们将介绍一些非常有用的特性，请不要错过。
 

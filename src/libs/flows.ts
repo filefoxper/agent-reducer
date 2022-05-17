@@ -4,7 +4,7 @@ import { isPromise } from './util';
 function promise():WorkFlow {
   return function process(runtime:FlowRuntime):LaunchHandler {
     return {
-      reLaunch(method) {
+      invoke(method) {
         return function promiseMethod(...args:any[]) {
           try {
             const result = method(...args);
@@ -30,12 +30,12 @@ export class Flows {
 
   static latest():WorkFlow {
     return function process(runtime:FlowRuntime):LaunchHandler {
-      const { cache } = runtime;
-      const version = (cache.version || 0) + 1;
-      cache.version = version;
+      const { state } = runtime;
+      const version = (state.version || 0) + 1;
+      state.version = version;
       return {
         shouldUpdate() {
-          return cache.version === version;
+          return state.version === version;
         },
       };
     };
@@ -44,26 +44,26 @@ export class Flows {
   static debounce(ms:number, leading?:boolean):WorkFlow {
     if (leading) {
       return function leadingProcess(runtime:FlowRuntime):LaunchHandler {
-        const { cache } = runtime;
-        clearTimeout(cache.id);
-        cache.active = false;
-        cache.id = setTimeout(() => {
-          cache.active = true;
+        const { state } = runtime;
+        clearTimeout(state.id);
+        state.active = false;
+        state.id = setTimeout(() => {
+          state.active = true;
         }, ms);
         return {
           shouldLaunch() {
-            return cache.active;
+            return state.active;
           },
         };
       };
     }
     return function process(runtime:FlowRuntime):LaunchHandler {
-      const { cache } = runtime;
+      const { state } = runtime;
       return {
-        reLaunch(method) {
+        invoke(method) {
           return function debMethod(...args:any[]) {
-            clearTimeout(cache.id);
-            cache.id = setTimeout(() => {
+            clearTimeout(state.id);
+            state.id = setTimeout(() => {
               method(...args);
             }, ms);
           };

@@ -629,6 +629,86 @@ export declare function addEffect<S=any, T extends Model<S> = Model>(
 
 查看更多[细节](/zh/guides?id=effect)。
 
+## flow
+
+用于标识一个工作流方法，工作流方法中的关键词 `this` 是一个 agent 代理对象。通过给 `@flow(...)` 传入不通的 `WorkFlow` 工作模式，可以选择不通的方法运行模式。如：`@flow(Flows.latest())`。
+
+```typescript
+export type WorkFlow = (runtime:FlowRuntime)=>LaunchHandler;
+
+declare type FlowFn =((...flows:WorkFlow[])=>MethodDecoratorCaller)&{
+    force:<S, T extends Model<S>>(target:T, workFlow?:WorkFlow)=>T,
+    error:<
+        S=any,
+        T extends Model<S>=Model<S>
+        >(model:T, listener:ErrorListener)=>(()=>void)
+}
+
+export declare const flow:FlowFn;
+```
+
+* flow.force - 在工作流方法中强制其他被调用工作流方法的工作模式，如：`flow.force(this, Flows.latest()).flowMethod()`，如不提供工作模式，则作为当前工作流方法的一部分工作，如：：`flow.force(this).flowMethod()`。
+* flow.error - 用于监听模型中的工作流方法异常。`flow.error(model, (error:any)=>{......})`
+
+返回一个 decorator function。
+
+## Flows
+
+工作模式集合，目前有：`Flows.latest()` 和 `Flows.debounce()` 两个成员。
+
+```typescript
+export class Flows {
+
+  static default():WorkFlow;
+
+  static latest():WorkFlow;
+
+  static debounce(ms:number, leading?:boolean):WorkFlow;
+}
+```
+
+* Flows.default - 默认工作模式，和无传参的 `@flow()` 等效。
+* Flows.latest - 只允许最新工作流方法产生的 state 变更生效.
+* Flows.debounce - 使工作流方法以 debounce 防抖模式运行. 
+
+## effect
+
+[addEffect](/zh/api?id=addeffect) API 的 `ES6 decorator` 模式。添加该 decorator 装饰器的模型方法会被当作`副作用回调函数`，监听目标默认为当前模型实例，而 `effect` 入参函数返回的`模型方法`将被当作被监听的目标方法。
+
+```typescript
+export declare function effect<S=any, T extends Model<S>=Model>(
+    method?:()=>(...args:any[])=>any,
+):MethodDecoratorCaller
+```
+
+* method - 可选，返回被监听的目标方法的回调函数，必须为当前模型方法。
+
+查看更多[细节](/zh/guides?id=副作用-decorator-装饰器用法)。
+
+## avatar
+
+维护一个替身接口对象，在使用时，根据已分配的实现接口运行。若接口已实现，则运行已经实现的接口，否则运行默认接口。
+
+```typescript
+export type Avatar<T extends Record<string, any>> = {
+    current:T,
+    implement:(impl:Partial<T>)=>()=>void;
+};
+
+export declare function avatar<
+    T extends Record<string, unknown>
+    >(interfaces:T):Avatar<T>;
+```
+
+* interfaces - 默认接口对象。
+
+返回 Avatar 对象：
+
+* current - 默认接口与实现接口合并后的接口集合。
+* implement - 实现方法，传入的 `impl` 对象作为实现接口。
+
+该方法主要用作平台接口与模型的交接。
+
 ## experience
 
 用于开启体验模式。

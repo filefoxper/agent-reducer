@@ -3,36 +3,36 @@ import {
   Model,
   FlowRuntime,
   LaunchHandler,
-  WorkFlow, ErrorListener,
+  WorkFlow,
+  ErrorListener,
 } from './global.type';
 import { noop, validate } from './util';
 import {
   agentActMethodAgentLevelKey,
-  agentCallingMiddleWareKey, agentFlowForceWorkFlow,
-  agentMethodActsKey, isAgent,
+  agentCallingMiddleWareKey,
+  agentFlowForceWorkFlow,
+  agentModelFlowMethodKey,
+  isAgent,
 } from './defines';
 import { defaultFlow } from './flows';
-import { validateExperience } from './experience';
 import { subscribeError } from './error';
 import { copyAgentWithEnv } from './agent';
 
 export default function flow(
   ...flows:WorkFlow[]
 ):MethodDecoratorCaller {
-  validateExperience();
-  const workableActor = flows.length ? applyActors(...flows, defaultFlow) : noop;
-  return function actDecorator<S=any, T extends Model<S>=Model<S>>(target:T, p:string) {
-    validate(typeof (p as unknown) === 'string', 'The `act` decorator can not use on class');
+  const workableActor = flows.length ? applyFlows(...flows, defaultFlow) : noop;
+  return function flowDecorator<S=any, T extends Model<S>=Model<S>>(target:T, p:string) {
+    validate(typeof (p as unknown) === 'string', 'The `flow` decorator can not use on class');
     const source = target[p];
     const methodMiddleWare = source[agentCallingMiddleWareKey];
-    validate(!methodMiddleWare, 'The `act` decorator can not use with method middleWare');
-    source[agentMethodActsKey] = workableActor;
+    validate(!methodMiddleWare, 'The `flow` decorator can not use with method middleWare');
+    source[agentModelFlowMethodKey] = workableActor;
     return source;
   };
 }
 
 flow.force = function force<S=any, T extends Model<S>=Model<S>>(target:T, workFlow?:WorkFlow):T {
-  validateExperience();
   if (!isAgent(target) || !target[agentActMethodAgentLevelKey]) {
     validate(false, 'API `flow.force(...)` can only work in an flow method');
     return target;
@@ -50,21 +50,20 @@ flow.error = function error<
     S=any,
     T extends Model<S>=Model<S>
     >(model:T, listener:ErrorListener):(()=>void) {
-  validateExperience();
   return subscribeError<S, T>(model, listener);
 };
 
-export function applyActors(...actors:WorkFlow[]) {
-  return function actor(runtime:FlowRuntime):LaunchHandler {
-    const { cache } = runtime;
-    actors.forEach((a, i) => {
-      if (!cache[i]) {
-        cache[i] = {};
+export function applyFlows(...workFlows:WorkFlow[]) {
+  return function composedFlow(runtime:FlowRuntime):LaunchHandler {
+    const { state } = runtime;
+    workFlows.forEach((a, i) => {
+      if (!state[i]) {
+        state[i] = {};
       }
     });
-    const handlers = actors.map((ac, i) => {
-      const currentRuntime = { ...runtime, cache: cache[i] };
-      return ac(currentRuntime);
+    const handlers = workFlows.map((wf, i) => {
+      const currentRuntime = { ...runtime, state: state[i] } as FlowRuntime;
+      return wf(currentRuntime);
     });
     return {
       shouldLaunch() {
@@ -104,9 +103,9 @@ export function applyActors(...actors:WorkFlow[]) {
           return r;
         }, result);
       },
-      reLaunch(method:(...args:any[])=>any) {
-        const reLaunches = handlers.map(({ reLaunch }) => reLaunch);
-        return [...reLaunches].reverse().reduce((r, c) => {
+      invoke(method:(...args:any[])=>any) {
+        const invokes = handlers.map(({ invoke }) => invoke);
+        return [...invokes].reverse().reduce((r, c) => {
           if (c == null) {
             return r;
           }

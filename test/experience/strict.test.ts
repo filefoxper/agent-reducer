@@ -1,25 +1,9 @@
-# 体验特性与API
-
-`agent-reducer@4.2.0` 重新开启了体验版特性与 API。它们可能在后续版本中发生更改，建议在非生产环境中进行试验和使用。可以通过将 `process.env.AGENT_REDUCER_EXPERIENCE` 设置为 `OPEN` ，并开启[手动编译 agent-reducer](/zh/introduction?id=手动编译) 来开启体验模式。另外在全局使用 API [experience](/zh/api?id=experience) 也可以开启体验模式。
-
-## 引导
-
-目前，在 `agent-reducer` 模型中所有，几乎所有非 flow（工作流） 的方法，都是 action method (能修改 state 的行为方法），因此想要在 flow 中组织并使用一些公共方法是比较困难的，为此我们准备提供一些更显式的 decorator 声明来帮助大家组织这类需要使用 this.state 却不修改数据的公共方法。
-
-### Action Method 显式声明与 Strict 严格模式（体验）
-
-为了更显式的区分出可修改 state 的行为方法，我们可以采用 `@act()` 装饰器进行标识。当系统检测到模型方法中含有 [act](/zh/experience?id=act（体验）) 声明行为方法时会自动启用 [strict](/zh/experience?id=strict（体验）) 严格模式。
-
-在严格模式下，只有声明了 act 的方法才是能修改 state 的行为方法，其他非工作流（flow）的普通方法只能作为公共方法被调用，从而失去了原来修改 state 的行为特性。
-
-如果希望强行进入严格模式，可以在模型 class 上标识 strict，在强制 strict 模式下，如果没有检测到 act 标识则会爆出异常。用法 `@strict` 。
-
-```typescript
-import {act, flow, Flows, strict,experience,create,Model} from "agent-reducer";
+import {act, flow, Flows, strict,experience,create} from "../../src";
+import {Model} from "../../index";
 
 experience();
 
-describe('严格模式和显式行为',()=>{
+describe('test of strict',()=>{
 
     type User = {
         id: number,
@@ -40,7 +24,7 @@ describe('严格模式和显式行为',()=>{
         {id: 5, name: 'Nike'},
     ];
 
-    test('在严格模式下，需要通过 `act` API 标识 state 更迭方法（行为方法）',async ()=>{
+    test('When use `strict` mode, you have to mark out which `method` can generate a new state',async ()=>{
         @strict()
         class UserListModel implements Model<UserListState> {
 
@@ -50,7 +34,8 @@ describe('严格模式和显式行为',()=>{
                 loading: false,
             };
 
-            // 严格模式下，只有 act 修饰方法能修改 state
+            // in strict mode,
+            // only the method with `act` decorator can generate new state
             @act()
             private load():UserListState {
                 return {...this.state, loading: true};
@@ -81,15 +66,15 @@ describe('严格模式和显式行为',()=>{
 
         const {agent,connect,disconnect} = create(UserListModel);
         connect();
-        // 只有 load 方法符合行为方法，
-        // 所以只有 load 方法会引起 state 变更
+        // only load method is act method,
+        // so, only load method can generate new state
         await agent.loadSource();
         expect(agent.state.loading).toBe(true);
         disconnect();
     });
 
-    test('`act` 修饰器会让系统对当前模型自动使用 strict 严格模式',async ()=>{
-        // `act` 修饰器会让系统对当前模型自动使用 strict 严格模式
+    test('The `act` decorator can lead model to strict automatically',async ()=>{
+        // the `act` decorator can lead model to strict automatically
         class UserListModel implements Model<UserListState> {
 
             state: UserListState = {
@@ -98,7 +83,8 @@ describe('严格模式和显式行为',()=>{
                 loading: false,
             };
 
-            // 严格模式下，只有 act 修饰方法能修改 state
+            // in strict mode,
+            // only the method with `act` decorator can generate new state
             @act()
             private load():UserListState {
                 return {...this.state, loading: true};
@@ -129,14 +115,14 @@ describe('严格模式和显式行为',()=>{
 
         const {agent,connect,disconnect} = create(UserListModel);
         connect();
-        // 只有 load 方法符合行为方法，
-        // 所以只有 load 方法会引起 state 变更
+        // only load method is act method,
+        // so, only load method can generate new state
         await agent.loadSource();
         expect(agent.state.loading).toBe(true);
         disconnect();
     });
 
-    test('在 strict 严格模式下，如没有检测到有 `act` 修饰方法，则报错',()=>{
+    test('In `strict` mode, if there is no `act` decorated method, it will lead to an error',()=>{
         @strict()
         class Counter {
 
@@ -152,22 +138,3 @@ describe('严格模式和显式行为',()=>{
     })
 
 })
-```
-
-## API
-
-### act（体验）
-
-用于标识行为方法，并同时进入严格模式。
-
-```typescript
-export declare function act():MethodDecoratorCaller;
-```
-
-### strict（体验）
-
-用于把当前模型强行标记为严格模式，并检查模型方法是否包含 act 行为方法。严格模式下，只有 act 修饰方法才能更迭 state。
-
-```typescript
-export declare function strict():DecoratorCaller;
-```

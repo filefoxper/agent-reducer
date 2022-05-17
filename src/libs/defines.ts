@@ -34,13 +34,17 @@ export const agentRunningEffectsKey = '@@agent-running-effects';
 
 export const agentModelWorking = '@@agent-model-working';
 
-export const agentMethodActsKey = '@@agent-method-acts';
+export const agentModelFlowMethodKey = '@@agent-model-flow-method';
 
 export const agentConnectorKey = '@@agent-connector';
 
 export const agentModelMethodsCacheKey = '@@agent-model-methods-cache';
 
 export const agentModelInstanceInitialedKey = '@@agent-model-instance-initialed';
+
+export const agentStrictModelKey = '@@agent-strict-model';
+
+export const agentStrictModelActMethodKey = '@@agent-strict-model-act-method';
 
 export enum DefaultActionType {
   DX_INITIAL_STATE = '@@AGENT_REDUCER_INITIAL_STATE',
