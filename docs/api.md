@@ -643,6 +643,83 @@ It returns a `effect` object, which provides `update` and `unmount` methods. The
 
 To check more [details](/guides?id=effect).
 
+## flow
+
+A `ES6 decorator` function which is used for marking a method to be a work flow method.
+
+```typescript
+export type WorkFlow = (runtime:FlowRuntime)=>LaunchHandler;
+
+declare type FlowFn =((...flows:WorkFlow[])=>MethodDecoratorCaller)&{
+    force:<S, T extends Model<S>>(target:T, workFlow?:WorkFlow)=>T,
+    error:<
+        S=any,
+        T extends Model<S>=Model<S>
+        >(model:T, listener:ErrorListener)=>(()=>void)
+}
+
+export declare const flow:FlowFn;
+```
+
+* flows - optional, used to control how to run a flow method. You can select them from [Flows](/experience?id=flows-experience).
+* flow.force - property function, used to force a inside flow method running on a special `WorkFlow`, for example: `flow.force(this, Flows.latest()).flowMethod()`, if you want the inside flow method just work as part of the current running flow method, you can provide no `WorkFlow` param for it, for example: `flow.force(this).flowMethod()`.
+* flow.error - property function, used to listen the error from `flow methods`.
+
+return a decorator callback.
+
+## Flows
+
+A set class for storing common `WorkFlows`.
+
+```typescript
+export class Flows {
+
+  static default():WorkFlow;
+
+  static latest():WorkFlow;
+
+  static debounce(ms:number, leading?:boolean):WorkFlow;
+}
+```
+
+* Flows.default - use default work flow, which just like `@flow()`.
+* Flows.latest - to take state changes which is leaded by the newest calling of a flow method.
+* Flows.debounce - to make the flow method work with a debounce effect. 
+
+## effect
+
+The `ES6 decorator` usage of [addEffect](/api?id=addeffect). It makes the working instance of current class as effect target. If you want to listen to the state changes from a specific method, you can give it a callback which returns method as param.
+
+```typescript
+export declare function effect<S=any, T extends Model<S>=Model>(
+    method?:()=>(...args:any[])=>any,
+):MethodDecoratorCaller
+```
+
+* method - optional, a callback which returns `Class.prototype.method` as the target method for state change listening.
+
+## avatar
+
+Create an avatar object for outside interfaces.
+
+```typescript
+export type Avatar<T extends Record<string, any>> = {
+    current:T,
+    implement:(impl:Partial<T>)=>()=>void;
+};
+
+export declare function avatar<
+    T extends Record<string, unknown>
+    >(interfaces:T):Avatar<T>;
+```
+
+* interfaces - provide a default simulate `interfaces object`, if the used function from implements is not exist, it will provide the right function for a replace.
+
+return Avatar object:
+
+* current - the current working interfaces object. If the used function from implements is not exist, it will take the right function from `interfaces object` for a replace.
+* implement - callback, accept a implement object for `interfaces object`.
+
 ## experience
 
 This API is used for using new features or APIs which are still in  experience mode.

@@ -89,6 +89,7 @@ export function validate(check: boolean, errorMessage:string):void {
   throw new Error(errorMessage);
 }
 
+/* eslint-disable no-console */
 export function warn(error:Error):void {
   if (typeof console !== 'undefined' && typeof console.error === 'function') {
     console.error(error);

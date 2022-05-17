@@ -4,32 +4,24 @@ We have add some experience features and APIs. These features and APIs may be ch
 
 ## Guides
 
-Before `agent-reducer@4.2.0`, we have to write `data request` in a state changable method, and add `middleWares` to make it work as we wish like `MiddleWares.takePromiseResolve()`. Now we add `effect` and `flow` system directly to our model, and we can use them to split the code about `data request` and `state change`. For doing that, we can use less `middleWare` (the best way is not using `middleWare`). 
+Sometimes, we want to extract some common codes to be a common method for usage. But, it is not easy to distinguish the action methods (the methods which can update state) and common methods. 
 
-Why not `middleWare`? The `middleWare` system works well, but there are some problems:
+To resolve this problem and support the common methods in model, we add some new decorators.
 
-1. too complex, no matter how flex it is, we have to know the `MiddleWare thinking` is too complex, it need you consider too much things like: `how to keep state change one by one`, `which part of middleWare works first` and so on.
-2. can not catch error from `middleWare` like `takeUnstableDebounce`.
-3. some `middleWares` like `takeNothing` is not natural enough for usage.
-4. `runtime` has too much properies which are not easy to understand.
+### Strict and Act
 
-The `flow` decorator can resolve these problem, and with it, you can stop considering the state change order problem.
+The decorator API `act` marks out the methods which you want to use as action methods, and it will force the model to a strict mode. 
 
-### Flow (experience)
+If a model is working in a strict mode, only the methods with decorator `act` can update state.
 
-We have used to write a model class with some action methods for reducing next state, and write more complex work flow codes outside the model. For example, when we want to complete a page query work, we need to make it loading first, then deploy a model method to fetch data and change model state, finally, we should turn off the loading. So, we have to do things to change loading state outside the model, or write turn up and turn off loading code in different methods. it split one work flow to different parts. 
-
-Now, we suppose you to try decorator `@flow`, and join these work flow parts
-together inside a model method. We call this method a `flow method`.
-
-In a `flow method`, keyword `this` is an agent object created temporarily for a work flow. That means you can call normal `action methods` in these `flow methods` for state process and state change. 
-
-The below codes shows how to use `@flow`.
+If you want to force a model to strict mode, you can use class decorator `strict`. It can check out if there are some `act` decorated action methods, and throw error when no `act` decorated method is detected.
 
 ```typescript
-import {Flows, flow, create, effect, experience, Model} from "agent-reducer";
+import {act, flow, Flows, strict,experience,create,Model} from "agent-reducer";
 
-describe('how to use flow', () => {
+experience();
+
+describe('test of strict',()=>{
 
     type User = {
         id: number,
@@ -39,7 +31,6 @@ describe('how to use flow', () => {
     type UserListState = {
         source: User[] | null,
         list: User[],
-        filterName: string,
         loading: boolean,
     }
 
@@ -51,990 +42,136 @@ describe('how to use flow', () => {
         {id: 5, name: 'Nike'},
     ];
 
-    class UserListModel implements Model<UserListState> {
+    test('When use `strict` mode, you have to mark out which `method` can generate a new state',async ()=>{
+        @strict()
+        class UserListModel implements Model<UserListState> {
 
-        state: UserListState = {
-            source: [],
-            list: [],
-            filterName: '',
-            loading: false,
-        };
+            state: UserListState = {
+                source: [],
+                list: [],
+                loading: false,
+            };
 
-        private load() {
-            return {...this.state, loading: true};
-        }
-
-        private unload() {
-            return {...this.state, loading: false};
-        }
-
-        private filterList(source: User[], filterName: string) {
-            const list = source!.filter(({name}) => name.startsWith(filterName));
-            return {...this.state, source, filterName, list};
-        }
-
-        private changeSource(source: User[] | null) {
-            const {filterName} = this.state;
-            return this.filterList(source || [], filterName);
-        }
-
-        // use decorator flow to make a flow method
-        @flow()
-        async loadSource() {
-            // flow method can call action method to change state,
-            // and make `state.loading` to be `true`.
-            this.load();
-            try {
-                // fetch users from remote service
-                const source: User[] = await new Promise((resolve) => {
-                    resolve([...dataSource]);
-                });
-                // flow method can call action method to change state,
-                // and change source
-                this.changeSource(source);
-            } finally {
-                // after all jobs, we need to set loading to 'false'
-                this.unload();
+            // in strict mode,
+            // only the method with `act` decorator can generate new state
+            @act()
+            private load():UserListState {
+                return {...this.state, loading: true};
             }
-        }
 
-    }
-
-    test('try flow method, it can organize action methods together as a work flow', async () => {
-        const {agent, connect, disconnect} = create(UserListModel);
-        const changes: string[] = [];
-        connect((action) => {
-            changes.push(action.type);
-        });
-        // there are 3 action methods: load, changeSource, unload
-        await agent.loadSource();
-        expect(agent.state.source).toEqual(dataSource);
-        expect(changes.length).toBe(3);
-        disconnect();
-    });
-
-});
-```
-
-A flow method can use another one inside, and the inside one will lose its own `WorkFlow` mode, use the mode from current flow method.
-
-```typescript
-import {Flows, flow, create, effect, experience, Model} from "agent-reducer";
-
-describe('how to use flow', () => {
-
-    type User = {
-        id: number,
-        name: string
-    };
-
-    type UserListState = {
-        source: User[] | null,
-        list: User[],
-        filterName: string,
-        loading: boolean,
-    }
-
-    const dataSource: User[] = [
-        {id: 1, name: 'Jimmy'},
-        {id: 2, name: 'Jacky'},
-        {id: 3, name: 'Lucy'},
-        {id: 4, name: 'Lily'},
-        {id: 5, name: 'Nike'},
-    ];
-
-    class UserListModel implements Model<UserListState> {
-
-        state: UserListState = {
-            source: [],
-            list: [],
-            filterName: '',
-            loading: false,
-        };
-
-        private load() {
-            return {...this.state, loading: true};
-        }
-
-        private changeFilterName(filterName: string) {
-            return {...this.state, filterName};
-        }
-
-        private changeSource(source: User[] | null) {
-            const {filterName} = this.state;
-            return this.filterList(source || [], filterName);
-        }
-
-        private unload() {
-            return {...this.state, loading: false};
-        }
-
-        private filterList(source: User[], filterName: string) {
-            const list = source!.filter(({name}) => name.startsWith(filterName));
-            return {...this.state, source, filterName, list};
-        }
-
-        // use `Flows` to set a debounce work flow
-        @flow(Flows.debounce(200))
-        private filterDebounce() {
-            const {source, filterName} = this.state;
-            this.filterList(source || [], filterName);
-        }
-
-        // use decorator flow to make a flow method,
-        // set `Flows.latest()` to take the newest state changes of
-        // this flow method.
-        @flow(Flows.latest())
-        async loadSource() {
-            // flow method can call action method to change state,
-            // and make `state.loading` to be `true`.
-            this.load();
-            try {
-                // fetch users from remote service
-                const source: User[] = await new Promise((resolve) => {
-                    resolve([...dataSource]);
-                });
-                // flow method can call action method to change state,
-                // and change source
-                this.changeSource(source);
-            } finally {
-                // after all jobs, we need to set loading to 'false'
-                this.unload();
+            private changeSource(source: User[]):UserListState {
+                return {...this.state,source,list:source};
             }
-        }
 
-        @flow()
-        changeFilterNameThenFilter(filterName:string){
-            this.changeFilterName(filterName);
-            // the flow method called by others,
-            // keeps its own `WorkFlow`.
-            // So, it keeps `debounce` work flow mode.
-            this.filterDebounce();
-            // If you want to make inside flow method 
-            // works as part of the current method,
-            // and take the current method `WorkFlow` env,
-            // you should keep the inside one with no `WorkFlow`,
-            // like `@flow()`
-        }
-
-    }
-
-    test('An flow method can call another one with the same `WorkFlow`', async () => {
-        const {agent, connect, disconnect} = create(UserListModel);
-        const changes: string[] = [];
-        connect(({state}) => {
-            changes.push(state);
-        });
-        // there are 3 action methods: load, changeSource, unload
-        await agent.loadSource();
-        // there are 1 action methods: changeFilterName
-        agent.changeFilterNameThenFilter('Lucy');
-        // there are 2 action methods: changeFilterName, filterList
-        agent.changeFilterNameThenFilter('Lily');
-        await new Promise((resolve) => setTimeout(resolve,500));
-
-        expect(changes.length).toBe(6);
-        expect(agent.state.list).toEqual([{id: 4, name: 'Lily'}]);
-        disconnect();
-    });
-
-});
-```
-
-There is a way to catch the error throw from `flows` or `effects`.
-
-```typescript
-import {Flows, flow, create, effect, experience, middleWare, MiddleWarePresets, Model} from "agent-reducer";
-
-type User = {
-    id?:number,
-    username:string,
-    role?:'master'|'user'|'guest',
-    password?:string
-    name?:string,
-    age?:number,
-    sex?:'male'|'female'
-};
-
-class UserModel implements Model<User>{
-
-    state:User = {
-        username:'guest'
-    };
-
-    login(username:string,password:string):User{
-        return {username,password};
-    }
-
-    loginSuccess(user:User):User{
-        return user;
-    }
-
-    @middleWare(MiddleWarePresets.takePromiseResolve())
-    modifyPassword(oldPassword:string){
-        const {username} = this.state;
-        return new Promise((resolve, reject)=>{
-            if(username=='nike'&&oldPassword==='123'){
-                resolve({id:1,username:'nike',name:'nick',age:18,sex:'male',role:'guest'});
-            }else{
-                reject('error username or password');
+            private unload():UserListState {
+                return {...this.state, loading: false};
             }
-        });
-    }
 
-    @flow()
-    @effect(()=>UserModel.prototype.login)
-    async loginEffect(prevState:User){
-        const {username,password} = this.state;
-        if(!password){
-            throw new Error('password must not be empty');
-        }
-        return this.loginDirect(username,password);
-    }
-
-    @flow()
-    async loginDirect(username:string,password:string){4
-        const user:User = await new Promise((resolve, reject)=>{
-            if(username=='nike'&&password==='123'){
-                resolve({id:1,username:'nike',name:'nick',age:18,sex:'male',role:'guest'});
-            }else{
-                reject('error username or password');
+            @flow(Flows.latest())
+            async loadSource() {
+                this.load();
+                try {
+                    const source: User[] = await new Promise((resolve) => {
+                        resolve([...dataSource]);
+                    });
+                    this.changeSource(source);
+                } finally {
+                    this.unload();
+                }
             }
-        });
-        return this.loginSuccess(user);
-    }
 
-}
+        }
 
-describe('subscribe error',()=>{
-
-    test('try error username, and catch error by use API `act.error`',async ()=>{
-        const {agent, connect, disconnect} = create(UserModel);
+        const {agent,connect,disconnect} = create(UserListModel);
         connect();
-        let exception:string='';
-        flow.error(agent,(error,methodName)=>{
-            exception = `error from method "${methodName}":${error}`;
-        });
-        agent.login('nik','123');
-        await new Promise((resolve)=>setTimeout(resolve));
-
-        expect(exception).toBe(`error from method "loginEffect":error username or password`);
+        // only load method is act method,
+        // so, only load method can generate new state
+        await agent.loadSource();
+        expect(agent.state.loading).toBe(true);
         disconnect();
     });
 
-    test('try unError',async ()=>{
-        const {agent, connect, disconnect} = create(UserModel);
-        connect();
-        let exception:string='';
-        const unsubscribe = flow.error(agent,(error,methodName)=>{
-            exception = `error from method "${methodName}":${error}`;
-        });
-        agent.login('nike','123');
-        await Promise.resolve();
-        unsubscribe();
-        try {
-            await agent.modifyPassword('12');
-        }catch (e) {
-            expect(e).toBe('error username or password');
+    test('The `act` decorator can lead model to strict automatically',async ()=>{
+        // the `act` decorator can lead model to strict automatically
+        class UserListModel implements Model<UserListState> {
+
+            state: UserListState = {
+                source: [],
+                list: [],
+                loading: false,
+            };
+
+            // in strict mode,
+            // only the method with `act` decorator can generate new state
+            @act()
+            private load():UserListState {
+                return {...this.state, loading: true};
+            }
+
+            private changeSource(source: User[]):UserListState {
+                return {...this.state,source,list:source};
+            }
+
+            private unload():UserListState {
+                return {...this.state, loading: false};
+            }
+
+            @flow(Flows.latest())
+            async loadSource() {
+                this.load();
+                try {
+                    const source: User[] = await new Promise((resolve) => {
+                        resolve([...dataSource]);
+                    });
+                    this.changeSource(source);
+                } finally {
+                    this.unload();
+                }
+            }
+
         }
-        expect(exception).toBe('');
+
+        const {agent,connect,disconnect} = create(UserListModel);
+        connect();
+        // only load method is act method,
+        // so, only load method can generate new state
+        await agent.loadSource();
+        expect(agent.state.loading).toBe(true);
         disconnect();
     });
+
+    test('In `strict` mode, if there is no `act` decorated method, it will lead to an error',()=>{
+        @strict()
+        class Counter {
+
+            state = 0;
+
+            increase(){
+                return this.state+1;
+            }
+        }
+
+        const {connect} = create(Counter);
+        expect(()=>connect()).toThrow();
+    })
+
 })
-
-```
-
-If you want to change the `workFlow` of a inside flow method temporary, please use `flow.force` API.
-
-```typescript
-import {Flows, flow, create, effect, experience, middleWare, MiddleWarePresets, Model} from "agent-reducer";
-
-describe('use `flow.force` API',()=>{
-
-    type User = {
-        id?: number,
-        username: string,
-        role?: 'master' | 'user' | 'guest',
-        password?: string
-        name?: string,
-        age?: number,
-        sex?: 'male' | 'female'
-    };
-
-    class UserModel implements Model<User> {
-
-        state: User = {
-            username: 'guest'
-        };
-
-        changeUserName(username: string) {
-            return {...this.state, username};
-        }
-
-        updateUser(user: User): User {
-            return user;
-        }
-
-        @flow(Flows.debounce(200))
-        async fetchUser(username: string) {
-            const user: User = await new Promise((resolve, reject) => {
-                setTimeout(() => {
-                    resolve({
-                        id: 1,
-                        username: username,
-                        name: username,
-                        role: 'user',
-                        age: 20
-                    } as User);
-                });
-            });
-            this.updateUser(user);
-        }
-
-        @effect(() => UserModel.prototype.changeUserName)
-        effectOfKeyUsername() {
-            // 'flow.force' can force the `WorkFlow` of as inside flow method.
-            flow.force(this,Flows.default()).fetchUser(this.state.username);
-        }
-
-    }
-
-    test('if you want to rewrite the `WorkFlow` of a inside flow method, you can use `flow.force`', async () => {
-        const {agent, connect, disconnect} = create(UserModel);
-        const nameChanges: string[] = [];
-        connect(({state}) => {
-            if (!state.name) {
-                return;
-            }
-            nameChanges.push(state.name);
-        });
-        agent.changeUserName('a');
-        agent.changeUserName('ab');
-        await new Promise((resolve) => setTimeout(resolve));
-
-        expect(nameChanges).toEqual(['a','ab']);
-        disconnect();
-    });
-
-});
-```
-
-### avatar (experience)
-
-Flow can do many thing to compose requests and state change methods together as a work flow. Sometimes, we even want to use the interface functions from platform, but, use these interfaces directly in model is not a good idea. That make model difficult to move to other platforms.
-
-Now, we add a new API `avatar` to resolve this problem. `Avatar` use the `Algebraic Effects` mode to fix it. You can describe a simple `interfaces object` to replace the functions from platform, and implements these functions before using in the platform codes.
-
-When the method of `avatar(interfaces).current` is used, it always finds the if the function is implemented, and use the implement one as possible as it can, if the function is not exist in the implement one, it use the relative function from `interfaces object` for a replace.
-
-How to use a global avatar? 
-
-```typescript
-import {
-    Flows, 
-    flow, 
-    create, 
-    effect, 
-    experience, 
-    avatar,
-    Model
-} from "agent-reducer";
-
-describe('how to use global avatar', () => {
-
-    type User = {
-        id: number,
-        name: string
-    };
-
-    type UserListState = {
-        source: User[] | null,
-        loading: boolean,
-    }
-
-    const dataSource: User[] = [
-        {id: 1, name: 'Jimmy'},
-        {id: 2, name: 'Jacky'},
-        {id: 3, name: 'Lucy'},
-        {id: 4, name: 'Lily'},
-        {id: 5, name: 'Nike'},
-    ];
-
-    const prompt = avatar({
-        success:(info:string)=>undefined,
-        error:(e:any)=>undefined
-    });
-
-    class UserListModel implements Model<UserListState> {
-
-        state: UserListState = {
-            source: [],
-            loading: false,
-        };
-
-        private load() {
-            return {...this.state, loading: true};
-        }
-
-        private changeSource(source: User[] | null) {
-            return {...this.state, source};
-        }
-
-        private unload() {
-            return {...this.state, loading: false};
-        }
-
-        @flow(Flows.latest())
-        async loadSource() {
-            this.load();
-            try {
-                const source: User[] = await new Promise((resolve) => {
-                    resolve([...dataSource]);
-                });
-                this.changeSource(source);
-                // use prompt.current.success to popup a message `fetch success`
-                prompt.current.success('fetch success!');
-            } catch (e) {
-                // use prompt.current.error to popup a error message
-                prompt.current.error(e);
-            }finally {
-                this.unload();
-            }
-        }
-
-    }
-
-    test('if you want to call outside effect function in model, you can use API `avatar`', async () => {
-        const success = jest.fn().mockImplementation((info:string)=>console.log(info));
-        // implement the interfaces of prompt avatar
-        const destroy = prompt.implement({
-            success,
-        });
-        const {agent, connect, disconnect} = create(UserListModel);
-        connect();
-        await agent.loadSource();
-        expect(success).toBeCalledTimes(1);
-        disconnect();
-        // if you do not need this avatar,
-        // please destroy it finally
-        destroy();
-    });
-
-});
-```
-
-How to use avatar for different model instances.
-
-```typescript
-import {
-    Flows, 
-    flow, 
-    create, 
-    effect, 
-    experience, 
-    avatar,
-    Model
-} from "agent-reducer";
-
-describe('how to use model avatar', () => {
-
-    type User = {
-        id: number,
-        name: string
-    };
-
-    type UserListState = {
-        source: User[] | null,
-        list: User[],
-        filterName: string,
-        loading: boolean,
-    }
-
-    const dataSource: User[] = [
-        {id: 1, name: 'Jimmy'},
-        {id: 2, name: 'Jacky'},
-        {id: 3, name: 'Lucy'},
-        {id: 4, name: 'Lily'},
-        {id: 5, name: 'Nike'},
-    ];
-
-    class UserListModel implements Model<UserListState> {
-
-        state: UserListState = {
-            source: [],
-            list: [],
-            filterName: '',
-            loading: false,
-        };
-
-        prompt = avatar({
-            success:(info:string)=>undefined,
-            error:(e:any)=>undefined
-        });
-
-        private load() {
-            return {...this.state, loading: true};
-        }
-
-        private changeSource(source: User[] | null) {
-            return {...this.state,source}
-        }
-
-        private unload() {
-            return {...this.state, loading: false};
-        }
-
-        @flow(Flows.latest())
-        async loadSource() {
-            this.load();
-            try {
-                const source: User[] = await new Promise((resolve) => {
-                    resolve([...dataSource]);
-                });
-                this.changeSource(source);
-                // use prompt.current.success to popup a message `fetch success`
-                this.prompt.current.success('fetch success!');
-            } catch (e) {
-                // use prompt.current.error to popup a error message
-                this.prompt.current.error(e);
-            }finally {
-                this.unload();
-            }
-        }
-
-    }
-
-    test('If you want to use `avatar` in model, please build avatar inside model', async () => {
-        const success = jest.fn().mockImplementation((info:string)=>console.log(info));
-
-        const {agent, connect, disconnect} = create(UserListModel);
-        const {agent:another, connect:anotherConnect, disconnect:anotherDisconnect} = create(UserListModel);
-        // implement avatar for different models
-        const destroy = agent.prompt.implement({
-            success,
-        });
-        connect();
-        anotherConnect();
-        await agent.loadSource();
-        await another.loadSource();
-        // the agent.prompt is implemented with avatar,
-        // the another one is not.
-        expect(success).toBeCalledTimes(1);
-        disconnect();
-        anotherDisconnect();
-        // if you do not need this avatar,
-        // please destroy it finally
-        destroy();
-    });
-
-});
-```
-
-### Effect decorator (experience)
-
-If you want to add effect inside model, and start it after this model is connected, you can use api [effect](/experience?id=effect-experience) to decorate a model method to be a effect callback. If you pass `*` into [effect](/experience?id=effect-experience) decorator, it will take all the methods of current model instance as the listening target. If you pass a callback which returns a method of current model into [effect](/experience?id=effect-experience) decorator as a param, it will only listen to the state changes leaded by this specific `method`.
-
-The method decorated by [effect](/experience?id=effect-experience) is bind on an `agent` which is created temporary from current `model instance`. So, if deploy the method from keyword `this` in a effect callback, it will change the model state. The `effect` API will not lead a first running like: `addEffect(callback, model)` when use it. In fact, the effect method here is just a special flow method.
-
-The code below is an example about how to use effect to control a user list model, we can fetch users and filter them with the property `name`.
-
-```typescript
-import {
-    EffectCallback, 
-    Model, 
-    addEffect, 
-    create, 
-    effect
-} from "agent-reducer";
-
-describe("use decorator effect",()=>{
-
-    type User = {
-        id: number,
-        name: string
-    };
-
-    type UserListState = {
-        source: User[]|null,
-        list: User[],
-        filterName: string,
-        loading: boolean,
-    }
-
-    const dataSource: User[] = [
-        {id: 1, name: 'Jimmy'},
-        {id: 2, name: 'Jacky'},
-        {id: 3, name: 'Lucy'},
-        {id: 4, name: 'Lily'},
-        {id: 5, name: 'Nike'},
-    ];
-
-    class UserListModel implements Model<UserListState> {
-
-        state: UserListState = {
-            source: [],
-            list: [],
-            filterName: '',
-            loading: false,
-        };
-
-        fetchSource() {
-            return {...this.state, loading: true};
-        }
-
-        changeSource(source: User[]|null) {
-            return {...this.state, source, list: source};
-        }
-
-        finishLoading(){
-            return {...this.state,loading: false};
-        }
-
-        // listen state changes from all methods,
-        // all the effect method can not be called directly from `agent`,
-        // so, make it a `private` method is a good idea.
-        @effect('*')
-        private async loadingEffect(prevSate: UserListState) {
-            const {loading} = this.state;
-            if (prevSate.loading === loading ||!loading) {
-                return;
-            }
-            try {
-                const source:User[] = await new Promise((resolve)=>{
-                    resolve([...dataSource]);
-                });
-                // fetch source
-                this.changeSource(source);
-            }finally {
-                // after all jobs, we need to set loading to 'false'
-                this.finishLoading();
-            }
-
-        }
-
-    }
-
-    test('try effect listen to all methods ', async () => {
-        const {agent, connect, disconnect} = create(UserListModel);
-        connect();
-        agent.fetchSource();
-        expect(agent.state.loading).toBe(true);
-        await new Promise((r)=>setTimeout(r));
-        // the `loadingEffect` finally set loading to 'false'
-        expect(agent.state.loading).toBe(false);
-        disconnect();
-    });
-
-});
-```
-
-The code above shows how to use effect `fetch data`. The effect listen to the state change about `state.loading`, so, we calls `fetchSource` method to change `state.loading` to `true`, that makes `loadingEffect` works, and after the data fetching, the `effect method` call `this.changeSource` to change `state.source` and `state.list` (keyword `this` in effect is an agent object created by `agent-reducer` system).
-
-If we want to listen the effect about state changes from special methods, we can try below.
-
-```typescript
-import {
-    EffectCallback, 
-    Model, 
-    addEffect, 
-    create, 
-    effect
-} from "agent-reducer";
-
-describe("use decorator effect",()=>{
-
-    type User = {
-        id: number,
-        name: string
-    };
-
-    type UserListState = {
-        source: User[]|null,
-        list: User[],
-        filterName: string,
-        loading: boolean,
-    }
-
-    const dataSource: User[] = [
-        {id: 1, name: 'Jimmy'},
-        {id: 2, name: 'Jacky'},
-        {id: 3, name: 'Lucy'},
-        {id: 4, name: 'Lily'},
-        {id: 5, name: 'Nike'},
-    ];
-
-    class UserListModel implements Model<UserListState> {
-
-        state: UserListState = {
-            source: [],
-            list: [],
-            filterName: '',
-            loading: false,
-        };
-
-        fetchSource() {
-            return {...this.state, loading: true};
-        }
-
-        changeFilterName(filterName: string) {
-            return {...this.state, filterName};
-        }
-
-        changeSource(source: User[]|null) {
-            return {...this.state, source, list: source};
-        }
-
-        finishLoading(){
-            return {...this.state,loading: false};
-        }
-
-        private filter() {
-            const {filterName, source} = this.state;
-            const list = source!.filter(({name}) => name.startsWith(filterName));
-            return {...this.state, list};
-        }
-
-        // listen state changes from special methods.
-        @effect(()=>UserListModel.prototype.changeSource)
-        @effect(() => UserListModel.prototype.changeFilterName)
-        filterEffect() {
-            // if the `filterName` or `source` in state changes,
-            // invoke filter to change state.
-            // In effect, we can call state change methods to change state.
-            // And `this` now is an agent object.
-            this.filter();
-        }
-
-        // listen state changes from all methods,
-        // all the effect method can not be called directly from `agent`,
-        // so, make it a `private` method is a good idea.
-        @effect('*')
-        private async loadingEffect(prevSate: UserListState) {
-            const {loading} = this.state;
-            if (prevSate.loading === loading ||!loading) {
-                return;
-            }
-            try {
-                const source:User[] = await new Promise((resolve)=>{
-                    resolve([...dataSource]);
-                });
-                // fetch source
-                this.changeSource(source);
-            }finally {
-                // after all jobs, we need to set loading to 'false'
-                this.finishLoading();
-            }
-
-        }
-
-    }
-
-    test('try effect listen to a special method', async () => {
-        const {agent, connect, disconnect} = create(UserListModel);
-        connect();
-        agent.fetchSource();
-        expect(agent.state.loading).toBe(true);
-        await new Promise((r)=>setTimeout(r));
-        expect(agent.state.loading).toBe(false);
-        agent.changeFilterName('L');
-        // the `filterEffect` filter list by `filter` method
-        expect(agent.state.list).toEqual([
-            {id: 3, name: 'Lucy'},
-            {id: 4, name: 'Lily'},
-        ]);
-        disconnect();
-    });
-
-});
-```
-
-We add a `filter name` function for our model by using effect to listen to the special methods: `changeSource` and `changeFilterName`, and no matter which method above changes state, the `filterEffect` will respose, it calls `filter` method to filter out list we want to show. 
-
-Note: the effect method can not be called as a agent action method.
-
-```typescript
-import {
-    EffectCallback, 
-    Model, 
-    addEffect, 
-    create, 
-    effect
-} from "agent-reducer";
-
-describe("use decorator effect",()=>{
-
-    type User = {
-        id: number,
-        name: string
-    };
-
-    type UserListState = {
-        source: User[]|null,
-        list: User[],
-        filterName: string,
-        loading: boolean,
-    }
-
-    const dataSource: User[] = [
-        {id: 1, name: 'Jimmy'},
-        {id: 2, name: 'Jacky'},
-        {id: 3, name: 'Lucy'},
-        {id: 4, name: 'Lily'},
-        {id: 5, name: 'Nike'},
-    ];
-
-    class UserListModel implements Model<UserListState> {
-
-        state: UserListState = {
-            source: [],
-            list: [],
-            filterName: '',
-            loading: false,
-        };
-
-        fetchSource() {
-            return {...this.state, loading: true};
-        }
-
-        changeFilterName(filterName: string) {
-            return {...this.state, filterName};
-        }
-
-        changeSource(source: User[]|null) {
-            return {...this.state, source, list: source};
-        }
-
-        finishLoading(){
-            return {...this.state,loading: false};
-        }
-
-        private filter() {
-            const {filterName, source} = this.state;
-            const list = source!.filter(({name}) => name.startsWith(filterName));
-            return {...this.state, list};
-        }
-
-        // listen state changes from special methods.
-        @effect(()=>UserListModel.prototype.changeSource)
-        @effect(() => UserListModel.prototype.changeFilterName)
-        filterEffect() {
-            // if the `filterName` or `source` in state changes,
-            // invoke filter to change state.
-            // In effect, we can call state change methods to change state.
-            // And `this` now is an agent object.
-            this.filter();
-        }
-
-        // listen state changes from all methods,
-        // all the effect method can not be called directly from `agent`,
-        // so, make it a `private` method is a good idea.
-        @effect('*')
-        private async loadingEffect(prevSate: UserListState) {
-            const {loading} = this.state;
-            if (prevSate.loading === loading ||!loading) {
-                return;
-            }
-            try {
-                const source:User[] = await new Promise((resolve)=>{
-                    resolve([...dataSource]);
-                });
-                // fetch source
-                this.changeSource(source);
-            }finally {
-                // after all jobs, we need to set loading to 'false'
-                this.finishLoading();
-            }
-
-        }
-
-    }
-
-    test('the method effect can not be used from `agent` directly',()=>{
-        const {agent, connect, disconnect} = create(UserListModel);
-        connect();
-        // the method effect can not be used from `agent` directly
-        expect(()=>agent.filterEffect).toThrow();
-        disconnect();
-    });
-
-});
 ```
 
 ## API
 
-### flow (experience)
+### act
 
-A `ES6 decorator` function which is used for marking a method to be a work flow method.
-
-```typescript
-export type WorkFlow = (runtime:FlowRuntime)=>LaunchHandler;
-
-declare type FlowFn =((...flows:WorkFlow[])=>MethodDecoratorCaller)&{
-    force:<S, T extends Model<S>>(target:T, workFlow?:WorkFlow)=>T,
-    error:<
-        S=any,
-        T extends Model<S>=Model<S>
-        >(model:T, listener:ErrorListener)=>(()=>void)
-}
-
-export declare const flow:FlowFn;
-```
-
-* flows - optional, used to control how to run a flow method. You can select them from [Flows](/experience?id=flows-experience).
-* flow.force - property function, used to force a inside flow method running on a special `WorkFlow`, for example: `flow.force(this, Flows.latest()).flowMethod()`, if you want the inside flow method just work as part of the current running flow method, you can provide no `WorkFlow` param for it, for example: `flow.force(this).flowMethod()`.
-* flow.error - property function, used to listen the error from `flow methods`.
-
-return a decorator callback.
-
-### Flows (experience)
-
-A set class for storing common `WorkFlows`.
+Mark out the action methods, when a model detects there are methods with this decorator, it will force this model to strict working mode.
 
 ```typescript
-export class Flows {
-
-  static default():WorkFlow;
-
-  static latest():WorkFlow;
-
-  static debounce(ms:number, leading?:boolean):WorkFlow;
-}
+export declare function act():MethodDecoratorCaller;
 ```
 
-* Flows.default - use default work flow, which just like `@flow()`.
-* Flows.latest - to take state changes which is leaded by the newest calling of a flow method.
-* Flows.debounce - to make the flow method work with a debounce effect. 
+### strict
 
-### effect (experience)
-
-The `ES6 decorator` usage of [addEffect](/api?id=addeffect). It makes the working instance of current class as effect target. If you want to listen to the state changes from a specific method, you can give it a callback which returns method as param.
+Mark out a model working in strict model. When the model working in a strict mode, only the methods with `act` decorator can update state. And this decorator can detect if there is any `act` decorated method.
 
 ```typescript
-export declare function effect<S=any, T extends Model<S>=Model>(
-    method?:()=>(...args:any[])=>any,
-):MethodDecoratorCaller
+export declare function strict():DecoratorCaller;
 ```
-
-* method - optional, a callback which returns `Class.prototype.method` as the target method for state change listening.
-
-### avatar (experience)
-
-Create an avatar object for outside interfaces.
-
-```typescript
-export type Avatar<T extends Record<string, any>> = {
-    current:T,
-    implement:(impl:Partial<T>)=>()=>void;
-};
-
-export declare function avatar<
-    T extends Record<string, unknown>
-    >(interfaces:T):Avatar<T>;
-```
-
-* interfaces - provide a default simulate `interfaces object`, if the used function from implements is not exist, it will provide the right function for a replace.
-
-return Avatar object:
-
-* current - the current working interfaces object. If the used function from implements is not exist, it will take the right function from `interfaces object` for a replace.
-* implement - callback, accept a implement object for `interfaces object`.

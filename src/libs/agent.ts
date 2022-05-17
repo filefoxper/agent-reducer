@@ -15,12 +15,16 @@ import {
   agentCallingMiddleWareKey, agentConnectorKey,
   agentDependenciesKey,
   agentIdentifyKey,
-  agentMethodActsKey,
+  agentModelFlowMethodKey,
   agentActMethodAgentLevelKey,
   agentMethodName,
   agentSharingMiddleWareKey,
   agentActMethodAgentLaunchHandlerKey,
-  agentModelMethodsCacheKey, agentFlowForceWorkFlow, isAgent,
+  agentModelMethodsCacheKey,
+  agentFlowForceWorkFlow,
+  agentStrictModelKey,
+  agentStrictModelActMethodKey,
+  isAgent,
 } from './defines';
 import { createProxy, noop, validate } from './util';
 import { AgentDependencies } from './agent.type';
@@ -225,7 +229,7 @@ function createAgentDependencies<S, T extends Model<S>>(
   };
 }
 
-export function createActRuntime<S, T extends Model<S>>(
+export function createFlowRuntime<S, T extends Model<S>>(
   proxy:T,
   entry: T,
   methodName:string,
@@ -234,7 +238,7 @@ export function createActRuntime<S, T extends Model<S>>(
   const methodCache = modelCache[methodName] || {};
   modelCache[methodName] = methodCache;
   return {
-    cache: methodCache,
+    state: methodCache,
     resolve(result) {
       return result;
     },
@@ -264,7 +268,7 @@ function buildFlowMethod<S, T extends Model<S>>(
     return cacheCaller;
   }
   const modelMethod = entry[methodName] as ((...a: any[]) => any)&{
-    [agentMethodActsKey]?:WorkFlow|(()=>void)
+    [agentModelFlowMethodKey]?:WorkFlow|(()=>void)
   };
   const sourceMethodDescriptors = Object.getOwnPropertyDescriptors(modelMethod);
   const callableMethod = function flowMethod(...args:any[]):any {
@@ -272,7 +276,7 @@ function buildFlowMethod<S, T extends Model<S>>(
     validate(typeof connector === 'function', 'Can not find connector in model instance');
     const sourceLevel = proxy[agentActMethodAgentLevelKey];
     const forceWorkFlow = proxy[agentFlowForceWorkFlow];
-    const sourceActor = modelMethod[agentMethodActsKey];
+    const sourceActor = modelMethod[agentModelFlowMethodKey];
     const actor:WorkFlow = (function computeFlow():WorkFlow {
       if (typeof forceWorkFlow === 'function') {
         return forceWorkFlow;
@@ -291,15 +295,15 @@ function buildFlowMethod<S, T extends Model<S>>(
     return connector(entry).run((ag, disconnect) => {
       const [self] = copyAgentWithEnv(ag);
       self[agentActMethodAgentLevelKey] = !sourceLevel ? 1 : (sourceLevel + 1);
-      const runtime = createActRuntime(self, entry, methodName);
+      const runtime = createFlowRuntime(self, entry, methodName);
       const launchHandler = actor(runtime);
-      const { shouldLaunch, didLaunch, reLaunch } = launchHandler;
+      const { shouldLaunch, didLaunch, invoke } = launchHandler;
       self[agentActMethodAgentLaunchHandlerKey] = launchHandler;
       disconnect();
       if (typeof shouldLaunch === 'function' && !shouldLaunch()) {
         return undefined;
       }
-      const runMethod = typeof reLaunch === 'function' ? reLaunch(modelMethod.bind(self)) : modelMethod;
+      const runMethod = typeof invoke === 'function' ? invoke(modelMethod.bind(self)) : modelMethod;
       try {
         const result = runMethod.apply(self, args);
         if (typeof didLaunch === 'function') {
@@ -315,6 +319,14 @@ function buildFlowMethod<S, T extends Model<S>>(
   Object.defineProperties(callableMethod, { ...sourceMethodDescriptors });
   functionCache[methodName] = callableMethod;
   return callableMethod;
+}
+
+function bindThisWithModelInstance<S, T extends Model<S>>(target:T, methodName:string) {
+  const method = target[methodName];
+  validate(typeof method === 'function', 'The act method should be a function.');
+  return function methodReplace(...args:any[]) {
+    return (method as (...a:any[])=>any).apply(target, [...args]);
+  };
 }
 
 /**
@@ -352,6 +364,8 @@ export function generateAgent<S, T extends Model<S>>(
 
   const produceMethod = methodProducer<S, T>(invokeDependencies, copyInfo);
 
+  const isModelStrict = entry[agentStrictModelKey];
+
   const proxy: T = createProxy(entry, {
     get(target: T, p: string & keyof T): any {
       const source = target[p];
@@ -375,14 +389,22 @@ export function generateAgent<S, T extends Model<S>>(
       }
       if (
         typeof source === 'function'
-          && source[agentMethodActsKey]
+          && source[agentModelFlowMethodKey]
       ) {
         return buildFlowMethod(proxy, p, middleWare, invokeDependencies);
       }
-      if (typeof source === 'function') {
+      if (typeof source === 'function' && isModelStrict && source[agentStrictModelActMethodKey]) {
         const method = produceMethod(target, p, proxy);
         method[agentMethodName] = p;
         return method;
+      }
+      if (typeof source === 'function' && !isModelStrict) {
+        const method = produceMethod(target, p, proxy);
+        method[agentMethodName] = p;
+        return method;
+      }
+      if (typeof source === 'function') {
+        return bindThisWithModelInstance<S, T>(entry, p);
       }
       return entry[p];
     },

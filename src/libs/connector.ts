@@ -11,10 +11,11 @@ import {
   agentModelMethodsCacheKey,
   agentModelResetKey,
   agentSharingMiddleWareKey,
-  agentSharingTypeKey, DefaultActionType,
+  agentSharingTypeKey, agentStrictModelActMethodKey, agentStrictModelKey, DefaultActionType,
 } from './defines';
 import { ModelConnector } from './sharing.type';
 import { unmountEffects } from './effect';
+import { validate } from './util';
 
 export function resetModel<
     S,
@@ -85,6 +86,33 @@ function mountMethod<
   Object.defineProperties(instance, description);
 }
 
+function markIfStrict<
+    S,
+    T extends OriginAgent<S> = OriginAgent<S>
+    >(instance: T):void {
+  if (instance[agentStrictModelKey]) {
+    return;
+  }
+  const prototype = Object.getPrototypeOf(instance);
+  const constructorFn = prototype.constructor;
+  const isModelStrict = constructorFn[agentStrictModelKey];
+  const modelKeys = Object.getOwnPropertyNames(prototype);
+  const hasActMethod = modelKeys.some((key) => {
+    const value = instance[key];
+    if (typeof value !== 'function') {
+      return false;
+    }
+    const method = value as ((...args:any[])=>any)&{
+      [agentStrictModelActMethodKey]?:boolean
+    };
+    return method[agentStrictModelActMethodKey];
+  });
+  instance[agentStrictModelKey] = isModelStrict || hasActMethod;
+  if (isModelStrict && !hasActMethod) {
+    validate(false, 'In strict mode, there should be at least one `act` method.');
+  }
+}
+
 function initialModel<
     S,
     T extends OriginAgent<S> = OriginAgent<S>
@@ -101,6 +129,7 @@ function initialModel<
   if (!instance[agentModelMethodsCacheKey]) {
     instance[agentModelMethodsCacheKey] = {};
   }
+  markIfStrict<S, T>(instance);
   if (instance[agentModelInstanceInitialedKey]) {
     return;
   }

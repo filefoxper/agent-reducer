@@ -37,5 +37,8 @@ export { Flows } from './libs/flows';
 
 export { default as avatar } from './libs/avatar';
 
+/** strict * */
+export { strict, act } from './libs/strict';
+
 /** experience * */
 export { experience } from './libs/experience';

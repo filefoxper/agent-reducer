@@ -199,3 +199,8 @@
 * [experience] 移除体验 API `flow.on`.
 * [experience] 添加体验 API `flow.force`.
 * [experience] 修复 `@effect` 接口问题.
+
+# 4.4.0 2022-05-17
+
+* [design] 体验 API [flow](/zh/api?id=flow), [Flows](/zh/api?id=flows),  [effect](/zh/api?id=effect) 以及 [avatar](/zh/api?id=avatar) 转正。
+* [experience] 添加体验 API [strict](/zh/experience?id=strict（体验）) 和 [act](/zh/experience?id=act（体验）).
