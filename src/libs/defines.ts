@@ -49,6 +49,7 @@ export const agentStrictModelActMethodKey = '@@agent-strict-model-act-method';
 export enum DefaultActionType {
   DX_INITIAL_STATE = '@@AGENT_REDUCER_INITIAL_STATE',
   DX_MUTE_STATE = '@@AGENT_MUTE_STATE',
+  DX_AUTO_CONNECTION_ACTION = '@@AGENT_AUTO_CONNECTION_ACTION',
 }
 
 export function isAgent<T extends {[key:string]:any}>(data: T):boolean {

@@ -196,3 +196,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 
 * [design] turns [flow](/api?id=flow), [Flows](/api?id=flows),  [effect](/api?id=effect) and [avatar](/api?id=avatar) API to be official.
 * [experience] add experience API [strict](/experience?id=strict) and [act](/experience?id=act).
+
+# 4.5.0 2022-05-23
+
+* [design] add auto connecting function. If an action of agent is dispatched before the agent is connected, it will trigger the auto connecting of this agent. That means you do not need to connect it immediately after the agent is created.
