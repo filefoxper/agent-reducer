@@ -28,7 +28,7 @@ describe('test of advanced actions',()=>{
 
     }
 
-    test('advanced actions will be blocked until reducer is connected, but the state is still changing in time',()=>{
+    test('advanced actions will auto trigger the connecting',()=>{
         const {agent,connect,disconnect} = create(Counter);
         let state = agent.state;
         agent.increase();
@@ -41,7 +41,7 @@ describe('test of advanced actions',()=>{
         disconnect();
     });
 
-    test('advanced effect will be blocked until reducer is connected',()=>{
+    test('advanced effect will not be blocked',()=>{
         const {agent,connect,disconnect} = create(Counter);
         let state = agent.state;
         agent.decrease();
@@ -52,7 +52,7 @@ describe('test of advanced actions',()=>{
         disconnect();
     });
 
-    test('advanced action maybe cleared by other sharing disconnection when use weakSharing',()=>{
+    test('advanced action will not be cleared by other sharing disconnection when use weakSharing',()=>{
         const ref = weakSharing(()=>Counter);
         const {agent:ag1,connect:c1,disconnect:d1} = create(ref.current);
         const {agent:ag2,connect:c2,disconnect:d2} = create(ref.current);
