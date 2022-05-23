@@ -204,3 +204,7 @@
 
 * [design] 体验 API [flow](/zh/api?id=flow), [Flows](/zh/api?id=flows),  [effect](/zh/api?id=effect) 以及 [avatar](/zh/api?id=avatar) 转正。
 * [experience] 添加体验 API [strict](/zh/experience?id=strict（体验）) 和 [act](/zh/experience?id=act（体验）).
+
+# 4.5.0 2022-05-23
+
+* [design] 添加自动链接功能。在一个代理对象上的 action 被 dispatched 时，代理将根据其是否已经链接过的状态，自动进行快速连接。

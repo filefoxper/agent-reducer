@@ -144,6 +144,7 @@ export type Model<S=any> = OriginAgent<S>;
 
 export interface Env {
   expired?: boolean;
+  dirty?:boolean
 }
 
 export type ComposeCaller = (p: any) => any;
