@@ -212,3 +212,7 @@
 # 4.5.1 2022-05-23
 
 * [bug] 解决 weakSharing 重置后无法刷新 create 的问题。
+
+# 4.5.2 2022-05-24
+
+* [bug] 修复 typescript 无法使用 `recreate` 的问题。

@@ -267,6 +267,7 @@ describe('自定义 MiddleWare', () => {
 1. `agent`: `模型实例`的`代理`
 2. `connect`: 用于连接`模型实例`与`代理`的链接函数，通过传入一个 dispatch 监听函数，我们可以实时监听 state 变更。dispatch 函数可在 state 变更时接收到一个 `Action` 对象，它包含了一个 `type`（触发变更的方法名）和一个 `state`（当前变更的 state 对象）。
 3. `disconnect`: 断开监听，销毁代理的回调函数。
+4. `recreate` : 用于重置模型时刷新 `create`。（通常用在 `weakSharing` 状态）
 
 结构如下
 
