@@ -272,6 +272,7 @@ The `create` API returns an `reducer function`, which contains an `agent` object
 1. The `agent` is a Proxy which can change state for `Model instance`.
 2. The `connect` callback is for subscribing state changes, it accepts a dispatch callback, when the state changed, the dispatch callback can receive an `Action` object, which contains a `type` (method name) and `state` (changed state).
 3. The `disconnect` callback is for unsubscribing the state change.
+4. The `recreate` callback is for refresh `create` when a reset of `weakSharing` happens.
 
 Take a look at the structure.
 
