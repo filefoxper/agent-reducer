@@ -25,7 +25,7 @@ import {
   agentConnectorKey,
   agentModelFlowMethodKey,
   agentActMethodAgentLaunchHandlerKey,
-  agentIsEffectAgentKey,
+  agentIsEffectAgentKey, agentModelResetVersionKey,
 } from './defines';
 import { createSharingModelConnector } from './connector';
 import { applyMiddleWares, defaultMiddleWare } from './applies';
@@ -314,10 +314,19 @@ function useConnection<
 
     let outerSubscriber:Dispatch|null = null;
 
+    let recreateCallback:null|(()=>void) = null;
+
+    const initialResetVersion = entity[agentModelResetVersionKey];
+
     const initialState = entity.state;
 
     function syncUpdate():void {
       const currentState = entity.state;
+      const currentResetVersion = entity[agentModelResetVersionKey];
+      if (currentResetVersion !== initialResetVersion && recreateCallback) {
+        recreateCallback();
+        return;
+      }
       if (initialState !== currentState) {
         storeSlot.dispatch({ type: DefaultActionType.DX_MUTE_STATE, state: currentState });
       }
@@ -376,6 +385,9 @@ function useConnection<
         if (error !== null) {
           throw error;
         }
+      },
+      recreate(callback:()=>void) {
+        recreateCallback = callback;
       },
     };
 

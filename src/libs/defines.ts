@@ -26,6 +26,8 @@ export const agentActionKey = '@@agent-reducer-action';
 
 export const agentModelResetKey = '@@agent-reducer-model-reset';
 
+export const agentModelResetVersionKey = '@@agent-reducer-model-reset-version';
+
 export const agentMethodName = '@@agent-method-name';
 
 export const agentEffectsKey = '@@agent-effects';
