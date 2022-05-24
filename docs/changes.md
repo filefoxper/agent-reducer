@@ -208,3 +208,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.5.2 2022-05-24
 
 * [bug] resolve the typescript method name about `recreate`.
+
+# 4.5.3 2022-05-24
+
+* [design] move the reset version modify to common reset function.
