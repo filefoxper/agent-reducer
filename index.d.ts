@@ -58,7 +58,7 @@ interface ReducerPadding<
     > {
     agent: T;
     connect: (dispatch?: Dispatch) => void;
-    disconnect:()=>void
+    disconnect:()=>void,
 }
 
 type AgentRunner<T> = {
