@@ -9,7 +9,7 @@ import {
   agentMethodName,
   agentModelInstanceInitialedKey,
   agentModelMethodsCacheKey,
-  agentModelResetKey,
+  agentModelResetKey, agentModelResetVersionKey,
   agentSharingMiddleWareKey,
   agentSharingTypeKey, agentStrictModelActMethodKey, agentStrictModelKey, DefaultActionType,
 } from './defines';
@@ -25,6 +25,7 @@ export function resetModel<
   entity[agentActionKey] = undefined;
   entity[agentModelMethodsCacheKey] = undefined;
   entity[agentModelInstanceInitialedKey] = undefined;
+  entity[agentModelResetVersionKey] = (entity[agentModelResetVersionKey] || 0) + 1;
   unmountEffects(entity);
   entity[agentEffectsKey] = undefined;
   entity[agentErrorConnectionKey] = undefined;

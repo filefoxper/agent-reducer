@@ -216,3 +216,7 @@
 # 4.5.2 2022-05-24
 
 * [bug] 修复 typescript 无法使用 `recreate` 的问题。
+
+# 4.5.3 2022-05-24
+
+* [design] reset version 支持所有 reset。

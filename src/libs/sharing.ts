@@ -95,9 +95,7 @@ export function weakSharing<
     const ModelLike = Array.isArray(initialParams)
       ? factory(...initialParams) : factory();
     const newInstance = createWeakSharingModel<S, T>(ModelLike, reset);
-    const lastVersion = ref.current[agentModelResetVersionKey];
     Object.assign(ref.current, newInstance);
-    ref.current[agentModelResetVersionKey] = (lastVersion || 0) + 1;
     initialParams = null;
     initialed = false;
   };
