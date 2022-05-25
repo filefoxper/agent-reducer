@@ -205,18 +205,10 @@
 * [design] 体验 API [flow](/zh/api?id=flow), [Flows](/zh/api?id=flows),  [effect](/zh/api?id=effect) 以及 [avatar](/zh/api?id=avatar) 转正。
 * [experience] 添加体验 API [strict](/zh/experience?id=strict（体验）) 和 [act](/zh/experience?id=act（体验）).
 
-# 4.5.0 2022-05-23
+# ~~4.5.0 to 4.5.3~~
 
-* [design] 添加自动链接功能。在一个代理对象上的 action 被 dispatched 时，代理将根据其是否已经链接过的状态，自动进行快速连接。
+* [deprecated]  这些版本为 react 做出了一些不合理的牺牲，这并不符合 `agent-reducer` 库作为公允第三方库的初衷，所以，我们将回滚至 `4.4.0` 版本。对此，我们表示非常抱歉，望使用者原谅。
 
-# 4.5.1 2022-05-23
+# 4.5.4
 
-* [bug] 解决 weakSharing 重置后无法刷新 create 的问题。
-
-# 4.5.2 2022-05-24
-
-* [bug] 修复 typescript 无法使用 `recreate` 的问题。
-
-# 4.5.3 2022-05-24
-
-* [design] reset version 支持所有 reset。
+* [rollback] 回滚至 `4.4.0`.
