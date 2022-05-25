@@ -197,18 +197,10 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 * [design] turns [flow](/api?id=flow), [Flows](/api?id=flows),  [effect](/api?id=effect) and [avatar](/api?id=avatar) API to be official.
 * [experience] add experience API [strict](/experience?id=strict) and [act](/experience?id=act).
 
-# 4.5.0 2022-05-23
+# ~~4.5.0 to 4.5.3~~
 
-* [design] add auto connecting function. If an action of agent is dispatched before the agent is connected, it will trigger the auto connecting of this agent. That means you do not need to connect it immediately after the agent is created.
+* [deprecated]  This design is for react only. It is not reasonable, and we are so sorry for making that decision. We will rollback to `4.4.0`, and force `use-agent-reducer` rollback too.
 
-# 4.5.1 2022-05-24
+# 4.5.4
 
-* [bug] resolve the problem abount can not refresh creating when a weak sharing connection is reset.
-
-# 4.5.2 2022-05-24
-
-* [bug] resolve the typescript method name about `recreate`.
-
-# 4.5.3 2022-05-24
-
-* [design] move the reset version modify to common reset function.
+* [rollback] rollback to `4.4.0`.
