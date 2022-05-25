@@ -201,6 +201,6 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 
 * [deprecated]  This design is for react only. It is not reasonable, and we are so sorry for making that decision. We will rollback to `4.4.0`, and force `use-agent-reducer` rollback too.
 
-# 4.5.4
+# 4.5.4 2022-05-25
 
 * [rollback] rollback to `4.4.0`.

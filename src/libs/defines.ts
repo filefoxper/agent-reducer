@@ -26,8 +26,6 @@ export const agentActionKey = '@@agent-reducer-action';
 
 export const agentModelResetKey = '@@agent-reducer-model-reset';
 
-export const agentModelResetVersionKey = '@@agent-reducer-model-reset-version';
-
 export const agentMethodName = '@@agent-method-name';
 
 export const agentEffectsKey = '@@agent-effects';
@@ -51,7 +49,6 @@ export const agentStrictModelActMethodKey = '@@agent-strict-model-act-method';
 export enum DefaultActionType {
   DX_INITIAL_STATE = '@@AGENT_REDUCER_INITIAL_STATE',
   DX_MUTE_STATE = '@@AGENT_MUTE_STATE',
-  DX_AUTO_CONNECTION_ACTION = '@@AGENT_AUTO_CONNECTION_ACTION',
 }
 
 export function isAgent<T extends {[key:string]:any}>(data: T):boolean {

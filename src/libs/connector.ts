@@ -9,7 +9,7 @@ import {
   agentMethodName,
   agentModelInstanceInitialedKey,
   agentModelMethodsCacheKey,
-  agentModelResetKey, agentModelResetVersionKey,
+  agentModelResetKey,
   agentSharingMiddleWareKey,
   agentSharingTypeKey, agentStrictModelActMethodKey, agentStrictModelKey, DefaultActionType,
 } from './defines';
@@ -25,7 +25,6 @@ export function resetModel<
   entity[agentActionKey] = undefined;
   entity[agentModelMethodsCacheKey] = undefined;
   entity[agentModelInstanceInitialedKey] = undefined;
-  entity[agentModelResetVersionKey] = (entity[agentModelResetVersionKey] || 0) + 1;
   unmountEffects(entity);
   entity[agentEffectsKey] = undefined;
   entity[agentErrorConnectionKey] = undefined;
@@ -179,7 +178,7 @@ export function createSharingModelConnector<
     },
     disconnect() {
       if (unsubscribe === null || listener === null) {
-        return;
+        throw new Error('The `unsubscribe` function is `null`, please deploy `connect` function before use `disconnect`');
       }
       unsubscribe();
       unsubscribe = null;

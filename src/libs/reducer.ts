@@ -25,7 +25,7 @@ import {
   agentConnectorKey,
   agentModelFlowMethodKey,
   agentActMethodAgentLaunchHandlerKey,
-  agentIsEffectAgentKey, agentModelResetVersionKey,
+  agentIsEffectAgentKey,
 } from './defines';
 import { createSharingModelConnector } from './connector';
 import { applyMiddleWares, defaultMiddleWare } from './applies';
@@ -38,7 +38,7 @@ import {
   runEffects,
   runningNotInitialedModelEffects,
 } from './effect';
-import { hasListenerConnected, isConnecting, stateUpdatable } from './status';
+import { isConnecting, stateUpdatable } from './status';
 import { defaultFlow } from './flows';
 
 /**
@@ -84,6 +84,11 @@ function createAgentInstance<
   return typeof model === 'function' ? createInstance(model) : model;
 }
 
+function hasRunningAction<S, T extends Model<S>>(entity:T):boolean {
+  const actionWrap = entity[agentActionKey];
+  return !!actionWrap;
+}
+
 function extractAction<S, T extends Model<S>>(entity:T):Action|null {
   const actionWrap = entity[agentActionKey];
   if (actionWrap) {
@@ -92,17 +97,17 @@ function extractAction<S, T extends Model<S>>(entity:T):Action|null {
   return null;
 }
 
-function linkAction<S, T extends Model<S>>(entity:T, action:Action):boolean {
+function linkAction<S, T extends Model<S>>(entity:T, action:Action):void {
   const actionWrap = entity[agentActionKey];
   if (!stateUpdatable<S, T>(entity)) {
-    return false;
+    return;
   }
   const wrap:ActionWrap = {
     current: action,
   };
   if (!actionWrap) {
     entity[agentActionKey] = wrap;
-    return true;
+    return;
   }
   const { last } = actionWrap;
   if (!last) {
@@ -112,7 +117,6 @@ function linkAction<S, T extends Model<S>>(entity:T, action:Action):boolean {
     last.next = wrap;
     actionWrap.last = wrap;
   }
-  return false;
 }
 
 function shiftAction<S, T extends Model<S>>(entity:T):Action|null {
@@ -139,19 +143,14 @@ function shiftAction<S, T extends Model<S>>(entity:T):Action|null {
 function createStoreSlot<S, T extends Model<S>>(
   entity:T,
   reducer: Reducer<S, Action>,
-  env:Env,
 ):Store<S> {
   let listener:Listener<S>|null = null;
   const reduce = function reduce(action: Action) {
+    const effects = entity[agentEffectsKey] || [];
+    const nextState = reducer(entity.state, action);
     if (!listener) {
       return;
     }
-    if (!env.dirty) {
-      listener({ type: DefaultActionType.DX_AUTO_CONNECTION_ACTION, state: action });
-      return;
-    }
-    const effects = entity[agentEffectsKey] || [];
-    const nextState = reducer(entity.state, action);
     const currentAction:Action = { ...action, state: nextState };
     listener(currentAction);
     const { prevState, state } = currentAction;
@@ -161,12 +160,9 @@ function createStoreSlot<S, T extends Model<S>>(
     runEffects(entity, [...effects], currentAction);
   };
   function consumeAction(action:Action) {
-    if (!env.dirty) {
-      reduce(action);
-      return;
-    }
-    const canWork = linkAction<S, T>(entity, action);
-    if (!canWork) {
+    const isRunning = hasRunningAction<S, T>(entity);
+    linkAction<S, T>(entity, action);
+    if (isRunning) {
       return;
     }
     entity[agentModelWorking] = true;
@@ -187,10 +183,6 @@ function createStoreSlot<S, T extends Model<S>>(
     const action = { ...sourceAction, prevState };
     if (action.type === DefaultActionType.DX_MUTE_STATE) {
       reduce(action);
-      return;
-    }
-    if (!env.dirty) {
-      consumeAction(sourceAction);
       return;
     }
     const needToUpdateEntityState = entity.state !== action.state
@@ -296,14 +288,13 @@ function useConnection<
 
     const env:Env = {
       expired: true,
-      dirty: false,
     };
 
     const reducer = createReducer<S, T>(entity);
 
     const modelConnector = connectionFactory(entity);
 
-    const storeSlot: Store<S> = createStoreSlot<S, T>(entity, reducer, env);
+    const storeSlot: Store<S> = createStoreSlot<S, T>(entity, reducer);
 
     const listener = (nextState:S) => {
       if (env.expired) {
@@ -314,52 +305,7 @@ function useConnection<
 
     let outerSubscriber:Dispatch|null = null;
 
-    let recreateCallback:null|(()=>void) = null;
-
-    const initialResetVersion = entity[agentModelResetVersionKey];
-
-    const initialState = entity.state;
-
-    function syncUpdate():void {
-      const currentState = entity.state;
-      const currentResetVersion = entity[agentModelResetVersionKey];
-      if (currentResetVersion !== initialResetVersion && recreateCallback) {
-        recreateCallback();
-        return;
-      }
-      if (initialState !== currentState) {
-        storeSlot.dispatch({ type: DefaultActionType.DX_MUTE_STATE, state: currentState });
-      }
-    }
-
-    function connectModel(dispatch?: Dispatch) {
-      outerSubscriber = null;
-      outerSubscriber = dispatch || null;
-      if (env.expired) {
-        env.expired = false;
-      }
-      env.dirty = true;
-      if (hasListenerConnected<S, T>(listener, entity)) {
-        syncUpdate();
-        return;
-      }
-      const connected = isConnecting<S, T>(entity);
-      modelConnector.connect(listener);
-      syncUpdate();
-      if (connected) {
-        return;
-      }
-      const methodEffectBuilder = createMethodEffectBuilder<S, T>(entity);
-      addMethodEffects<S, T>(entity, methodEffectBuilder);
-    }
-
     storeSlot.subscribe((action:Action) => {
-      const { type, state } = action;
-      if (type === DefaultActionType.DX_AUTO_CONNECTION_ACTION) {
-        connectModel();
-        storeSlot.dispatch(state);
-        return;
-      }
       modelConnector.notify(action, (ac:Action) => {
         if (outerSubscriber == null || env.expired) {
           return;
@@ -372,7 +318,20 @@ function useConnection<
 
     const transition: ReducerPadding<S, T> = {
       agent,
-      connect: connectModel,
+      connect(dispatch?: Dispatch) {
+        outerSubscriber = null;
+        outerSubscriber = dispatch || null;
+        if (env.expired) {
+          env.expired = false;
+        }
+        const connected = isConnecting<S, T>(entity);
+        modelConnector.connect(listener);
+        if (connected) {
+          return;
+        }
+        const methodEffectBuilder = createMethodEffectBuilder<S, T>(entity);
+        addMethodEffects<S, T>(entity, methodEffectBuilder);
+      },
       disconnect() {
         let error:Error|null = null;
         try {
@@ -385,9 +344,6 @@ function useConnection<
         if (error !== null) {
           throw error;
         }
-      },
-      recreate(callback:()=>void) {
-        recreateCallback = callback;
       },
     };
 

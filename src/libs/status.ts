@@ -1,4 +1,4 @@
-import { Listener, Model } from './global.type';
+import { Model } from './global.type';
 import { agentListenerKey, agentSharingTypeKey } from './defines';
 
 export function isConnecting<
@@ -14,12 +14,4 @@ export function stateUpdatable<
     T extends Model<S> = Model<S>
     >(modelInstance:T):boolean {
   return isConnecting<S, T>(modelInstance) || modelInstance[agentSharingTypeKey] === 'hard';
-}
-
-export function hasListenerConnected<
-    S,
-    T extends Model<S>
-    >(listener:(s:S)=>any, modelInstance:T):boolean {
-  const listeners = modelInstance[agentListenerKey] || [];
-  return listeners.some((l) => l === listener);
 }

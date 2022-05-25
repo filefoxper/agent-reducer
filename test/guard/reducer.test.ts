@@ -23,7 +23,12 @@ class CountModel implements Model<number>{
 
 describe('guard reducer',()=>{
 
-    test('`connect` API should support async callback',async ()=>{
+    test('disconnect directly will lead error',()=>{
+        const {disconnect} = create(CountModel);
+        expect(()=>disconnect()).toThrow();
+    });
+
+    test('`connect` API should suppoer async callback',async ()=>{
         const state = await connect(new CountModel()).run(async (agent)=>{
             return agent.lazyIncrease();
         });

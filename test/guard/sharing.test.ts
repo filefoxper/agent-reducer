@@ -52,38 +52,6 @@ describe('guard sharing',()=>{
         const {agent:a1,connect:c1,disconnect:d1} = create(ref.initial(1));
         c1();
         expect(getSharingType(ref.current)).toBe('weak');
-    });
-
-    test('weakSharing switch async',()=>{
-        const ref = weakSharing((state:number)=>new CountModel(state));
-        const {agent:a1,connect:c1,disconnect:d1} = create(ref.initial(1));
-        c1();
-        let data = create(ref.initial(2));
-        const {recreate} = data;
-        recreate(()=>{
-            data.disconnect();
-            data = create(ref.initial(3))
-        });
-        d1();
-        data.connect();
-        expect(data.agent.state).toBe(3)
-        data.disconnect();
-    });
-
-    test('weakSharing switch sync',()=>{
-        const ref = weakSharing((state:number)=>new CountModel(state));
-        const {agent:a1,connect:c1,disconnect:d1} = create(ref.initial(1));
-        c1();
-        d1();
-        let data = create(ref.initial(2));
-        const {recreate} = data;
-        recreate(()=>{
-            data.disconnect();
-            data = create(ref.initial(3))
-        });
-        data.connect();
-        expect(data.agent.state).toBe(2)
-        data.disconnect();
-    });
+    })
 
 });

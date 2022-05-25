@@ -8,8 +8,7 @@ export interface ReducerPadding<
 > {
   agent: T;
   connect: (dispatch?: Dispatch) => void;
-  disconnect:()=>void,
-  recreate:(recreateCallback:()=>void)=>void
+  disconnect:()=>void
 }
 
 // inner interface

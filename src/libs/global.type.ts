@@ -20,7 +20,7 @@ import {
   agentIsEffectAgentKey,
   agentModelMethodsCacheKey,
   agentModelInstanceInitialedKey,
-  agentFlowForceWorkFlow, agentStrictModelKey, agentModelResetVersionKey,
+  agentFlowForceWorkFlow, agentStrictModelKey,
 } from './defines';
 
 export type SharingType = 'hard'|'weak';
@@ -106,7 +106,6 @@ export interface OriginAgent<S = any> {
   [agentSharingTypeKey]?:SharingType;
   [agentActionKey]?:ActionWrap;
   [agentModelResetKey]?:()=>void;
-  [agentModelResetVersionKey]?:number;
   [agentCallingMiddleWareKey]?:MiddleWare;
   [agentEffectsKey]?: Effect[],
   [agentRunningEffectsKey]?:Effect[],
@@ -145,7 +144,6 @@ export type Model<S=any> = OriginAgent<S>;
 
 export interface Env {
   expired?: boolean;
-  dirty?:boolean
 }
 
 export type ComposeCaller = (p: any) => any;
