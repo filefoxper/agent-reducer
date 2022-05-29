@@ -672,19 +672,26 @@ return a decorator callback.
 A set class for storing common `WorkFlows`.
 
 ```typescript
+type BlockFlowConfig = {timeout?:number};
+
+type DebounceFlowConfig = {time:number, leading?:boolean};
+
 export class Flows {
 
   static default():WorkFlow;
 
   static latest():WorkFlow;
 
-  static debounce(ms:number, leading?:boolean):WorkFlow;
+  static debounce(time:number|DebounceFlowConfig, leading?:boolean):WorkFlow;
+
+  static block(timeout?:number|BlockFlowConfig):WorkFlow;
 }
 ```
 
 * Flows.default - use default work flow, which just like `@flow()`.
 * Flows.latest - to take state changes which is leaded by the newest calling of a flow method.
-* Flows.debounce - to make the flow method work with a debounce effect. 
+* Flows.debounce - to make the flow method work with a debounce effect.
+* Flows.block - to make flow method work atomically. It is always used on an async method, to prevent this method works again when it has not finished. The `timeout` set can release the block state, if the async method is not finished for a too long time.
 
 ## effect
 

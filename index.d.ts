@@ -212,6 +212,10 @@ export type FlowRuntime = {
 
 export type WorkFlow = (runtime:FlowRuntime)=>LaunchHandler;
 
+type BlockFlowConfig = {timeout?:number};
+
+type DebounceFlowConfig = {time:number, leading?:boolean};
+
 declare type FlowFn =((...flows:WorkFlow[])=>MethodDecoratorCaller)&{
     force:<S=any, T extends Model<S>=Model<S>>(target:T, workFlow?:WorkFlow)=>T,
     error:<
@@ -227,7 +231,9 @@ export class Flows {
 
   static latest():WorkFlow;
 
-  static debounce(ms:number, leading?:boolean):WorkFlow;
+  static debounce(ms:number|DebounceFlowConfig, leading?:boolean):WorkFlow;
+
+  static block(timeout?:number|BlockFlowConfig):WorkFlow;
 }
 
 export class MiddleWares {

@@ -163,6 +163,10 @@ export type LaunchHandler = {
 
 export type WorkFlow = (runtime:FlowRuntime)=>LaunchHandler;
 
+export type DebounceFlowConfig = {time:number, leading?:boolean};
+
+export type BlockFlowConfig = {timeout?:number};
+
 export type Runtime<T extends Record<string, any>=any> = {
   methodName: string;
   args?: any[];

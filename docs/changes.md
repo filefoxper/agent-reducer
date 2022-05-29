@@ -204,3 +204,8 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.5.4 2022-05-25
 
 * [rollback] rollback to `4.4.0`.
+
+# v4.5.5 2022-05-29
+
+* [design] add `Flows.block` WorkFlow mode.
+* [design] update `Flows.debounce` interface.
