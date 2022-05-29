@@ -276,3 +276,90 @@ describe('use `flow.force` API',()=>{
     });
 
 });
+
+describe('use Flows',()=>{
+
+    type User = {
+        id?: number,
+        username: string,
+        role?: 'master' | 'user' | 'guest',
+        password?: string
+        name?: string,
+        age?: number,
+        sex?: 'male' | 'female'
+    };
+
+    class UserModel implements Model<User> {
+
+        state: User = {
+            username: 'guest'
+        };
+
+        updateUser(user: User): User {
+            return user;
+        }
+
+        @flow(Flows.block())
+        async fetchUser(username: string) {
+            const user: User = await new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    resolve({
+                        id: 1,
+                        username: username,
+                        name: username,
+                        role: 'user',
+                        age: 20
+                    } as User);
+                },200);
+            });
+            this.updateUser(user);
+        }
+
+        @flow(Flows.block({timeout:100}))
+        async fetchUserInTime(username: string) {
+            const user: User = await new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    resolve({
+                        id: 1,
+                        username: username,
+                        name: username,
+                        role: 'user',
+                        age: 20
+                    } as User);
+                },200);
+            });
+            this.updateUser(user);
+        }
+
+    }
+
+    test('use `Flows.block` to block a method until this method is truly end',async ()=>{
+        const {agent, connect, disconnect} = create(UserModel);
+        connect();
+        const p1 = agent.fetchUser('ab');
+        const p2 = agent.fetchUser('bc')
+        await Promise.all([p1,p2]);
+
+        expect(agent.state.username).toBe('ab');
+        disconnect();
+    });
+
+    test('use `Flows.block` to block a method until this method is truly end, or over 100 ms',async ()=>{
+        const {agent, connect, disconnect} = create(UserModel);
+        connect();
+        const p1 = agent.fetchUserInTime('ab');
+        const p2 = agent.fetchUserInTime('bc');
+        const p3 = Promise.all([p1,p2]);
+        const p4 = new Promise((resolve)=>{
+            setTimeout(()=>{
+                resolve(agent.fetchUserInTime('cd'));
+            },100);
+        });
+        await p3;
+        expect(agent.state.username).toBe('ab');
+        await Promise.all([p3,p4]);
+        expect(agent.state.username).toBe('cd');
+        disconnect();
+    });
+
+});

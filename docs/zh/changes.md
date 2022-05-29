@@ -212,3 +212,8 @@
 # 4.5.4 2022-05-25
 
 * [rollback] 回滚至 `4.4.0`.
+
+# v4.5.5 2022-05-29
+
+* [design] 添加 `Flows.block` 工作模式。
+* [design] 更新 `Flows.debounce` 接口。

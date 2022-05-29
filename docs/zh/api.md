@@ -654,22 +654,29 @@ export declare const flow:FlowFn;
 
 ## Flows
 
-工作模式集合，目前有：`Flows.latest()` 和 `Flows.debounce()` 两个成员。
+工作模式集合。
 
 ```typescript
+type BlockFlowConfig = {timeout?:number};
+
+type DebounceFlowConfig = {time:number, leading?:boolean};
+
 export class Flows {
 
   static default():WorkFlow;
 
   static latest():WorkFlow;
 
-  static debounce(ms:number, leading?:boolean):WorkFlow;
+  static debounce(ms:number|DebounceFlowConfig, leading?:boolean):WorkFlow;
+
+  static block(timeout?:number|BlockFlowConfig):WorkFlow;
 }
 ```
 
 * Flows.default - 默认工作模式，和无传参的 `@flow()` 等效。
 * Flows.latest - 只允许最新工作流方法产生的 state 变更生效.
 * Flows.debounce - 使工作流方法以 debounce 防抖模式运行. 
+* Flows.block - 工作流方法以原子性特性运行。如一个方法没有结束，则不能再次运行。多用于Promise返回类型的异步方法。
 
 ## effect
 
