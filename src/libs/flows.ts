@@ -33,11 +33,17 @@ export class Flows {
   static latest():WorkFlow {
     return function process(runtime:FlowRuntime):LaunchHandler {
       const { state } = runtime;
-      const version = (state.version || 0) + 1;
-      state.version = version;
+      let version:number|null = null;
       return {
         shouldUpdate() {
           return state.version === version;
+        },
+        invoke(method) {
+          return function latestMethod(...args:any[]) {
+            version = (state.version || 0) + 1;
+            state.version = version;
+            return method(...args);
+          };
         },
       };
     };
