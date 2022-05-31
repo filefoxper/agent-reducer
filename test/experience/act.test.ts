@@ -331,6 +331,38 @@ describe('use Flows',()=>{
             this.updateUser(user);
         }
 
+        @flow(Flows.block(),Flows.latest())
+        async fetchUserBlockLatest(username: string) {
+            const user: User = await new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    resolve({
+                        id: 1,
+                        username: username,
+                        name: username,
+                        role: 'user',
+                        age: 20
+                    } as User);
+                },200);
+            });
+            this.updateUser(user);
+        }
+
+        @flow(Flows.latest(),Flows.block())
+        async fetchUserLatestBlock(username: string) {
+            const user: User = await new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    resolve({
+                        id: 1,
+                        username: username,
+                        name: username,
+                        role: 'user',
+                        age: 20
+                    } as User);
+                },200);
+            });
+            this.updateUser(user);
+        }
+
     }
 
     test('use `Flows.block` to block a method until this method is truly end',async ()=>{
@@ -359,6 +391,28 @@ describe('use Flows',()=>{
         expect(agent.state.username).toBe('ab');
         await Promise.all([p3,p4]);
         expect(agent.state.username).toBe('cd');
+        disconnect();
+    });
+
+    test('composite `Flows.block` and `Flows.latest`',async ()=>{
+        const {agent, connect, disconnect} = create(UserModel);
+        connect();
+        const p1 = agent.fetchUserBlockLatest('ab');
+        const p2 = agent.fetchUserBlockLatest('bc');
+        const p3 = Promise.all([p1,p2]);
+        await p3;
+        expect(agent.state.username).toBe('ab');
+        disconnect();
+    });
+
+    test('composite `Flows.latest` and `Flows.block`',async ()=>{
+        const {agent, connect, disconnect} = create(UserModel);
+        connect();
+        const p1 = agent.fetchUserLatestBlock('ab');
+        const p2 = agent.fetchUserLatestBlock('bc');
+        const p3 = Promise.all([p1,p2]);
+        await p3;
+        expect(agent.state.username).toBe('guest');
         disconnect();
     });
 

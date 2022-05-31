@@ -217,3 +217,7 @@
 
 * [design] 添加 `Flows.block` 工作模式。
 * [design] 更新 `Flows.debounce` 接口。
+
+# 4.5.6 2022-05-30
+
+* [design] 将 `Flows.latest` 生效时机变更至 invoke 生命周期，以便于组合。
