@@ -217,7 +217,7 @@ type BlockFlowConfig = {timeout?:number};
 type DebounceFlowConfig = {time:number, leading?:boolean};
 
 declare type FlowFn =((...flows:WorkFlow[])=>MethodDecoratorCaller)&{
-    force:<S=any, T extends Model<S>=Model<S>>(target:T, workFlow?:WorkFlow)=>T,
+    force:<S=any, T extends Model<S>=Model<S>>(target:T, ...workFlows:WorkFlow[])=>T,
     error:<
         S=any,
         T extends Model<S>=Model<S>

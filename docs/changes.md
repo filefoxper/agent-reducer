@@ -213,3 +213,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.5.6 2022-05-30
 
 * [design] move version modify of `Flows.latest` from process to invoke, and make `Flows.latest` more easy for compositing with other Flows.
+
+# 4.6.0 2022-06-27
+
+* [design] add [strict](/api?id=strict), [act](/api?id=act) API.

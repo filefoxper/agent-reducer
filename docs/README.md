@@ -22,13 +22,3 @@ The difference with library like [redux](https://redux.js.org), `agent-reducer` 
 * [Experience](/experience.md)
 * [API Reference](/api.md)
 * [Change Logs](/changes.md)
-
-# notice
-
-## ~~4.5.0 to 4.5.3~~
-
-* [deprecated]  This design is for react only. It is not reasonable, and we are so sorry for making that decision. We will rollback to `4.4.0`, and force `use-agent-reducer` rollback too.
-
-## 4.5.4
-
-* [rollback] rollback to `4.4.0`.

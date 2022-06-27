@@ -82,7 +82,7 @@ export function noop():void {
   /* noop */
 }
 
-export function validate(check: boolean, errorMessage:string):void {
+export function validate(check: boolean, errorMessage:string):void|never {
   if (check) {
     return;
   }
