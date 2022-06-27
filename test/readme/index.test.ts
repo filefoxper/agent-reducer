@@ -1,37 +1,5 @@
-[![npm][npm-image]][npm-url]
-[![standard][standard-image]][standard-url]
-
-[npm-image]: https://img.shields.io/npm/v/agent-reducer.svg?style=flat-square
-[npm-url]: https://www.npmjs.com/package/agent-reducer
-[standard-image]: https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square
-[standard-url]: http://npm.im/standard
-
-# agent-reducer
-
-`agent-reducer` is a model container for Javascript apps.
-
-It helps you write applications with a micro `mvvm` pattern and provides a great developer experience, you can see details [here](https://filefoxper.github.io/agent-reducer/#/).
-
-## Other language
-
-[中文](https://github.com/filefoxper/agent-reducer/blob/master/README_zh.md)
-
-## Basic usage
-
-Let's have some examples to learn how to use it. 
-
-The example below is a counter, we can increase or decrease the state.
-
-```typescript
-import { 
-    effect, 
-    Flows,
-    create, 
-    act, 
-    strict, 
-    flow, 
-    Model 
-} from "agent-reducer";
+import { Model } from "../../index";
+import { effect, Flows,create, act, strict, flow } from "../../src";
 
 describe("basic", () => {
   // a class model template for managing a state
@@ -93,31 +61,6 @@ describe("basic", () => {
     disconnect();
   });
 });
-    
-```
-
-The operation is simple:
-
-1. create `agent` object
-2. connect
-3. call method from `agent` object
-4. the method called yet can use what it `returns` to change model state (this step is automatic)
-5. disconnect
-
-It works like a redux reducer, that is why it names `agent-reducer`.
-
-Let's see a more complex example, and we will use it to manage a filterable list actions.
-
-```typescript
-import { 
-    effect, 
-    Flows,
-    create, 
-    act, 
-    strict, 
-    flow, 
-    Model 
-} from "agent-reducer";
 
 describe("use flow", () => {
   type State = {
@@ -218,81 +161,3 @@ describe("use flow", () => {
     disconnect();
   })
 });
-```
-
-The example above uses decorators like `@flow` and `@effect` to make a list manage model, which can fetch list from remote service and filter by keywords.
-
-## Share state change synchronously
-
-`agent-reducer` stores state, caches, listeners in the model instance, so you can share state change synchronously between two or more different agent objects from the same model instance.
-
-```typescript
-import {
-    create,
-    Action,
-    Model
-} from 'agent-reducer';
-
-describe('update by observing another agent',()=>{
-
-    // this is a counter model,
-    // we can increase or decrease its state
-    class Counter implements Model<number> {
-
-        state = 0;  // initial state
-
-        // consider what the method returns as a next state for model
-        stepUp = (): number => this.state + 1;
-
-        stepDown = (): number => this.state - 1;
-
-        step(isUp: boolean):number{
-            return isUp ? this.stepUp() : this.stepDown();
-        }
-
-    }
-
-    const counter = new Counter();
-
-    test('an agent can share state change with another one, if they share a same model instance',()=>{
-        // we create two listeners `dispatch1` and `dispatch2` for different agent reducer function
-        const dispatch1 = jest.fn().mockImplementation((action:Action)=>{
-            // the agent action contains a `state` property,
-            // this state is what the model state should be now.
-            expect(action.state).toBe(1);
-        });
-        const dispatch2 = jest.fn().mockImplementation((action:Action)=>{
-            expect(action.state).toBe(1);
-        });
-        // use create api,
-        // you can create an `Agent` object from its `Model`
-        const reducer1 = create(counter);
-        const reducer2 = create(counter);
-        // before call the methods,
-        // you need to connect it first,
-        // you can add a listener to listen the agent action,
-        // by using connect function
-        reducer1.connect(dispatch1);
-        reducer2.connect(dispatch2);
-        // calling result which is returned by method `stepUp` will be next state.
-        // then reducer1.agent will notify state change to reducer2.agent.
-        reducer1.agent.stepUp();
-
-        expect(dispatch1).toBeCalled();     // dispatch1 work
-        expect(dispatch2).toBeCalled();     // dispatch2 work
-        expect(counter.state).toBe(1);
-    });
-
-});
-
-```
-
-This example may not easy for understanding, but consider if we use this feature in a view library like React, we can update state synchronously between different components without `props` or `context`， and these components will rerender synchronously. You can use it easily with its React connnector [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer).
-
-## Connector
-
-* [use-agent-reducer](https://www.npmjs.com/package/use-agent-reducer)
-
-## Document
-
-If you want to learn more, you can go into our [document](https://filefoxper.github.io/agent-reducer/#/) for more details.

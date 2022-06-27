@@ -11,7 +11,7 @@ import {
   agentActMethodAgentLevelKey,
   agentCallingMiddleWareKey,
   agentFlowForceWorkFlow,
-  agentModelFlowMethodKey,
+  agentModelFlowMethodKey, agentStrictModelActMethodKey,
   isAgent,
 } from './defines';
 import { defaultFlow } from './flows';
@@ -26,23 +26,28 @@ export default function flow(
     validate(typeof (p as unknown) === 'string', 'The `flow` decorator can not use on class');
     const source = target[p];
     const methodMiddleWare = source[agentCallingMiddleWareKey];
+    const isActionMethod = source[agentStrictModelActMethodKey];
     validate(!methodMiddleWare, 'The `flow` decorator can not use with method middleWare');
+    validate(!isActionMethod, 'The `flow` decorator can not use on an action method');
     source[agentModelFlowMethodKey] = workableActor;
     return source;
   };
 }
 
-flow.force = function force<S=any, T extends Model<S>=Model<S>>(target:T, workFlow?:WorkFlow):T {
+flow.force = function force<S=any, T extends Model<S>=Model<S>>(
+  target:T, ...workFlows:WorkFlow[]
+):T {
   if (!isAgent(target) || !target[agentActMethodAgentLevelKey]) {
     validate(false, 'API `flow.force(...)` can only work in an flow method');
-    return target;
-  }
-  if (workFlow && typeof workFlow !== 'function') {
-    validate(false, 'The param `workFlow` is not a function or undefined value.');
-    return target;
   }
   const [self] = copyAgentWithEnv<S, T>(target);
-  self[agentFlowForceWorkFlow] = workFlow || target;
+  const works = workFlows.filter((f) => typeof f === 'function');
+  self[agentFlowForceWorkFlow] = (function computeForce() {
+    if (!works.length) {
+      return target;
+    }
+    return applyFlows(...works, defaultFlow);
+  }());
   return self;
 };
 

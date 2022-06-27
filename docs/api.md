@@ -727,6 +727,22 @@ return Avatar object:
 * current - the current working interfaces object. If the used function from implements is not exist, it will take the right function from `interfaces object` for a replace.
 * implement - callback, accept a implement object for `interfaces object`.
 
+## act
+
+Mark out the action methods, when a model detects there are methods with this decorator, it will force this model to strict working mode.
+
+```typescript
+export declare function act():MethodDecoratorCaller;
+```
+
+## strict
+
+Mark out a model working in strict model. When the model working in a strict mode, only the methods with `act` decorator can update state. And this decorator can detect if there is any `act` decorated method.
+
+```typescript
+export declare function strict():DecoratorCaller;
+```
+
 ## experience
 
 This API is used for using new features or APIs which are still in  experience mode.

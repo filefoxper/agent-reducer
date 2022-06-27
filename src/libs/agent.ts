@@ -364,10 +364,9 @@ export function generateAgent<S, T extends Model<S>>(
 
   const produceMethod = methodProducer<S, T>(invokeDependencies, copyInfo);
 
-  const isModelStrict = entry[agentStrictModelKey];
-
   const proxy: T = createProxy(entry, {
     get(target: T, p: string & keyof T): any {
+      const isModelStrict = entry[agentStrictModelKey];
       const source = target[p];
       if (p === agentIdentifyKey) {
         return agentParams.isAgent;
@@ -385,7 +384,7 @@ export function generateAgent<S, T extends Model<S>>(
         return agentParams.forceFlow;
       }
       if (typeof source === 'function' && source[agentCallingEffectTargetKey]) {
-        validate(false, 'The effect method can not be used as an action method');
+        validate(false, 'The effect method can not be get from agent object');
       }
       if (
         typeof source === 'function'

@@ -221,3 +221,7 @@
 # 4.5.6 2022-05-30
 
 * [design] 将 `Flows.latest` 生效时机变更至 invoke 生命周期，以便于组合。
+
+# 4.6.0 2022-06-27
+
+* [design] 体验版 API [strict](/zh/api?id=strict), [act](/zh/api?id=act) 转正。

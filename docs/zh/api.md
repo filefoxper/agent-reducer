@@ -716,6 +716,22 @@ export declare function avatar<
 
 该方法主要用作平台接口与模型的交接。
 
+## act
+
+用于标识行为方法，并同时进入严格模式。
+
+```typescript
+export declare function act():MethodDecoratorCaller;
+```
+
+## strict
+
+用于把当前模型强行标记为严格模式，并检查模型方法是否包含 act 行为方法。严格模式下，只有 act 修饰方法才能更迭 state。
+
+```typescript
+export declare function strict():DecoratorCaller;
+```
+
 ## experience
 
 用于开启体验模式。
