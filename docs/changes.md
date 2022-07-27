@@ -217,3 +217,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.6.0 2022-06-27
 
 * [design] add [strict](/api?id=strict), [act](/api?id=act) API.
+
+# 4.6.1 2022-07-27
+
+* [bug] resolve the problem about typescript support for `sharing.initial` returning.

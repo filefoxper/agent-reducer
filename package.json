@@ -1,6 +1,6 @@
 {
   "name": "agent-reducer",
-  "version": "4.6.0",
+  "version": "4.6.1",
   "main": "dist/agent-reducer.mini.js",
   "typings": "index.d.ts",
   "author": "Jimmy.Harding",

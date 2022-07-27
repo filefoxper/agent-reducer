@@ -225,3 +225,7 @@
 # 4.6.0 2022-06-27
 
 * [design] 体验版 API [strict](/zh/api?id=strict), [act](/zh/api?id=act) 转正。
+
+# 4.6.1 2022-07-27
+
+* [bug] 解决 typescript 对 `sharing` 或 `weakSharing` 提供的 `initial` 方法返回值支持差的问题。

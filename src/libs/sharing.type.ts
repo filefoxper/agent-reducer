@@ -18,7 +18,7 @@ export type SharingRef<
     T extends OriginAgent<S>= OriginAgent<S>,
     > = {
     current:T,
-    initial:Factory<S, T>
+    initial:(...args:any[])=>T
 }
 
 export type ModelConnector<

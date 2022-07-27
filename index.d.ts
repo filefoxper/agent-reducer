@@ -80,7 +80,7 @@ export declare type SharingRef<
     T extends Model<S>= Model<S>,
     > = {
     current:T,
-    initial:Factory<S, T>
+    initial:(...args:any[])=>T
 };
 
 export declare function sharing<
