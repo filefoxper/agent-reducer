@@ -221,3 +221,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.6.1 2022-07-27
 
 * [bug] resolve the problem about typescript support for `sharing.initial` returning.
+
+# 4.6.2 2022-07-30
+
+* [design] make the avatar object can implement parts of it at different times.
