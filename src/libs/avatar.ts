@@ -1,6 +1,5 @@
 import { createProxy, isObject, validate } from './util';
 import { Avatar } from './global.type';
-import { validateExperience } from './experience';
 
 export default function avatar<
     T extends Record<string, unknown>
@@ -21,7 +20,11 @@ export default function avatar<
       },
     }) as T,
     implement(impl:Partial<T>) {
-      global = impl;
+      if (!global) {
+        global = impl;
+      } else {
+        global = { ...global, ...impl };
+      }
       return () => {
         global = undefined;
       };

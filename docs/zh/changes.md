@@ -229,3 +229,7 @@
 # 4.6.1 2022-07-27
 
 * [bug] 解决 typescript 对 `sharing` 或 `weakSharing` 提供的 `initial` 方法返回值支持差的问题。
+
+# 4.6.2 2022-07-30
+
+* [design] avatar 对象可以多次调用 implement ，每次以合并增加的形式累积实现。

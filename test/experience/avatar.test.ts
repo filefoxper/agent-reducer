@@ -151,6 +151,24 @@ describe('how to use model avatar', () => {
             }
         }
 
+        @flow(Flows.latest())
+        async errorLoadSource(){
+            this.load();
+            try {
+                const source: User[] = await new Promise((resolve,reject) => {
+                    reject('error');
+                });
+                this.changeSource(source);
+                // use prompt.current.success to popup a message `fetch success`
+                this.prompt.current.success('fetch success!');
+            } catch (e) {
+                // use prompt.current.error to popup a error message
+                this.prompt.current.error(e);
+            }finally {
+                this.unload();
+            }
+        }
+
     }
 
     test('If you want to use `avatar` in model, please build avatar inside model', async () => {
@@ -171,6 +189,34 @@ describe('how to use model avatar', () => {
         expect(success).toBeCalledTimes(1);
         disconnect();
         anotherDisconnect();
+        // if you do not need this avatar,
+        // please destroy it finally
+        destroy();
+    });
+
+    test('You can implement parts of an avatar object at different times.', async () => {
+        const success = jest.fn().mockImplementation((info:string)=>console.log(info));
+        const error = jest.fn().mockImplementation((info:string)=>console.log(info));
+
+        const {agent, connect, disconnect} = create(UserListModel);
+        // implement avatar for different models
+        const destroy = agent.prompt.implement({
+            success,
+        });
+        connect();
+        await agent.loadSource();
+        // the agent.prompt is implemented with avatar,
+        // the another one is not.
+        expect(success).toBeCalledTimes(1);
+        // implements parts of avatar at different times
+        agent.prompt.implement({
+            error,
+        });
+        await agent.errorLoadSource();
+        await agent.loadSource();
+        expect(success).toBeCalledTimes(2);
+        expect(error).toBeCalledTimes(1);
+        disconnect();
         // if you do not need this avatar,
         // please destroy it finally
         destroy();
