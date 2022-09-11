@@ -229,3 +229,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.6.3 2022-09-11
 
 * [design] add `action` as a param for `addEffect` callback and effect method.
+
+# 4.6.4 2022-09-11
+
+* [bug] complete `action` type to `index.d.ts` file.
