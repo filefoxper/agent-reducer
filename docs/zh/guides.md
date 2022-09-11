@@ -155,10 +155,14 @@ describe('严格模式和显式行为',()=>{
 基本用法如下：
 
 ```typescript
-addEffect((prevState, currentState, methodName)=>{
-    // `prevState` 当前 state 变更之前的模型 state
-    // `currentState` 当前模型 state
+addEffect((prevState, state, methodName, action)=>{
+    // `prevState` 本次变更之前的模型 state
+    // `state` 本次变更后模型 state
     // `methodName` 引起本次变化的方法名，
+    // `action` 引起本次变化的方法产生的行为集合，
+    // action:{type:string, prevState:State, state:State, params:any[]}
+    // 其中 action.type 等价于 methodName, action.params 为本次变更方法参数
+
     // 在直接监听模型 state 变更时，当前 callback 函数
     // 会在模型空闲时立即执行一次，这时因为并没有方法引起 state 变更，
     // 所以 `methodName` 为 null

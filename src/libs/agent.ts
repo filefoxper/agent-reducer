@@ -42,11 +42,11 @@ function generateDispatchCall<S, T extends Model<S>>(
   proxy:T,
 ) {
   const { store, env } = invokeDependencies;
-  return ({ type, state }: Action) => {
+  return ({ type, state, params }: Action) => {
     if ((!proxy[agentDependenciesKey]) && env.expired) {
       return;
     }
-    store.dispatch({ type, state });
+    store.dispatch({ type, state, params });
   };
 }
 
@@ -57,19 +57,21 @@ function generateDispatchCall<S, T extends Model<S>>(
  * @param invokeDependencies
  * @param proxy
  */
-function createDispatchStateProcess<S, T extends Model<S>>(
+function createDispatcher<S, T extends Model<S>>(
   methodName: string,
   invokeDependencies: AgentDependencies<S, T>,
   proxy:T,
 ) {
   const dispatchCall = generateDispatchCall(invokeDependencies, proxy);
-  return function finalStateProcess<NS = S>(nextState: NS): NS {
-    const launchHandler = proxy[agentActMethodAgentLaunchHandlerKey];
-    if (launchHandler && typeof launchHandler.shouldUpdate === 'function' && !launchHandler.shouldUpdate()) {
+  return function withParamDispatcher(params:any[] = []) {
+    return function finalStateProcess<NS = S>(nextState: NS): NS {
+      const launchHandler = proxy[agentActMethodAgentLaunchHandlerKey];
+      if (launchHandler && typeof launchHandler.shouldUpdate === 'function' && !launchHandler.shouldUpdate()) {
+        return nextState;
+      }
+      dispatchCall({ type: methodName, state: nextState, params });
       return nextState;
-    }
-    dispatchCall({ type: methodName, state: nextState });
-    return nextState;
+    };
   };
 }
 
@@ -107,7 +109,7 @@ function createActionRunner<S, T extends Model<S>>(
   methodName: string,
 ) {
   // create final stateProcess
-  const dispatchStateProcess = createDispatchStateProcess(methodName, invokeDependencies, proxy);
+  const dispatcher = createDispatcher(methodName, invokeDependencies, proxy);
 
   const {
     cache, functionCache, entry,
@@ -147,6 +149,7 @@ function createActionRunner<S, T extends Model<S>>(
       const nextState = mappedModel !== null
         ? modelMethod.apply(mappedModel, [...args])
         : modelMethod.apply(entry, [...args]);
+      const dispatchStateProcess = dispatcher([...args]);
       const stateProcess = nextProcess(dispatchStateProcess);
       // pass nextState returned by current method to middleWare stateProcess,
       // middleWare use stateProcess to reproduce state,

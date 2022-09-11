@@ -26,8 +26,8 @@ describe('the basic usage about effect', () => {
         const {agent, connect, disconnect} = create(model);
         connect();
 
-        // effect callback accepts params: prevState, state, methodName
-        const effectCallback: EffectCallback<number> = jest.fn((prev,state) => {
+        // effect callback accepts params: prevState, state, methodName, action
+        const effectCallback: EffectCallback<number> = jest.fn((prev,state,methodName,action) => {
             if (state < 0) {
                 // time: 3
                 // if the state is lt 0,
