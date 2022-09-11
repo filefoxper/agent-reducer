@@ -29,6 +29,7 @@ export type Action = {
   type: string;
   state?: any;
   prevState?:any;
+  params?:any[]
 };
 
 export type ActionWrap={
@@ -67,6 +68,7 @@ export type EffectCallback<S=any, T extends Model<S>=Model> = (
     prevState:S,
     state:S,
     methodName:string|null,
+    action:Action|null
 )=>void|(()=>void);
 
 export type Effect<S=any, T extends Model<S>=Model> = {

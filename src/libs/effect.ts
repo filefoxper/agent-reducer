@@ -75,7 +75,7 @@ function createEffect<S=any, T extends Model<S> = Model>(
     }
     const { state } = model;
     try {
-      const destroy = callback(state, state, null);
+      const destroy = callback(state, state, null, null);
       effect.destroy = typeof destroy === 'function' ? destroy : null;
     } catch (e) {
       unblockThrow(e);
@@ -172,7 +172,7 @@ export function runEffects<S=any, T extends Model<S> = Model>(
       return;
     }
     try {
-      const destroy = callback(prevState, state, type);
+      const destroy = callback(prevState, state, type, action);
       ef.destroy = typeof destroy === 'function' ? destroy : null;
     } catch (e) {
       unblockThrow(e);

@@ -60,7 +60,7 @@ describe('try decorator effect', () => {
         @flow(Flows.debounce(200))
         @effect(()=>UserListModel.prototype.changeSource)
         @effect(() => UserListModel.prototype.changeFilterName)
-        filterEffect() {
+        filterEffect(prevState:UserListState) {
             // if the `filterName` or `source` in state changes,
             // invoke filter to change state.
             // In effect, we can call state change methods to change state.
