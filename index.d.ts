@@ -43,9 +43,11 @@ export declare type LifecycleMiddleWare = (
     lifecycle: true;
 };
 
-export declare type Action = {
+export declare type Action<T=unknown> = {
     type: string;
-    state?: any;
+    prevState:T;
+    state: T;
+    params:unknown[];
 };
 
 type Dispatch = (action: Action) => any;
@@ -162,7 +164,7 @@ export declare class LifecycleMiddleWares {
 }
 
 export declare type EffectCallback<S> = (
-    prevState:S, nextState:S, methodName:string|null
+    prevState:S, nextState:S, methodName:string|null, action:Action|null
 )=>void|(()=>void);
 
 declare type EffectWrap<S=any, T extends Model<S>=Model> = {
