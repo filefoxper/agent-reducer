@@ -233,3 +233,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.6.4 2022-09-11
 
 * [bug] complete `action` type to `index.d.ts` file.
+
+# 4.6.5 2022-09-19
+
+* [bug] resolve the problem about `@effect` can not listen to the `extends action methods`.

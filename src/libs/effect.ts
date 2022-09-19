@@ -247,7 +247,15 @@ function checkEffectMethod<
     >(entity:T, method:(...args:any[])=>any):boolean {
   const mayValidateMethod = (method as ((...args:any[])=>any)&{[agentMethodName]:string});
   const methodName = mayValidateMethod[agentMethodName];
-  return !!(methodName && entity[methodName]);
+  if (methodName) {
+    return !!entity[methodName];
+  }
+  const sourceName = mayValidateMethod.name;
+  if (sourceName) {
+    mayValidateMethod[agentMethodName] = sourceName;
+    return !!entity[sourceName];
+  }
+  return false;
 }
 
 function recomposeMethods<
