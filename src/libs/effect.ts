@@ -274,12 +274,26 @@ function recomposeMethods<
   return [];
 }
 
+function getProtoNames(
+  object:Record<string, any>,
+  protoSet:Set<Record<string, any>> = new Set<Record<string, any>>(),
+):string[] {
+  const proto = Object.getPrototypeOf(object);
+  if (proto == null) {
+    return [];
+  }
+  validate(!protoSet.has(proto), 'A loop extends has detected, please check your models.');
+  const names = Object.getOwnPropertyNames(proto);
+  const protoNames = getProtoNames(proto, new Set([...protoSet, proto]));
+  const set = new Set([...names, ...protoNames]);
+  return [...set];
+}
+
 export function addMethodEffects<
     S,
     T extends Model<S> = Model<S>
     >(entity:T, methodEffectBuilder:(effectMethod:EffectMethod<S, T>, args:any[])=>any):void {
-  const prototype = Object.getPrototypeOf(entity);
-  const names = Object.getOwnPropertyNames(prototype);
+  const names = getProtoNames(entity);
   names.forEach((name) => {
     const value = entity[name];
     if (typeof value !== 'function') {

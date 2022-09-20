@@ -317,6 +317,18 @@ describe(' extends effect',()=>{
 
     }
 
+    class At extends Dt{
+
+    }
+
+    class Ct extends At{
+
+    }
+
+    class Bt extends Ct{
+
+    }
+
     test('use extends',()=>{
         const {agent,connect,disconnect} = create(Dt);
         connect();
@@ -324,4 +336,15 @@ describe(' extends effect',()=>{
         expect(agent.state).toBe(0);
         disconnect();
     });
+
+    test('use deep extends',()=>{
+        const {agent,connect,disconnect} = create(Bt);
+        connect();
+        agent.decrease();
+        expect(agent.state).toBe(0);
+        agent.increase();
+        expect(agent.state).toBe(1);
+        disconnect();
+    });
+
 });
