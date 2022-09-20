@@ -237,3 +237,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.6.5 2022-09-19
 
 * [bug] resolve the problem about `@effect` can not listen to the `extends action methods`.
+
+# 4.6.6 2022-09-20
+
+* [bug] resolve the problem about `@effect` in `extends model` can not be triggered.
