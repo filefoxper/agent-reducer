@@ -285,3 +285,43 @@ describe('async effect',()=>{
     });
 
 });
+
+describe(' extends effect',()=>{
+
+    class Counter implements Model<number>{
+
+        state:number = 0;
+
+        increase(){
+            return this.state+1;
+        }
+
+        decrease(){
+            return this.state-1;
+        }
+
+        reset(){
+            return 0;
+        }
+
+    }
+
+    class Dt extends Counter{
+
+        @effect(()=>Dt.prototype.decrease)
+        effect(){
+            if(this.state<0){
+                this.reset();
+            }
+        }
+
+    }
+
+    test('use extends',()=>{
+        const {agent,connect,disconnect} = create(Dt);
+        connect();
+        agent.decrease();
+        expect(agent.state).toBe(0);
+        disconnect();
+    });
+});
