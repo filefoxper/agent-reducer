@@ -250,7 +250,7 @@ function createMethodEffectBuilder<
       const runtime = createFlowRuntime<S, T>(effectAgent, entity, methodName);
       const sourceActor = effectMethod[agentModelFlowMethodKey];
       const actor = (!sourceActor || sourceActor === noop ? defaultFlow : sourceActor) as WorkFlow;
-      const launchHandler = actor(runtime);
+      const launchHandler = actor(runtime) || defaultFlow(runtime);
       const { shouldLaunch, didLaunch, invoke } = launchHandler;
       effectAgent[agentActMethodAgentLaunchHandlerKey] = launchHandler;
       disconnect();

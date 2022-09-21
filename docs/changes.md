@@ -241,3 +241,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.6.6 2022-09-20
 
 * [bug] resolve the problem about `@effect` in `extends model` can not be triggered.
+
+# 4.6.7 2022-09-21
+
+* [bug] resolve the problem about can not find WorkFlow mode in `extends flow method`.
