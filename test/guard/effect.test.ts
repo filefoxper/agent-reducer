@@ -1,4 +1,4 @@
-import {addEffect, create, effect, experience} from "../../src";
+import {addEffect, create, effect, experience,flow,Flows} from "../../src";
 import {EffectCallback, Model} from "../../src/libs/global.type";
 import {agentEffectsKey} from "../../src/libs/defines";
 
@@ -300,6 +300,11 @@ describe(' extends effect',()=>{
             return this.state-1;
         }
 
+        @flow()
+        add(){
+            this.increase();
+        }
+
         reset(){
             return 0;
         }
@@ -346,5 +351,13 @@ describe(' extends effect',()=>{
         expect(agent.state).toBe(1);
         disconnect();
     });
+
+    test('flow extends',async ()=>{
+        const {agent,connect,disconnect} = create(Bt);
+        connect();
+        agent.add();
+        expect(agent.state).toBe(1);
+        disconnect();
+    })
 
 });

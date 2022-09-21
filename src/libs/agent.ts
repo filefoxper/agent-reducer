@@ -299,7 +299,7 @@ function buildFlowMethod<S, T extends Model<S>>(
       const [self] = copyAgentWithEnv(ag);
       self[agentActMethodAgentLevelKey] = !sourceLevel ? 1 : (sourceLevel + 1);
       const runtime = createFlowRuntime(self, entry, methodName);
-      const launchHandler = actor(runtime);
+      const launchHandler = actor(runtime) || defaultFlow(runtime);
       const { shouldLaunch, didLaunch, invoke } = launchHandler;
       self[agentActMethodAgentLaunchHandlerKey] = launchHandler;
       disconnect();
