@@ -55,14 +55,17 @@ export class Flows {
     if (leading) {
       return function leadingProcess(runtime:FlowRuntime):LaunchHandler {
         const { state } = runtime;
-        clearTimeout(state.id);
-        state.active = false;
-        state.id = setTimeout(() => {
-          state.active = true;
-        }, ms);
         return {
-          shouldLaunch() {
-            return state.active;
+          invoke(method) {
+            return function debMethod(...args:any[]) {
+              if (!state.id) {
+                method(...args);
+              }
+              clearTimeout(state.id);
+              state.id = setTimeout(() => {
+                state.id = null;
+              }, ms);
+            };
           },
         };
       };
