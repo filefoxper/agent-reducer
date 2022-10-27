@@ -245,3 +245,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.6.7 2022-09-21
 
 * [bug] resolve the problem about can not find WorkFlow mode in `extends flow method`.
+
+# 4.6.8 2022-10-27
+
+* [bug] resolve the problem about using `Flows.debounce` leading status, can not run method.
