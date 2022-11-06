@@ -257,3 +257,7 @@
 # 4.6.8 2022-10-27
 
 * [bug] 解决 Flows.debounce leading 状态无法正常运行方法的问题。
+
+# 4.6.9 2022-11-06
+
+* [optmize] 去掉了在 connect 之前 disconnect 的异常。

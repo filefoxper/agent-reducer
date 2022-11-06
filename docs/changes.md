@@ -249,3 +249,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.6.8 2022-10-27
 
 * [bug] resolve the problem about using `Flows.debounce` leading status, can not run method.
+
+# 4.6.9 2022-11-06
+
+* [optmize] disconnect before connect will not throw exception from this version, it is unnecessary.

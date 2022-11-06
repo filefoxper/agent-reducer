@@ -178,7 +178,7 @@ export function createSharingModelConnector<
     },
     disconnect() {
       if (unsubscribe === null || listener === null) {
-        throw new Error('The `unsubscribe` function is `null`, please deploy `connect` function before use `disconnect`');
+        return;
       }
       unsubscribe();
       unsubscribe = null;
