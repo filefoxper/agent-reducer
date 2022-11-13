@@ -129,6 +129,11 @@ export type DecoratorCaller = (target: any, p?: string)=>any;
 
 export type MethodDecoratorCaller = (target: any, p: string)=>any;
 
+export type ActMethodDecoratorCaller = <S, T extends Model<S>>(
+  target: T,
+  p: string
+) => TypedPropertyDescriptor<(...args: any[]) => T['state']>;
+
 export type EffectDecoratorTargetMethod = ()=>((...args:any[])=>any)|(((...args:any[])=>any)[]);
 
 export type EffectDecoratorCallback<S=any, T extends Model<S>=Model> = (

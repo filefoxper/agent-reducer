@@ -37,8 +37,8 @@ describe('test of strict',()=>{
             // in strict mode,
             // only the method with `act` decorator can generate new state
             @act()
-            private load():UserListState {
-                return {...this.state, loading: true};
+            private load() {
+                return {...this.state,loading:true};
             }
 
             private changeSource(source: User[]):UserListState {

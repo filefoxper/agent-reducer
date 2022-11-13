@@ -253,3 +253,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.6.9 2022-11-06
 
 * [optmize] disconnect before connect will not throw exception from this version, it is unnecessary.
+
+# 4.7.0 2022-11-13
+
+* [optmize] make the method which uses @act decorator to returns a State type.
