@@ -261,3 +261,7 @@
 # 4.6.9 2022-11-06
 
 * [optmize] 去掉了在 connect 之前 disconnect 的异常。
+
+# 4.7.0 2022-11-13
+
+* [optmize] 优化 @act 修饰方法返回类型为模型的 State 类型。

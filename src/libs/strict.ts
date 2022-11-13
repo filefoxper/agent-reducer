@@ -1,14 +1,15 @@
 import {
-  ClassConstructorCaller, DecoratorCaller, MethodDecoratorCaller, Model,
+  ActMethodDecoratorCaller,
+  ClassConstructorCaller, DecoratorCaller, Model,
 } from './global.type';
 import { validate } from './util';
 import { agentModelFlowMethodKey, agentStrictModelActMethodKey, agentStrictModelKey } from './defines';
 
-export function act():MethodDecoratorCaller {
+export function act():ActMethodDecoratorCaller {
   return function actDecorator<S = any, T extends Model<S> = Model<S>>(
     target: T,
     p?: string,
-  ):DecoratorCaller {
+  ):TypedPropertyDescriptor<(...args:any[])=>T['state']> {
     const source = target[p as keyof T];
     validate(
       typeof (p as unknown) != null && typeof source === 'function',
@@ -17,7 +18,7 @@ export function act():MethodDecoratorCaller {
     const isFlowMethod = source[agentModelFlowMethodKey];
     validate(!isFlowMethod, 'The `act` decorator can not use on a flow method');
     source[agentStrictModelActMethodKey] = true;
-    return source as DecoratorCaller;
+    return source as TypedPropertyDescriptor<(...args:any[])=>T['state']>;
   };
 }
 
