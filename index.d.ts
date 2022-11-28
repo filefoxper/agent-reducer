@@ -197,7 +197,10 @@ export declare function experience():void;
 
 export declare function strict():DecoratorCaller;
 
-export type ActMethodDecoratorCaller = <S, T extends Model<S>>(target: T, p: keyof T)=>(...args:any[])=>T['state'];
+export type ActMethodDecoratorCaller = <S, T extends Model<S>>(
+    target: T,
+    p: string
+) => TypedPropertyDescriptor<(...args: any[]) => T['state']>;
 
 export declare function act():ActMethodDecoratorCaller;
 
