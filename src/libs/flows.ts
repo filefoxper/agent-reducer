@@ -85,6 +85,42 @@ export class Flows {
     };
   }
 
+  static submitOnce():WorkFlow {
+    function processPromiseFinished(rt:Promise<unknown>):Promise<boolean> {
+      return Promise.resolve(rt).then(() => true, () => false);
+    }
+    return function process(runtime:FlowRuntime):LaunchHandler {
+      const { state } = runtime;
+      return {
+        invoke(method) {
+          return function blockMethod(...args:any[]) {
+            if (state.running) {
+              return state.result;
+            }
+            state.running = true;
+            try {
+              const result = method(...args);
+              state.result = result;
+              if (!isPromise(result)) {
+                return state.result;
+              }
+              processPromiseFinished(result).then((success) => {
+                if (success) {
+                  return;
+                }
+                state.running = false;
+              });
+            } catch (e) {
+              state.running = false;
+              throw e;
+            }
+            return state.result;
+          };
+        },
+      };
+    };
+  }
+
   static block(config?:number|BlockFlowConfig):WorkFlow {
     const timeout = (function computeTimeout() {
       if (config == null) {

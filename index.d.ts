@@ -241,6 +241,8 @@ export class Flows {
   static debounce(ms:number|DebounceFlowConfig, leading?:boolean):WorkFlow;
 
   static block(timeout?:number|BlockFlowConfig):WorkFlow;
+
+  static submitOnce():WorkFlow;
 }
 
 export class MiddleWares {
