@@ -257,3 +257,7 @@ in this version, `runtime.cache` used in MiddleWare is independent.
 # 4.7.0 2022-11-13
 
 * [optmize] make the method which uses @act decorator to returns a State type.
+
+# 14.7.2 2022-12-07
+
+* [optmize] add Flows.submitOnce WorkFlow

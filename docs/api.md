@@ -685,6 +685,8 @@ export class Flows {
   static debounce(time:number|DebounceFlowConfig, leading?:boolean):WorkFlow;
 
   static block(timeout?:number|BlockFlowConfig):WorkFlow;
+
+  static submitOnce():WorkFlow;
 }
 ```
 
@@ -692,6 +694,7 @@ export class Flows {
 * Flows.latest - to take state changes which is leaded by the newest calling of a flow method.
 * Flows.debounce - to make the flow method work with a debounce effect.
 * Flows.block - to make flow method work atomically. It is always used on an async method, to prevent this method works again when it has not finished. The `timeout` set can release the block state, if the async method is not finished for a too long time.
+* Flows.submitOnce - to make the flow method work only once if it has no error.
 
 ## effect
 

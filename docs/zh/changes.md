@@ -265,3 +265,7 @@
 # 4.7.0 2022-11-13
 
 * [optmize] 优化 @act 修饰方法返回类型为模型的 State 类型。
+
+# 14.7.2 2022-12-07
+
+* [optmize] 增加 Flows.submitOnce 工作模式

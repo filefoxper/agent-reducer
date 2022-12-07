@@ -670,6 +670,8 @@ export class Flows {
   static debounce(ms:number|DebounceFlowConfig, leading?:boolean):WorkFlow;
 
   static block(timeout?:number|BlockFlowConfig):WorkFlow;
+
+  static submitOnce():WorkFlow;
 }
 ```
 
@@ -677,6 +679,7 @@ export class Flows {
 * Flows.latest - 只允许最新工作流方法产生的 state 变更生效.
 * Flows.debounce - 使工作流方法以 debounce 防抖模式运行. 
 * Flows.block - 工作流方法以原子性特性运行。如一个方法没有结束，则不能再次运行。多用于Promise返回类型的异步方法。
+* Flows.submitOnce - 工作流方法只能运行一次，除非发生异常（异步方法通用）
 
 ## effect
 
